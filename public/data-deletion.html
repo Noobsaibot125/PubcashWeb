@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Suppression des données - PUBCASH</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        h1, h2 {
+            color: #333;
+        }
+        p {
+            margin-bottom: 15px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        input[type="text"], input[type="email"], textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Demande de suppression de données</h1>
+        
+        <h2>Instructions pour la suppression de vos données</h2>
+        <p>Conformément au RGPD et aux lois sur la protection des données, vous avez le droit de demander la suppression de vos données personnelles.</p>
+        
+        <h2>Procédure de suppression</h2>
+        <p>Pour demander la suppression de vos données :</p>
+        <ol>
+            <li>Remplissez le formulaire ci-dessous</li>
+            <li>Nous traiterons votre demande dans un délai de 30 jours</li>
+            <li>Vous recevrez une confirmation par e-mail une fois la suppression effectuée</li>
+        </ol>
+        
+        <h2>Formulaire de demande</h2>
+        <form action="/submit-data-deletion" method="POST">
+            <div class="form-group">
+                <label for="email">Adresse e-mail associée à votre compte :</label>
+                <input type="email" id="email" name="email" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="message">Message (optionnel) :</label>
+                <textarea id="message" name="message" rows="4"></textarea>
+            </div>
+            
+            <button type="submit">Soumettre la demande</button>
+        </form>
+        
+        <h2>Contact alternatif</h2>
+        <p>Vous pouvez également nous envoyer directement un e-mail à : suppression@pubcash.com</p>
+        <p>Veuillez inclure l'adresse e-mail associée à votre compte dans votre demande.</p>
+    </div>
+</body>
+</html>

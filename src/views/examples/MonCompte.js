@@ -1,0 +1,246 @@
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { Card, CardHeader, CardBody, Container, Row, Col, Form, FormGroup, Input, Button, Spinner } from 'reactstrap';
+import api from '../../services/api';
+const MonCompteHeader = ({ profile }) => (
+  <div className="header bg-gradient-primary pb-8 pt-5 pt-md-8">
+    <Container fluid>
+      <div className="header-body">
+        <Row>
+          <Col lg="7" md="10">
+            <h1 className="display-2 text-white">Bonjour, {profile?.prenom || 'Promoteur'}</h1>
+            <p className="text-white mt-0 mb-5">
+              C'est votre espace personnel. Gérez votre solde et préparez vos prochaines campagnes de promotion.
+            </p>
+          </Col>
+        </Row>
+      </div>
+    </Container>
+  </div>
+);
+
+const MonCompte = () => {
+    const [profile, setProfile] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [rechargeAmount, setRechargeAmount] = useState(''); // Mettre une valeur par défaut est une bonne pratique
+    const [error, setError] = useState('');
+    const [success, setSuccess] = useState('');
+    const [sdkLoaded, setSdkLoaded] = useState(false);
+    const [sdkError, setSdkError] = useState(false);
+    const scriptAddedRef = useRef(false);
+
+    const fetchProfile = useCallback(async () => {
+        try {
+            const response = await api.get('/client/profile');
+            setProfile(response.data);
+        } catch (err) {
+            setError(err.message || 'Erreur de chargement du profil');
+        }
+    }, []);
+
+    useEffect(() => {
+        const loadCinetPay = () => {
+            if (scriptAddedRef.current) return;
+            scriptAddedRef.current = true;
+            
+            const script = document.createElement('script');
+            script.src = 'https://cdn.cinetpay.com/seamless/main.js';
+            script.async = true;
+            script.id = 'cinetpay-sdk';
+            script.onload = () => { setSdkLoaded(true); };
+            script.onerror = () => { setSdkError(true); setError('Impossible de charger le système de paiement'); };
+            document.body.appendChild(script);
+        };
+
+        const loadInitialData = async () => {
+            await fetchProfile();
+            loadCinetPay();
+            setLoading(false);
+        };
+
+        loadInitialData();
+
+        return () => {
+            const script = document.getElementById('cinetpay-sdk');
+            if (script) script.remove();
+        };
+    }, [fetchProfile]); // La dépendance est maintenant stable
+
+
+    const handleRecharge = async (e) => {
+        e.preventDefault();
+        setError('');
+        setSuccess('');
+
+        if (!rechargeAmount || Number(rechargeAmount) < 100) {
+            setError("Veuillez entrer un montant valide (minimum 100 FCFA).");
+            return;
+        }
+        if (!sdkLoaded || !window.CinetPay) {
+            setError("Le système de paiement n'est pas prêt. Veuillez réessayer.");
+            return;
+        }
+        
+        try {
+            // 3. On corrige l'appel d'initialisation pour utiliser 'api.post'
+            const initResp = await api.post('/client/recharge', { 
+                amount: parseFloat(rechargeAmount) 
+            });
+
+            const initData = initResp.data;
+            const transactionId = initData.checkout_data.transaction_id;
+
+            window.CinetPay.setConfig({ ...initData.cinetpay_config, mode: 'PRODUCTION' });
+            window.CinetPay.getCheckout(initData.checkout_data);
+
+            const pollingInterval = setInterval(async () => {
+                try {
+                    // 4. On corrige l'appel de vérification pour utiliser 'api.post'
+                    const verifyResp = await api.post('/client/recharge/verify', { 
+                        transaction_id: transactionId 
+                    });
+                    
+                    const verifyData = verifyResp.data;
+                    
+                    if (verifyResp.status === 200 && verifyData.message.includes('confirmé et solde mis à jour')) {
+                        clearInterval(pollingInterval);
+                        setSuccess("Paiement réussi ! Votre solde a été rechargé.");
+                        await fetchProfile();
+                    }
+
+                } catch (pollErr) {
+                    console.error("Erreur de polling:", pollErr);
+                }
+            }, 3000);
+
+            setTimeout(() => clearInterval(pollingInterval), 300000); 
+
+            window.CinetPay.waitResponse(function(data) {
+                if (data.status === "REFUSED" || data.status === "CANCELED") {
+                    clearInterval(pollingInterval);
+                    setError("Votre paiement a échoué ou a été annulé.");
+                }
+            });
+            window.CinetPay.onError(function(data) {
+                clearInterval(pollingInterval);
+                console.error('Erreur CinetPay:', data);
+                setError("Erreur lors du traitement du paiement");
+            });
+
+        } catch (err) {
+            const errorMessage = err.response?.data?.message || err.message || 'Erreur lors du démarrage du paiement';
+            console.error('Erreur handleRecharge:', err);
+            setError(errorMessage);
+        }
+    };
+    // Fonction pour recharger le profil
+
+
+    if (loading) return <div className="text-center p-5"><Spinner color="primary" /></div>;
+    if (error && !profile) return <div className="text-center p-5 text-danger">Erreur : {error}</div>
+
+    return (
+        <>
+            <MonCompteHeader profile={profile} />
+            <Container className="mt--7" fluid>
+                <Row>
+                    <Col className="order-xl-2 mb-5 mb-xl-0" xl="4">
+                        <Card className="card-profile shadow">
+                            <CardBody className="pt-0 pt-md-4">
+                                <div className="text-center mt-5">
+                                    <h3>
+                                        {profile.prenom} {profile.nom}
+                                        <span className="font-weight-light">, {profile.commune}</span>
+                                    </h3>
+                                    <div className="h5 font-weight-300">
+                                        <i className="ni location_pin mr-2" />{profile.email}
+                                    </div>
+                                    <hr className="my-4" />
+                                    <div className="d-flex justify-content-center">
+                                        <div className="pl-lg-4">
+                                            <div className="h1 font-weight-300">
+                                                {parseFloat(profile.solde_recharge).toLocaleString('fr-FR')} FCFA
+                                            </div>
+                                            <span className="description">Solde PubCash</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </CardBody>
+                        </Card>
+                    </Col>
+
+                    <Col className="order-xl-1" xl="8">
+                        <Card className="bg-secondary shadow">
+                            <CardHeader className="bg-white border-0">
+                                <Row className="align-items-center">
+                                    <Col xs="8"><h3 className="mb-0"  style={{ color: "black" }}>Mon Compte PubCash</h3></Col>
+                                </Row>
+                            </CardHeader>
+                            <CardBody>
+                                <Form onSubmit={handleRecharge}>
+                                    <h6 className="heading-small text-muted mb-4">Recharger mon compte</h6>
+                                    <div className="pl-lg-4">
+                                        <Row>
+                                            <Col lg="6">
+                                                <FormGroup>
+                                                    <label className="form-control-label" htmlFor="input-recharge">
+                                                        Montant à recharger (FCFA)
+                                                    </label>
+                                                    <Input
+                                                        className="form-control-alternative"
+                                                        id="input-recharge"
+                                                        placeholder="Ex: 5000"
+                                                        type="number"
+                                                        min="100"
+                                                        step="100"
+                                                        value={rechargeAmount}
+                                                        onChange={(e) => setRechargeAmount(e.target.value)}
+                                                        required
+                                                    />
+                                                    <small className="form-text text-muted">
+                                                        Minimum: 100 FCFA
+                                                    </small>
+                                                </FormGroup>
+                                            </Col>
+                                        </Row>
+                                        <p className="small">Moyens de paiement : MTN, Orange, Moov, Wave, Visa...</p>
+                                        
+                                        {error && (
+                                            <div className="alert alert-danger my-2">
+                                                <small>{error}</small>
+                                            </div>
+                                        )}
+                                        {success && (
+                                            <div className="alert alert-success my-2">
+                                                <small>{success}</small>
+                                            </div>
+                                        )}
+                                        
+                                        {sdkError ? (
+                                            <div className="alert alert-warning">
+                                                <small>
+                                                    Le système de paiement est actuellement indisponible. 
+                                                    Veuillez réessayer plus tard ou contacter le support.
+                                                </small>
+                                            </div>
+                                        ) : (
+                                            <Button 
+                                                color="primary" 
+                                                type="submit" 
+                                                disabled={!sdkLoaded}
+                                            >
+                                                {sdkLoaded ? "Recharger" : "Chargement du système de paiement..."}
+                                            </Button>
+                                        )}
+                                    </div>
+                                </Form>
+                                <hr className="my-4" />
+                            </CardBody>
+                        </Card>
+                    </Col>
+                </Row>
+            </Container>
+        </>
+    );
+};
+
+export default MonCompte;

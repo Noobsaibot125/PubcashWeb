@@ -1,0 +1,573 @@
+@import "argon-dashboard/custom/functions";
+@import "argon-dashboard/custom/variables";
+@import "argon-dashboard/custom/mixins";
+
+// bootstrap (4.6.0) components
+
+@import "~bootstrap/scss/root";
+@import "~bootstrap/scss/reboot";
+@import "~bootstrap/scss/type";
+@import "~bootstrap/scss/images";
+@import "~bootstrap/scss/code";
+@import "~bootstrap/scss/grid";
+@import "~bootstrap/scss/tables";
+@import "~bootstrap/scss/forms";
+@import "~bootstrap/scss/buttons";
+@import "~bootstrap/scss/transitions";
+@import "~bootstrap/scss/dropdown";
+@import "~bootstrap/scss/button-group";
+@import "~bootstrap/scss/input-group";
+@import "~bootstrap/scss/custom-forms";
+@import "~bootstrap/scss/nav";
+@import "~bootstrap/scss/navbar";
+@import "~bootstrap/scss/card";
+@import "~bootstrap/scss/breadcrumb";
+@import "~bootstrap/scss/pagination";
+@import "~bootstrap/scss/badge";
+@import "~bootstrap/scss/jumbotron";
+@import "~bootstrap/scss/alert";
+@import "~bootstrap/scss/progress";
+@import "~bootstrap/scss/media";
+@import "~bootstrap/scss/list-group";
+@import "~bootstrap/scss/close";
+@import "~bootstrap/scss/modal";
+@import "~bootstrap/scss/tooltip";
+@import "~bootstrap/scss/popover";
+@import "~bootstrap/scss/carousel";
+@import "~bootstrap/scss/utilities";
+@import "~bootstrap/scss/print";
+
+// Argon utilities and components
+
+@import "argon-dashboard/custom/reboot";
+@import "argon-dashboard/custom/utilities";
+@import "argon-dashboard/custom/components";
+
+// Vendor (Plugins)
+
+@import "argon-dashboard/custom/vendors";
+
+// Docs components
+
+@import "argon-dashboard/docs/variables";
+@import "argon-dashboard/docs/nav";
+@import "argon-dashboard/docs/clipboard-js";
+@import "argon-dashboard/docs/component-examples";
+@import "argon-dashboard/docs/prism";
+@import "argon-dashboard/docs/content";
+@import "argon-dashboard/docs/sidebar";
+@import "argon-dashboard/docs/footer";
+
+// React Differences
+@import "react/react-differences";
+// Styles pour les cartes de promotion
+
+.card-lift--hover:hover {
+    transform: translateY(-5px);
+    transition: all .15s ease;
+  }
+  
+  .card-image-container {
+    position: relative;
+    overflow: hidden;
+    .card-img-overlay {
+      background-color: rgba(0,0,0,0.2);
+      opacity: 0;
+      transition: opacity .25s ease;
+    }
+    &:hover .card-img-overlay {
+      opacity: 1;
+    }
+  }
+  
+/* ------------------------------
+   Modal vidéo - style amélioré
+   Coller dans src/index.css ou src/App.css (fichier global déjà importé)
+   ------------------------------*/
+
+/* Backdrop plus doux et légèrement flou */
+.modal-backdrop.show {
+  background-color: rgba(11, 15, 22, 0.45) !important;
+  backdrop-filter: blur(4px);
+}
+
+/* Conteneur modal moderne */
+.modal .modal-dialog {
+  transition: transform .35s cubic-bezier(.2,.9,.3,1), opacity .35s ease;
+  transform: translateY(18px);
+}
+.modal.show .modal-dialog {
+  transform: translateY(0);
+}
+
+/* Arrondis, ombre portée douce et fond subtil */
+.modal-content {
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 18px 40px rgba(17, 24, 39, 0.18);
+  background: linear-gradient(180deg, #ffffff 0%, #fbfbfd 100%);
+  border: 0;
+}
+
+/* Header : gradient + titre blanc + close rond */
+.modal-header {
+  border-bottom: 0;
+  padding: 14px 20px;
+  background: linear-gradient(90deg, rgba(108,92,231,0.95), rgba(0,184,148,0.95));
+  color: #fff;
+  align-items: center;
+}
+.modal-header h4 {
+  color: #fff;
+  margin: 0;
+  font-weight: 700;
+  font-size: 1.05rem;
+  letter-spacing: -0.2px;
+}
+
+/* Bouton close blanc et rond */
+.modal-header .close {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255,255,255,0.12);
+  color: #fff;
+  border: 0;
+  opacity: 1;
+}
+.modal-header .close:hover {
+  background: rgba(255,255,255,0.18);
+}
+
+/* Corps du modal : espacement harmonieux */
+.modal-body {
+  padding: 18px;
+}
+
+/* Player wrapper : ratio 16:9, coins arrondis et fond noir propre */
+.player-wrapper {
+  border-radius: 10px;
+  overflow: hidden;
+  background: linear-gradient(180deg, #000, #050505);
+  position: relative;
+  aspect-ratio: 16 / 9; /* maintient la hauteur sans toucher le JSX */
+  box-shadow: 0 6px 18px rgba(6, 10, 18, 0.12);
+}
+
+/* S'assure que la video respecte le wrapper */
+.player-wrapper video,
+.player-wrapper iframe,
+.player-wrapper .react-player {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover;
+  display: block;
+  background: #000;
+}
+
+/* Petite barre d'information au-dessus du player (optionnelle visuelle) */
+.player-wrapper::before{
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(0,0,0,0.12) 0%, rgba(0,0,0,0) 18%);
+  pointer-events: none;
+}
+
+/* Colonne stats : titre */
+.modal .modal-body h5 {
+  font-size: 1rem;
+  margin-bottom: 1rem;
+  color: #172b4d;
+}
+
+/* ListGroupItem style nettoyé et aéré */
+.modal .list-group-item {
+  background: transparent;
+  border: 0;
+  padding: 14px 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #f3f5f8;
+}
+
+/* Icônes rondes et légèrement ombrées */
+.icon.icon-shape {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size: 16px;
+  box-shadow: 0 6px 14px rgba(15,23,42,0.06);
+}
+
+/* Couleurs neutres douces pour les icônes (utilise vos classes existantes) */
+.bg-neutral-info  { background: rgba(13,189,199,0.10) !important; color: #07a7a8 !important; }
+.bg-neutral-primary{ background: rgba(88,101,242,0.08) !important; color: #645bff !important; }
+.bg-neutral-success{ background: rgba(33,201,153,0.08) !important; color: #1bbf8f !important; }
+.bg-neutral-warning{ background: rgba(255,196,77,0.08) !important; color: #ffb020 !important; }
+
+/* Texte label des items */
+.modal .list-group-item span {
+  color: #334e68;
+  font-weight: 600;
+}
+
+/* Badges alignés et stylés : rondeur + ombre */
+.modal .list-group-item .badge {
+  min-width: 68px;
+  text-align: center;
+  font-weight: 700;
+  border-radius: 999px;
+  padding: 0.45rem 0.6rem;
+  box-shadow: 0 4px 10px rgba(11,15,22,0.05);
+  font-size: 0.85rem;
+}
+
+/* Spécifique pour le badge warning (budget) */
+.modal .list-group-item .badge-warning {
+  background: linear-gradient(90deg, #ffb848, #ff7a48);
+  color: #fff;
+  border: 0;
+}
+
+/* Responsive : un peu plus d'espace vertical sur petits écrans */
+@media (max-width: 767.98px) {
+  .modal-body { padding: 12px; }
+  .modal .list-group-item { padding: 12px 0; }
+}
+
+/* Ajuste la largeur du modal-lg pour un rendu plus aéré */
+.modal-dialog.modal-lg {
+  max-width: 980px;
+}
+
+/* ----------------------------
+   Agrandir le logo "pub cash.png"
+   Coller dans le fichier CSS global importé par ton app
+   ----------------------------*/
+
+/* Sélecteurs larges pour attraper la plupart des templates */
+.sidebar .logo img,
+.sidebar .navbar-brand .navbar-brand-img,
+.navbar-brand img,
+.sidebar .logo img[src*="pub cash"],
+img[src*="pub cash"] {
+  width: 180px !important;    /* <- taille souhaitée : change ici (ex: 140, 160, 180) */
+  height: 70px !important;
+  max-width: 100% !important;
+  object-fit: contain !important;
+  display: block;
+  margin: 0 auto;             /* centre horizontalement si nécessaire */
+  transition: transform .18s ease, width .18s ease;
+}
+
+/* Option : effet zoom au hover (facultatif) */
+.sidebar .logo img:hover,
+.navbar-brand img:hover {
+  transform: scale(1.03);
+}
+
+/* Si la sidebar se réduit (mini) on réduit le logo pour éviter overflow */
+.sidebar.mini .logo img,
+.sidebar.collapsed .logo img {
+  width: 110px !important;
+}
+
+/* Responsive : taille plus petite sur petits écrans */
+@media (max-width: 767.98px) {
+  .sidebar .logo img,
+  .navbar-brand img {
+    width: 130px !important;
+  }
+}
+
+/* Ajuste l'espace autour du logo si besoin */
+.sidebar .logo,
+.navbar-brand {
+  padding-top: 0.6rem;
+  padding-bottom: 0.6rem;
+}
+
+/* ===============================
+   Sombre Pubcash Style (Spotify like)
+   =============================== */
+
+/* Background principal et containers globaux */
+body.bg-default,
+.main-content {
+  background: linear-gradient(135deg, rgb(226, 226, 226) 0%, #f4f4f4 0%) !important;
+  color: #fff;
+}
+
+.header.bg-gradient-info {
+  /* Passage du dégradé bleu à foncé/noir */
+  background: linear-gradient(135deg, rgb(226, 226, 226) 0%, #f4f4f4 0%) !important;
+  box-shadow: 0 2px 24px 0 rgba(0,0,0,0.12);
+}
+
+/* Séparateur SVG avec orange */
+.separator .fill-default {
+  fill: #F36C21 !important;
+}
+
+/* Textes principaux */
+.text-white,
+.header-body h1 {
+  color: #000000 !important;
+}
+.text-lead,
+.text-light {
+  color: #000000 !important;
+}
+
+/* Boutons principaux */
+.btn,
+.btn-primary,
+.btn-block {
+  background-color: #F36C21 !important;
+  color: #fff !important;
+  border: none;
+  box-shadow: 0 2px 12px 0 rgba(243,108,33,0.22);
+  font-weight: 500;
+  transition: background 0.2s;
+}
+.btn:hover,
+.btn:focus {
+  background-color: #ff7c2b !important;
+  color: #fff !important;
+}
+
+/* Inputs et cards */
+.card {
+  background-color: #222325 !important;
+  border: none;
+  box-shadow: 0 2px 20px 0 rgba(0,0,0,0.10);
+  color: #fff;
+}
+.form-control {
+  background: #181818 !important;
+  border: 1px solid #F36C21 !important;
+  color: #fff !important;
+}
+.form-control:focus {
+  border-color: #FF6600 !important;
+  box-shadow: 0 0 0 0.2rem rgba(243,108,33,0.25);
+}
+
+/* Navbar & Footer */
+.navbar,
+.footer {
+  background: #181818 !important;
+  color: #fff !important;
+}
+
+.nav-link,
+.navbar-brand,
+.footer a {
+  color: #F36C21 !important;
+  transition: color 0.2s;
+}
+.nav-link:hover,
+.footer a:hover {
+  color: #fff !important;
+}
+
+/* Logo centré, bien mis en avant */
+.header-body img {
+  margin-bottom: 30px;
+  max-width: 220px;
+  /* Optional shadow */
+  filter: drop-shadow(0 3px 8px #F36C21aa);
+}
+
+/* Optionnel : Effet orange sur les boutons Facebook */
+.btn-facebook {
+  background: #181818 !important;
+  color: #F36C21 !important;
+  border: 1px solid #F36C21 !important;
+}
+.btn-facebook:hover {
+  background: #F36C21 !important;
+  color: #fff !important;
+}
+
+/* Scrollbar personnalisée (optionnel) */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-thumb {
+  background: #F36C21;
+  border-radius: 4px;
+}
+
+/* Liens secondaires */
+a {
+  color: #F36C21 !important;
+}
+a:hover {
+  color: #ff7c2b !important;
+  text-decoration: underline;
+}
+/* Style de base des liens de navigation */
+.navbar .nav-link {
+  color: #fff !important; /* orange texte */
+  background: transparent !important;
+  border-radius: 0;
+  padding: 0;
+  transition: background 0.2s, color 0.2s;
+}
+
+/* Effet hover : fond orange et texte blanc */
+.navbar .nav-link:hover,
+.navbar .nav-link:focus {
+  background-color: #F36C21 !important;
+  color: #fff !important;
+  text-decoration: none;
+  border-radius: 4px; /* léger arrondi au hover */
+  padding: 4px 10px; /* un peu de padding au hover pour ressembler au bouton */
+}
+
+.bg-gradient-primary {
+  background: linear-gradient(87deg, #222325 0, #222325 100%) !important;
+}
+.card-header {
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 0;
+  background-color: #f36c21;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.text-muted {
+  color: #fff !important;
+}
+h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 {
+  margin-bottom: 0.5rem;
+  font-family: inherit;
+  font-weight: 600;
+  line-height: 1.5;
+  color: #64ffaf;
+}
+.list-group-item {
+  color: black !important;
+}
+// .mb-0{
+//   color:white;
+// }
+
+.card-profile-image img {
+  width: 150px;
+  height: 150px;
+  object-fit: cover;      /* garde les proportions */
+  border-radius: 50%;     /* cercle parfait */
+  transition: transform 0.3s ease; /* effet fluide */
+}
+.separator .fill-default {
+  fill: #F36C21 !important;
+}
+
+/* --- 2. Carte de Connexion & Inscription (NOUVEAU STYLE BLANC) --- */
+.card.bg-secondary.shadow {
+  background-color: #ffffff !important;
+  border: none !important; /* On enlève la bordure verte inutile sur fond blanc */
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1), 0 5px 15px rgba(0, 0, 0, 0.05) !important; /* Ombre portée plus nette */
+}
+
+/* Titres à l'intérieur de la carte (ex: "Connectez-vous...", "Inscrivez-vous...") */
+.card .text-center.text-muted.mb-4 small {
+  color: #525f7f !important; /* Couleur gris foncé standard pour le texte */
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+/* --- 3. Formulaire à l'intérieur de la carte --- */
+
+/* Champs de saisie (inputs) */
+.card .form-control {
+  background-color: #f8f9fe !important; /* Fond gris très clair pour les champs */
+  border: 1px solid #dee2e6 !important;
+  color: #344767 !important; /* Texte foncé */
+}
+.card .form-control::placeholder {
+  color: #adb5bd !important; /* Placeholder gris clair */
+}
+
+/* Icônes dans les champs de saisie */
+.card .input-group-text {
+  background-color: #f8f9fe !important;
+  border: 1px solid #dee2e6 !important;
+  border-right: none !important;
+}
+.card .input-group-text i {
+  color: #006737 !important; /* On garde les icônes en vert pour la touche de marque */
+}
+
+/* Focus sur les champs de saisie */
+.card .input-group:focus-within .form-control,
+.card .input-group:focus-within .input-group-text {
+  border-color: #006737 !important; /* La bordure devient verte au focus */
+  box-shadow: none !important;
+}
+
+/* --- 4. Boutons et Liens --- */
+
+/* Bouton principal (Se connecter, Créer mon compte) */
+.btn-pubcash-primary {
+  background: linear-gradient(45deg, #006737, #008a4c) !important;
+  border: none !important;
+  color: #ffffff !important;
+  font-weight: bold;
+  box-shadow: 0 4px 15px rgba(0, 103, 55, 0.3);
+  transition: all 0.3s ease;
+}
+.btn-pubcash-primary:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 7px 20px rgba(0, 103, 55, 0.4);
+}
+
+/* Bouton Facebook (adapté au fond blanc) */
+.btn-facebook {
+  background: transparent !important;
+  color: #006737 !important;
+  border: 1px solid #006737 !important;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+.btn-facebook:hover {
+  background: #2578fd !important;
+  color: #fff !important;
+}
+
+/* Liens secondaires (Créer un compte, J'ai déjà un compte) */
+.link-pubcash-secondary small {
+  color: #006737 !important;
+  font-weight: bold;
+  transition: color 0.2s ease;
+}
+.link-pubcash-secondary:hover small {
+  color: #004f2a !important;
+  text-decoration: underline;
+}
+.main-content .navbar-top {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  z-index: 1030;            /* plus haut pour être au-dessus des autres éléments */
+  background-color: transparent;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  display: block !important; /* force l'affichage */
+}
+
+/* Masquer la navbar quand on est sur la page de login (body a la classe hide-navbar) */
+body.hide-navbar .navbar-top,
+body.hide-navbar .main-content .navbar-top,
+body.hide-navbar #navbar-main {
+  display: none !important;
+}
