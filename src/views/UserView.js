@@ -233,7 +233,7 @@ useEffect(() => {
   useEffect(() => {
     const userInfo = JSON.parse(localStorage.getItem('userInfo'));
     if (!userInfo || !userInfo.id) return;
-    const socket = io('http://localhost:5000');
+    const socket = io('http://31.197.199.78:5000');
     socketRef.current = socket;
     socket.on('connect', () => {
       socket.emit('user_online', userInfo.id);
