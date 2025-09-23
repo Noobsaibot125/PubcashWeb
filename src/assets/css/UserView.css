@@ -1,0 +1,201 @@
+/* UserView.css - Light mode */
+
+/* Global light theme on body.light-mode */
+body.light-mode {
+    background-color: #f8f9fe;
+    color: #344767;
+  }
+  
+  /* Container */
+  body.light-mode .user-view-container {
+    padding-top: 80px;
+    padding-left: 2rem;
+    padding-right: 2rem;
+    background-color: #f8f9fe;
+  }
+  
+  /* Navbar */
+  body.light-mode .main-navbar {
+    border-bottom: 1px solid #e9ecef;
+    background-color: transparent;
+  }
+  body.light-mode .main-navbar .nav-link {
+    font-weight: 500;
+    color: #525f7f;
+    padding: 0.5rem 1rem;
+  }
+  body.light-mode .main-navbar .nav-link.active {
+    color: #5e72e4;
+  }
+  
+  /* Navbar buttons */
+  body.light-mode .filter-btn,
+  body.light-mode .logout-btn {
+    border-radius: 20px;
+    font-weight: 500;
+  }
+  
+  /* Right sidebar cards */
+  body.light-mode .right-sidebar-col .card {
+    border-radius: 12px;
+    border: none;
+  }
+  
+  /* Earn button */
+  body.light-mode .earn-button {
+    font-size: 1.1rem;
+    font-weight: bold;
+    padding: 12px;
+  }
+  
+  /* Recommended videos card */
+  body.light-mode .recommended-video-card {
+    border: 1px solid #eee;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+    margin-bottom: 1rem;
+    background-color: #fff;
+  }
+  body.light-mode .recommended-video-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+  }
+  body.light-mode .recommended-video-card img {
+    border-radius: 8px 8px 0 0;
+  }
+  
+  /* Video */
+  body.light-mode .main-video {
+    border-radius: 12px;
+    max-height: 65vh;
+    background-color: #000;
+    display: block;
+    width: 100%;
+    position: relative;
+    z-index: 1;
+  }
+  
+  /* Video player container */
+  body.light-mode .video-player-main {
+    position: relative;
+    overflow: hidden;
+    border-radius: 12px;
+  }
+  
+  /* Overlays */
+  body.light-mode .video-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(0,0,0,0.3);
+    color: white;
+    cursor: pointer;
+    transition: opacity 0.2s ease;
+    z-index: 40;
+    pointer-events: auto;
+  }
+  body.light-mode .video-overlay:hover { opacity: 0.8; }
+  body.light-mode .video-overlay.play-button-overlay { background-color: rgba(0,0,0,0.35); }
+  
+  /* Mute button */
+  body.light-mode .mute-toggle-btn {
+    position: absolute;
+    bottom: 15px;
+    right: 15px;
+    z-index: 10;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+  }
+  
+  /* Progress bar */
+  body.light-mode .progress-bar-container {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background-color: rgba(255,255,255,0.3);
+    z-index: 5;
+  }
+  body.light-mode .progress-bar-inner {
+    height: 100%;
+    background-color: #5e72e4;
+    transition: width 0.1s linear;
+  }
+  
+  /* History list */
+  body.light-mode .history-list { max-height: 200px; overflow-y: auto; }
+  body.light-mode .history-item {
+    border-bottom: 1px solid #f1f1f1;
+    padding: 8px 0;
+  }
+  body.light-mode .history-item:last-child { border-bottom: none; }
+  
+  /* Interaction overlay buttons */
+  body.light-mode .interaction-overlay .interaction-btn {
+    padding: 10px 18px;
+    border-radius: 20px;
+    font-weight: 600;
+  }
+  
+  /* Card defaults */
+  body.light-mode .card {
+    background-color: #fff;
+    border: 1px solid #eee;
+    color: #344767;
+  }
+  
+  /* Card headings */
+  body.light-mode .card h1,
+  body.light-mode .card h3,
+  body.light-mode .card h5,
+  body.light-mode .card h6 {
+    color: #344767;
+  }
+  
+  /* Muted text */
+  body.light-mode .card .text-muted {
+    color: #6c757d;
+  }
+  
+  /* Forms / inputs */
+  body.light-mode .form-control {
+    background-color: #fff;
+    border: 1px solid #dee2e6;
+    color: #495057;
+  }
+  body.light-mode .form-control:focus {
+    border-color: #F36C21;
+    box-shadow: none;
+  }
+  body.light-mode .form-control::placeholder {
+    color: #6c757d;
+  }
+  
+  /* HR */
+  body.light-mode hr { border-top: 1px solid #e9ecef; }
+  
+  /* Headings (global) */
+  body.light-mode h1, body.light-mode h2, body.light-mode h3,
+  body.light-mode h4, body.light-mode h5, body.light-mode h6,
+  body.light-mode .h1, body.light-mode .h2, body.light-mode .h3,
+  body.light-mode .h4, body.light-mode .h5, body.light-mode .h6 {
+    color: #344767;
+    font-weight: 600;
+  }
+  
+  /* Comment & recommended sections background */
+  body.light-mode .comment-section,
+  body.light-mode .recommended-videos {
+    background-color: transparent;
+  }
+  .bg-white {
+    background-color: #fff !important;
+  }

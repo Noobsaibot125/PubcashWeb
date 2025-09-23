@@ -220,6 +220,13 @@ const DashboardAdmin = () => {
 
   return (
     <>
+    <style>{`
+      h1, h2, h3, h4, h5, h6,
+      .h1, .h2, .h3, .h4, .h5, .h6 {
+        color: black;
+        font-weight: 600;
+      }
+    `}</style>
       <AdminDashboardHeader stats={data.stats} wallet={data.wallet} />
       <Container className="mt--7" fluid>
         {/* GRAPHIQUE */}
@@ -300,7 +307,9 @@ const DashboardAdmin = () => {
           </Col>
         </Row>
       </Container>
+      
     </>
+    
   );
 };
 

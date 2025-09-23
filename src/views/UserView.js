@@ -3,14 +3,17 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Container, Row, Col, Card, CardBody, Button, Spinner, Form, Input,
   Toast, ToastHeader, ToastBody, Modal, ModalHeader, ModalBody, ModalFooter,
-  FormGroup, Label, Input as SelectInput,Alert
+  FormGroup, Label, Input as SelectInput, Alert
 } from 'reactstrap';
-import api from './../services/api';
 import { useNavigate } from 'react-router-dom';
-
-import ShareModal from 'components/Share/ShareModal'; // Adapte le chemin si besoin
+import api from './../services/api';
+import ShareModal from 'components/Share/ShareModal';
 import { io } from 'socket.io-client';
+import UserNavbar from 'components/Navbars/UserNavbar.js';
+import '../assets/css/UserView.css'; 
+import '../assets/css/UserViewDark.css';
 const UserView = () => {
+  // STATES
   const [promotions, setPromotions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -27,7 +30,6 @@ const UserView = () => {
   const [videoProgress, setVideoProgress] = useState({});
   const [videoMuted, setVideoMuted] = useState({});
   const [videoLoaded, setVideoLoaded] = useState({});
-  // États pour le retrait des gains
   const [earnings, setEarnings] = useState({ total: 0, per_pack: [] });
   const [withdrawing, setWithdrawing] = useState(false);
   const [withdrawSuccess, setWithdrawSuccess] = useState(false);
@@ -36,19 +38,18 @@ const UserView = () => {
   const [operator, setOperator] = useState('orange');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [withdrawHistory, setWithdrawHistory] = useState([]);
-  const [showHistory, setShowHistory] = useState(false);
+  const [showHistory, setShowHistory] = useState(true);
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [promoToShare, setPromoToShare] = useState(null);
-  const [withdrawAmount, setWithdrawAmount] = useState(''); 
+  const [withdrawAmount, setWithdrawAmount] = useState('');
   const navigate = useNavigate();
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
   const videoRefs = useRef({});
   const lastTime = useRef({});
-  const observers = useRef([]);
   const playbackStartedRef = useRef({});
   const videoEndedRef = useRef({});
   const socketRef = useRef(null);
-  // Fonction pour ouvrir la modale de partage
+  const [theme, setTheme] = useState(localStorage.getItem('theme') || 'light');
+  // UTILS
   const openShareModal = (promo) => {
     setPromoToShare(promo);
     setShareModalOpen(true);
@@ -59,15 +60,13 @@ const UserView = () => {
     videoEndedRef.current = videoEnded;
   }, [playbackStarted, videoEnded]);
 
-  // fetchPromotions
   const fetchPromotions = useCallback(async (currentFilter) => {
+    setLoading(true);
     try {
       const res = await api.get(`/promotions?filter=${currentFilter}`);
       const data = res.data || [];
-
       setPromotions(data);
 
-      // Réinitialiser états vidéos / interactions
       const newInteractionState = {}, newVideoEnded = {}, newPlaybackStarted = {}, newVideoPlaying = {}, newVideoMuted = {}, newVideoLoaded = {};
       data.forEach(promo => {
         newInteractionState[promo.id] = { liked: false, shared: false };
@@ -75,7 +74,7 @@ const UserView = () => {
         newPlaybackStarted[promo.id] = false;
         newVideoPlaying[promo.id] = false;
         newVideoLoaded[promo.id] = false;
-        newVideoMuted[promo.id] = true; // par défaut muet
+        newVideoMuted[promo.id] = true;
         lastTime.current[promo.id] = 0;
       });
 
@@ -92,14 +91,23 @@ const UserView = () => {
       setLoading(false);
     }
   }, []);
+ // 3. AJOUTEZ UNE FONCTION POUR CHANGER LE THÈME
+ const toggleTheme = () => {
+  const newTheme = theme === 'light' ? 'dark' : 'light';
+  setTheme(newTheme);
+  localStorage.setItem('theme', newTheme); // On sauvegarde le choix
+};
 
+// 4. UTILISEZ useEffect POUR APPLIQUER LA CLASSE AU BODY
+useEffect(() => {
+  // On nettoie les classes précédentes et on ajoute la nouvelle
+  document.body.classList.remove('light-mode', 'dark-mode');
+  document.body.classList.add(`${theme}-mode`);
+}, [theme]); // Cet effet se déclenche chaque fois que `theme` change
   useEffect(() => {
-    setLoading(true);
     fetchPromotions(filter);
-    return () => { observers.current.forEach(o => o.disconnect && o.disconnect()); };
   }, [filter, fetchPromotions]);
 
-  // fetchEarnings
   const fetchEarnings = useCallback(async () => {
     try {
       const res = await api.get('/promotions/utilisateur/gains');
@@ -109,7 +117,6 @@ const UserView = () => {
     }
   }, []);
 
-  // fetchWithdrawHistory
   const fetchWithdrawHistory = useCallback(async () => {
     try {
       const response = await api.get('/promotions/utilisateur/historique-retraits');
@@ -117,26 +124,17 @@ const UserView = () => {
     } catch (error) {
       console.error('Erreur fetchWithdrawHistory:', error);
     }
-  }, [refreshTrigger]);
-  useEffect(() => {
-    const interval = setInterval(() => {
-      fetchWithdrawHistory();
-    }, 30000); // Rafraîchir toutes les 30 secondes
+  }, []);
   
-    return () => clearInterval(interval);
-  }, [fetchWithdrawHistory]);
   useEffect(() => {
-    if (!loading && !error) {
-      fetchEarnings();
-      fetchWithdrawHistory();
-    }
-  }, [loading, error, fetchEarnings, fetchWithdrawHistory]);
+    fetchEarnings();
+    fetchWithdrawHistory();
+    const interval = setInterval(fetchWithdrawHistory, 30000);
+    return () => clearInterval(interval);
+  }, [fetchEarnings, fetchWithdrawHistory]);
 
-  // handleWithdraw
   const handleWithdraw = async () => {
     const amountToWithdraw = Number(withdrawAmount);
-
-    // Validation
     if (!amountToWithdraw || amountToWithdraw <= 0) {
       setWithdrawError('Veuillez entrer un montant valide.');
       return;
@@ -149,30 +147,17 @@ const UserView = () => {
       setWithdrawError('Veuillez sélectionner un opérateur et entrer votre numéro');
       return;
     }
-    
     setWithdrawing(true);
     setWithdrawError(null);
     setWithdrawSuccess(false);
-
     try {
-      // On envoie le montant spécifié
-      await api.post('/promotions/utilisateur/retrait', {
-        amount: amountToWithdraw, 
-        operator, 
-        phoneNumber
-      });
-
+      await api.post('/promotions/utilisateur/retrait', { amount: amountToWithdraw, operator, phoneNumber });
       setWithdrawSuccess('Votre demande de retrait a été envoyée !');
-      
-      // Mettre à jour les gains locaux
-      fetchEarnings(); 
+      fetchEarnings();
       fetchWithdrawHistory();
-      
       setWithdrawModalOpen(false);
-      setWithdrawAmount(''); // Réinitialiser le champ
-      
+      setWithdrawAmount('');
       setTimeout(() => setWithdrawSuccess(false), 8000);
-
     } catch (err) {
       const errorMessage = err.response?.data?.message || "Erreur lors du retrait";
       setWithdrawError(errorMessage);
@@ -182,47 +167,84 @@ const UserView = () => {
     }
   };
 
-  // handleInteraction
+  // ===== FIXED swap function =====
+  const swapToPromo = (promoId) => {
+    const idx = promotions.findIndex(p => p.id === promoId);
+    if (idx <= 0) return; // already main or not found
+
+    // Make a copy and swap first element with the clicked recommended
+    const newPromos = promotions.slice();
+    const tmp = newPromos[0];
+    newPromos[0] = newPromos[idx];
+    newPromos[idx] = tmp;
+
+    // update promotions (this will change mainVideo)
+    setPromotions(newPromos);
+
+    const oldMainId = tmp.id;
+    const newMainId = promoId;
+
+    // reset states for both involved videos (no autoplay)
+    setVideoEnded(prev => ({ ...prev, [oldMainId]: false, [newMainId]: false }));
+    setPlaybackStarted(prev => ({ ...prev, [oldMainId]: false, [newMainId]: false }));
+    setVideoPlaying(prev => ({ ...prev, [oldMainId]: false, [newMainId]: false }));
+    setVideoLoaded(prev => ({ ...prev, [newMainId]: false }));
+
+    setActiveVideoId(null);
+
+    // After DOM update, ensure the new <video> is reset (pause, reset time, load)
+    // we use a short timeout to wait React -> DOM
+    setTimeout(() => {
+      const v = videoRefs.current[newMainId];
+      if (v) {
+        try {
+          v.pause();
+          v.currentTime = 0;
+          // If the <video> element was reused by the browser, load will force it to re-evaluate sources/poster
+          if (typeof v.load === 'function') v.load();
+        } catch (e) {
+          // ignore
+        }
+      }
+    }, 120);
+  };
+  // ===== end swap fix =====
+
   const handleInteraction = async (promoId, type) => {
     try {
       await api.post(`/promotions/${promoId}/${type}`);
       setInteractionState(prev => ({ ...prev, [promoId]: { ...prev[promoId], [type === 'like' ? 'liked' : 'shared']: true } }));
+
       if (type === 'partage') {
-        setTimeout(() => setPromotions(current => current.filter(p => p.id !== promoId)), 800);
+        setShareModalOpen(false);
+        await fetchPromotions(filter);
+        setTimeout(() => window.location.reload(), 500);
+        return;
       }
-      await fetchEarnings();
+
+      if (type !== 'partage') {
+        await fetchEarnings();
+      }
     } catch (error) {
       console.error(`Erreur lors de l'action '${type}':`, error);
     }
   };
+
   useEffect(() => {
     const userInfo = JSON.parse(localStorage.getItem('userInfo'));
     if (!userInfo || !userInfo.id) return;
-  
     const socket = io('http://localhost:5000');
     socketRef.current = socket;
-  
     socket.on('connect', () => {
       socket.emit('user_online', userInfo.id);
     });
-    // Rejoindre la room utilisateur
     socket.emit('join-user-room', userInfo.id);
-    
-    // Écouter les mises à jour des retraits
     socket.on('withdrawal-updated', (data) => {
-      setWithdrawHistory(prevHistory => 
-        prevHistory.map(item => 
-          item.id === data.requestId ? { ...item, statut: data.status } : item
-        )
-      );
-      
-      // Afficher une notification
+      setWithdrawHistory(prevHistory => prevHistory.map(item => item.id === data.requestId ? { ...item, statut: data.status } : item));
       setWithdrawSuccess(`Votre demande de retrait a été ${data.status === 'traite' ? 'traitée' : 'rejetée'}`);
       setTimeout(() => setWithdrawSuccess(false), 5000);
     });
-    
     return () => {
-      // lorsqu'on démonte la vue, prévenir le serveur puis déconnecter
       try {
         if (socketRef.current) {
           socketRef.current.emit('leave-user-room', userInfo.id);
@@ -233,13 +255,12 @@ const UserView = () => {
         console.warn('Erreur lors du cleanup socket:', e);
       }
     };
-  }, []);
-  // handleCommentSubmit
+  }, [fetchPromotions]);
+
   const handleCommentSubmit = async (e, promoId) => {
     e.preventDefault();
     const commentaire = commentText[promoId];
     if (!commentaire || commentaire.trim() === '') return;
-
     setCommentSending(prev => ({ ...prev, [promoId]: true }));
     setCommentError(prev => ({ ...prev, [promoId]: null }));
     try {
@@ -261,19 +282,21 @@ const UserView = () => {
     setCommentText(prev => ({ ...prev, [promoId]: text }));
   };
 
+  // VIDEO CONTROL LOGIC
   const onVideoPlay = (promoId) => {
     setActiveVideoId(promoId);
     setPlaybackStarted(prev => ({ ...prev, [promoId]: true }));
     setVideoPlaying(prev => ({ ...prev, [promoId]: true }));
 
-    // Désactiver les contrôles après 1 seconde
     setTimeout(() => {
       const v = videoRefs.current[promoId];
       if (v) {
-        v.controls = false;
-        v.style.pointerEvents = 'none';
+        try {
+          v.controls = false;
+          v.style.pointerEvents = 'none';
+        } catch (e) {}
       }
-    }, 1000);
+    }, 800);
   };
 
   const startPlayback = (promoId) => {
@@ -286,15 +309,13 @@ const UserView = () => {
   };
 
   const toggleMute = (promoId) => {
-    setVideoMuted(prev => ({
-      ...prev,
-      [promoId]: !prev[promoId]
-    }));
-
     const v = videoRefs.current[promoId];
-    // IMPORTANT: use nullish coalescing when reading (to avoid always-true bug)
     if (v) {
-      v.muted = !(videoMuted[promoId] ?? true);
+      const newMuted = !(videoMuted[promoId] ?? true);
+      v.muted = newMuted;
+      setVideoMuted(prev => ({ ...prev, [promoId]: newMuted }));
+    } else {
+      setVideoMuted(prev => ({ ...prev, [promoId]: !(videoMuted[promoId] ?? true) }));
     }
   };
 
@@ -315,10 +336,7 @@ const UserView = () => {
 
   const onTimeUpdate = (promoId, e) => {
     lastTime.current[promoId] = e.target.currentTime;
-    setVideoProgress(prev => ({
-      ...prev,
-      [promoId]: e.target.currentTime
-    }));
+    setVideoProgress(prev => ({ ...prev, [promoId]: e.target.currentTime }));
   };
 
   const onSeeking = (e, promoId) => {
@@ -334,6 +352,7 @@ const UserView = () => {
 
   const onEnded = (promoId) => {
     setVideoEnded(prev => ({ ...prev, [promoId]: true }));
+    setVideoPlaying(prev => ({ ...prev, [promoId]: false }));
     setActiveVideoId(null);
   };
 
@@ -357,472 +376,237 @@ const UserView = () => {
     }
   };
 
-  // Nouvelle fonction de déconnexion
   const handleLogout = async () => {
     try {
       const refreshToken = localStorage.getItem('refreshToken');
-      
-      // 1) Appeler l'endpoint logout pour que le serveur efface le refresh_token et set est_en_ligne = 0
       if (refreshToken) {
         try {
           await api.post('/auth/logout', { token: refreshToken });
         } catch (err) {
           console.warn('API logout failed (continuing):', err?.response?.data || err.message || err);
-          // On continue quand même le nettoyage côté client
         }
       }
-  
-      // 2) Informer le socket (leave) puis déconnecter
       const userInfo = JSON.parse(localStorage.getItem('userInfo'));
       if (socketRef.current && userInfo && userInfo.id) {
         try {
           socketRef.current.emit('leave-user-room', userInfo.id);
-        } catch (e) {
-          console.warn('Erreur en émettant leave-user-room:', e);
-        }
-        try {
           socketRef.current.disconnect();
-        } catch (e) {
-          console.warn('Erreur lors de socket.disconnect():', e);
-        }
+        } catch (e) { console.warn('Erreur cleanup socket:', e); }
         socketRef.current = null;
       }
-  
-      // 3) Nettoyage local
-      localStorage.removeItem('authToken');
-      localStorage.removeItem('userRole');
-      localStorage.removeItem('userInfo');
-      localStorage.removeItem('refreshToken');
-  
-      // 4) Redirection
+      localStorage.clear();
       navigate('/auth/login');
     } catch (error) {
       console.error('Erreur handleLogout:', error);
-      // En cas d'erreur, forcer le nettoyage et la redirection
-      localStorage.removeItem('authToken');
-      localStorage.removeItem('userRole');
-      localStorage.removeItem('userInfo');
-      localStorage.removeItem('refreshToken');
-      if (socketRef.current) {
-        try { 
-          socketRef.current.disconnect(); 
-        } catch(e) {}
-        socketRef.current = null;
-      }
+      localStorage.clear();
+      if (socketRef.current) { try { socketRef.current.disconnect(); } catch(e) {} socketRef.current = null; }
       navigate('/auth/login');
     }
   };
-  
+
+  // MAIN / RECOMMENDED split
+  const mainVideo = promotions.length > 0 ? promotions[0] : null;
+  const recommendedVideos = promotions.slice(1);
 
   return (
     <>
-   <Container className="mt-4" fluid style={{ paddingTop: 20 /* ajuster si besoin */ }}>
-        {/* ---------- Header / Barre de filtres (nouvelle mise en page) ---------- */}
-        <Row className="align-items-center mb-4">
-          <Col md="6" xs="12">
-            <h1 className="mb-0">Vidéos disponibles</h1>
-            <p className="text-muted small mb-0">Regarde, aime et partage pour gagner.</p>
-          </Col>
-
-          <Col md="6" xs="12" className="text-md-right text-center mt-3 mt-md-0">
-            <div className="d-inline-flex align-items-center filter-bar">
-              <Button
-                color={filter === 'ma_commune' ? 'primary' : 'outline-secondary'}
-                onClick={() => setFilter('ma_commune')}
-                className="filter-btn"
-                size="sm"
-              >
-                Ma commune
-              </Button>
-              <Button
-                color={filter === 'toutes' ? 'primary' : 'outline-secondary'}
-                onClick={() => setFilter('toutes')}
-                className="filter-btn ml-2"
-                size="sm"
-              >
-                Toutes les communes
-              </Button>
-
-              {/* (Optionnel) bouton Déconnexion à droite sur grand écran */}
-              <Button
-                color="danger"
-                onClick={handleLogout}
-                className="ml-3 d-none d-md-inline-block"
-                size="sm"
-              >
-                <i className="fas fa-sign-out-alt mr-2" /> Déconnexion
-              </Button>
-            </div>
-          </Col>
-        </Row>
-
-        {/* Bouton déconnexion visible sur mobile en bas du header */}
-        <Row className="d-md-none mb-3">
-          <Col xs="12" className="text-center">
-            <Button color="danger" size="sm" onClick={handleLogout}>
-              <i className="fas fa-sign-out-alt mr-2" /> Déconnexion
-            </Button>
-          </Col>
-        </Row>
-
-        {/* ---------- Fin header ---------- */}
-
-        {loading && <div className="text-center"><Spinner color="primary" /></div>}
-        {error && <p className="text-center text-warning">{error}</p>}
-        {!loading && !error && promotions.length === 0 && (
-          <Card className="shadow-lg bg-secondary text-center p-5">
-            <h4>C'est tout pour le moment !</h4>
-            <p className="text-muted">Il n'y a plus de promotions disponibles. Revenez plus tard !</p>
-          </Card>
+    {/* 5. PASSEZ LES NOUVELLES PROPS À VOTRE NAVBAR */}
+    <UserNavbar 
+      handleLogout={handleLogout}
+      showFilters={true}
+      filter={filter}
+      setFilter={setFilter}
+      theme={theme}
+      toggleTheme={toggleTheme}
+    />
+      <Container fluid className="user-view-container">
+        {loading && <div className="text-center w-100"><Spinner color="primary" style={{ width: '3rem', height: '3rem' }} /></div>}
+        {error && <Alert color="danger" className="text-center w-100">{error}</Alert>}
+        
+        {!loading && !error && !mainVideo && (
+          <Row className="justify-content-center">
+            <Col xs="12" md="8" className="text-center mt-5">
+              <Card className="shadow-lg bg-secondary text-center p-5">
+                <h4>C'est tout pour le moment !</h4>
+                <p className="text-muted">Il n'y a plus de promotions disponibles. Revenez plus tard !</p>
+              </Card>
+            </Col>
+          </Row>
         )}
 
-        <div style={{ position: 'fixed', top: 80, right: 20, zIndex: 1060 }}>
-          {promotions.map(promo => (
-            <React.Fragment key={promo.id}>
-              {commentSuccess[promo.id] && (
-                <Toast className="mb-2">
-                  <ToastHeader>
-                    Commentaire envoyé
-                  </ToastHeader>
-                  <ToastBody>
-                    Ton commentaire pour « {promo.titre} » a bien été envoyé.
-                  </ToastBody>
-                </Toast>
-              )}
-              {commentError[promo.id] && (
-                <Toast className="mb-2">
-                  <ToastHeader>
-                    Erreur
-                  </ToastHeader>
-                  <ToastBody>
-                    {commentError[promo.id]}
-                  </ToastBody>
-                </Toast>
-              )}
-            </React.Fragment>
-          ))}
-        </div>
+        {!loading && !error && mainVideo && (
+          <Row>
+            {/* MAIN VIDEO COLUMN */}
+            <Col lg="8" className="main-content-col">
+              <div className="video-player-main mb-3" style={{ position: 'relative' }}>
+                {/* <-- IMPORTANT: add key so React remounts the <video> when mainVideo changes */}
+                <video
+                  key={mainVideo.id}
+                  ref={el => videoRefs.current[mainVideo.id] = el}
+                  controls={false}
+                  width="100%"
+                  poster={mainVideo.thumbnail_url}
+                  className="main-video"
+                  onPlay={() => onVideoPlay(mainVideo.id)}
+                  onPause={(e) => onVideoPause(e, mainVideo.id)}
+                  onEnded={() => onEnded(mainVideo.id)}
+                  onTimeUpdate={(e) => onTimeUpdate(mainVideo.id, e)}
+                  onLoadedData={() => setVideoLoaded(prev => ({ ...prev, [mainVideo.id]: true }))}
+                  muted={videoMuted[mainVideo.id] ?? true}
+                  onClick={() => startPlayback(mainVideo.id)}
+                  onSeeking={(e) => onSeeking(e, mainVideo.id)}
+                  onContextMenu={(e) => e.preventDefault()}
+                >
+                  <source src={mainVideo.url_video} type={'video/mp4'} />
+                  Votre navigateur ne supporte pas la lecture de vidéos.
+                </video>
 
-        {/* Section des gains et retrait */}
-        <div style={{ position: 'fixed', top: 130, right: 20, zIndex: 1070, width: 220 }}>
-          <Card className="p-2 shadow-sm">
-            <div className="text-right">
-              <small className="text-muted">Mes gains</small>
-              <h5 className="mb-0">{Number(earnings.total || 0).toFixed(2)} XOF</h5>
-            </div>
-            <hr />
-            <div style={{ maxHeight: 160, overflowY: 'auto' }}>
-              {earnings.per_pack && earnings.per_pack.length > 0 ? (
-                earnings.per_pack.map(p => (
-                  <div key={p.pack_id} style={{ fontSize: 12, marginBottom: 6 }}>
-                    <strong>{p.nom_pack || 'Pack inconnu'}</strong>
-                    <div>{Number(p.total_gagne).toFixed(2)} XOF</div>
-                  </div>
-                ))
-              ) : (
-                <div style={{ fontSize: 12 }}>Aucun gain pour l'instant</div>
-              )}
-            </div>
-            <Button
-              color="success"
-              size="sm"
-              block
-              onClick={() => setWithdrawModalOpen(true)}
-              disabled={Number(earnings.total || 0) <= 0}
-            >
-              Retirer mes gains
-            </Button>
-            <Button
-              color="link"
-              size="sm"
-              block
-              onClick={() => setShowHistory(!showHistory)}
-              className="mt-2"
-            >
-              {showHistory ? 'Masquer l\'historique' : 'Voir l\'historique'}
-            </Button>
-          </Card>
+              {/* Play overlay before playback starts */}
+{!playbackStarted[mainVideo.id] && !videoPlaying[mainVideo.id] && (
+  <div
+    className="video-overlay play-button-overlay"
+    onClick={() => startPlayback(mainVideo.id)}
+    style={{ zIndex: 40, pointerEvents: 'auto' }}
+  >
+    <i className="fas fa-play fa-3x"></i>
+  </div>
+)}
 
-          {showHistory && withdrawHistory.length > 0 && (
-            <Card className="mt-2 p-2 shadow-sm">
-              <h6>Historique des retraits</h6>
-              <div style={{ maxHeight: 200, overflowY: 'auto' }}>
-                {withdrawHistory.map((item, index) => (
-                  <div key={index} className="mb-2 p-2 border-bottom">
-                    <div className="d-flex justify-content-between">
-                      <span>{new Date(item.date).toLocaleDateString()}</span>
-                      <strong>{Number(item.montant).toFixed(2)} XOF</strong>
+                {/* Sound toggle and progress while playing */}
+                {videoPlaying[mainVideo.id] && (
+                  <>
+                    <Button color="light" className="mute-toggle-btn" onClick={() => toggleMute(mainVideo.id)}>
+                      <i className={`fas ${videoMuted[mainVideo.id] ?? true ? 'fa-volume-mute' : 'fa-volume-up'}`} />
+                    </Button>
+                    <div className="progress-bar-container">
+                      <div className="progress-bar-inner" style={{ width: `${(videoProgress[mainVideo.id] / (videoRefs.current[mainVideo.id]?.duration || 1)) * 100}%`}} />
                     </div>
-                    <div className="small text-muted">
-                      {item.operator} - {item.phone}
-                    </div>
-                    <div className={`badge ${item.statut === 'traite' ? 'badge-success' : item.statut === 'rejete' ? 'badge-danger' : 'badge-warning'}`}>
-  {item.statut === 'traite' ? 'Traité' : item.statut === 'rejete' ? 'Rejeté' : 'En attente'}
-</div>
+                  </>
+                )}
+
+                {/* Interaction overlay for MAIN VIDEO when ended */}
+                {videoEnded[mainVideo.id] && (
+                  <div className="video-overlay interaction-overlay" style={{
+                    position: 'absolute',
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    backgroundColor: 'rgba(0,0,0,0.7)',
+                    padding: '12px',
+                    display: 'flex',
+                    justifyContent: 'center',
+                    gap: '12px',
+                    zIndex: 20
+                  }}>
+                    {!interactionState[mainVideo.id]?.liked ? (
+                      <Button color="primary" className="interaction-btn" onClick={() => handleInteraction(mainVideo.id, 'like')}>
+                        <i className="fas fa-thumbs-up mr-2" /> Liker cette vidéo
+                      </Button>
+                    ) : (
+                      <Button color="success" className="interaction-btn" onClick={() => openShareModal(mainVideo)}>
+                        <i className="fas fa-share mr-2" /> Partager maintenant
+                      </Button>
+                    )}
                   </div>
-                ))}
+                )}
               </div>
-            </Card>
-          )}
 
-          {withdrawSuccess && (
-            <Toast className="mt-2">
-              <ToastHeader icon="success">Succès</ToastHeader>
-              <ToastBody>{withdrawSuccess}</ToastBody>
-            </Toast>
-          )}
+              <Button color="primary" block className="earn-button">
+                Regarder pour Gagner +{mainVideo.remuneration_pack || '...'} XOF
+              </Button>
 
-          {withdrawError && (
-            <Toast className="mt-2">
-              <ToastHeader icon="danger">Erreur</ToastHeader>
-              <ToastBody>{withdrawError}</ToastBody>
-            </Toast>
-          )}
-        </div>
+              <div className="comment-section mt-4">
+                <Form onSubmit={(e) => handleCommentSubmit(e, mainVideo.id)}>
+                  <Row>
+                    <Col>
+                      <Input
+                        type="textarea"
+                        placeholder="Ajouter un commentaire..."
+                        rows="1"
+                        value={commentText[mainVideo.id] || ''}
+                        onChange={(e) => handleCommentChange(mainVideo.id, e.target.value)}
+                      />
+                    </Col>
+                    <Col xs="auto">
+                      <Button color="primary" type="submit" disabled={commentSending[mainVideo.id]}>
+                         {commentSending[mainVideo.id] ? <Spinner size="sm"/> : 'Envoyer'}
+                      </Button>
+                    </Col>
+                  </Row>
+                </Form>
+              </div>
 
-        {!loading && !error && promotions.length > 0 && (
-          <Row className="justify-content-center">
-            {promotions.map(promo => {
-              const interactions = interactionState[promo.id] || {};
-              const isEnded = videoEnded[promo.id] || false;
-              const isActive = activeVideoId === promo.id;
-              const showCustomPlayButton =
-                !playbackStarted[promo.id] &&
-                !isEnded &&
-                videoLoaded[promo.id] &&
-                videoRefs.current[promo.id]?.paused;
+              <hr />
 
-              return (
-                <Col lg="8" key={promo.id} className="mb-5">
-                  <Card className="shadow-lg">
-                    <div
-                      id={`player-wrapper-${promo.id}`}
-                      className="player-wrapper"
-                      style={{
-                        borderRadius: '0.375rem 0.375rem 0 0',
-                        overflow: 'hidden',
-                        position: 'relative',
-                        backgroundColor: 'black'
-                      }}
-                      onMouseEnter={() => handleMouseEnter(promo.id)}
-                    >
-                      {showCustomPlayButton && (
-                        <div style={{
-                          position: 'absolute',
-                          top: '50%',
-                          left: '50%',
-                          transform: 'translate(-50%, -50%)',
-                          zIndex: 10
-                        }}>
-                          <Button
-                            color="primary"
-                            style={{
-                              borderRadius: '50%',
-                              width: '70px',
-                              height: '70px',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              backgroundColor: 'rgba(255, 255, 255, 0.8)',
-                              border: 'none'
-                            }}
-                            onClick={() => startPlayback(promo.id)}
-                          >
-                            <i className="fas fa-play fa-2x" style={{ color: '#000' }} />
-                          </Button>
-                        </div>
-                      )}
+              <div className="recommended-videos mt-4">
+                <h5>Vidéos Recommandées</h5>
+                <Row>
+                  {recommendedVideos.map(promo => (
+                    <Col key={promo.id} xs="6" md="4" lg="3">
+                      <Card className="recommended-video-card" onClick={() => swapToPromo(promo.id)}>
+                        <img src={promo.thumbnail_url} alt={promo.titre} className="img-fluid"/>
+                        <CardBody className="p-2">
+                           <h6 className="mb-1">{promo.titre}</h6>
+                           <p className="text-muted small mb-0">{promo.remuneration_pack} XOF</p>
+                        </CardBody>
+                      </Card>
+                    </Col>
+                  ))}
+                </Row>
+              </div>
+            </Col>
 
-                      <video
-                        ref={el => videoRefs.current[promo.id] = el}
-                        controls={false}
-                        width="100%"
-                        poster={promo.thumbnail_url}
-                        style={{
-                          display: 'block',
-                          maxHeight: '500px',
-                          width: '100%',
-                          opacity: videoPlaying[promo.id] ? 1 : 0.7
-                        }}
-                        controlsList="nodownload noremoteplayback"
-                        onPlay={() => onVideoPlay(promo.id)}
-                        onPause={(e) => onVideoPause(e, promo.id)}
-                        onEnded={() => onEnded(promo.id)}
-                        onError={(e) => console.error('Erreur de chargement vidéo:', e.target.error, 'pour URL:', promo.url_video)}
-                        onTimeUpdate={(e) => onTimeUpdate(promo.id, e)}
-                        onSeeking={(e) => onSeeking(e, promo.id)}
-                        onLoadedData={() => setVideoLoaded(prev => ({ ...prev, [promo.id]: true }))}
-                        onContextMenu={(e) => e.preventDefault()}
-                        muted={videoMuted[promo.id] ?? true}
-                        tabIndex={-1}
-                      >
-                        <source
-                          src={promo.url_video}
-                          type={'video/mp4'}
-                        />
-                        Votre navigateur ne supporte pas la lecture de vidéos.
-                      </video>
+            {/* RIGHT SIDEBAR */}
+            <Col lg="4" className="right-sidebar-col">
+              <Card className="p-3 shadow-sm mb-4">
+                <p className="text-muted mb-1">Mes Gains Actuels</p>
+                <h1 className="display-4 font-weight-bold my-0">{Number(earnings.total || 0).toLocaleString()} <span className="h4 font-weight-normal">XOF</span></h1>
+                <div className="progress-info my-2">
+                    <small>Prochain Palier : 5,000 XOF</small>
+                </div>
+                <Button color="primary" block onClick={() => setWithdrawModalOpen(true)} disabled={Number(earnings.total || 0) <= 0}>
+                  Retirer mes gains
+                </Button>
+              </Card>
 
-                      {/* Bouton pour contrôler le son */}
-                      {videoPlaying[promo.id] && (
-                        <Button
-                          color="light"
-                          style={{
-                            position: 'absolute',
-                            top: 10,
-                            right: 10,
-                            zIndex: 10,
-                            borderRadius: '50%',
-                            width: '40px',
-                            height: '40px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center'
-                          }}
-                          onClick={() => toggleMute(promo.id)}
-                        >
-                          <i className={`fas ${videoMuted[promo.id] ? 'fa-volume-mute' : 'fa-volume-up'}`} />
-                        </Button>
-                      )}
-
-                      {/* Barre de progression personnalisée */}
-                      {videoPlaying[promo.id] && !isEnded && (
-                        <div style={{
-                          position: 'absolute',
-                          bottom: 0,
-                          left: 0,
-                          right: 0,
-                          height: '4px',
-                          backgroundColor: 'rgba(255,255,255,0.3)',
-                          zIndex: 5
-                        }}>
-                          <div style={{
-                            width: `${(videoProgress[promo.id] / (videoRefs.current[promo.id]?.duration || 1)) * 100}%`,
-                            height: '100%',
-                            backgroundColor: '#007bff'
-                          }} />
-                        </div>
-                      )}
-
-                      {/* Overlay pour boutons d'interaction - seulement après la fin */}
-                      {isEnded && (
-                        <div style={{
-                          position: 'absolute',
-                          bottom: 0,
-                          left: 0,
-                          right: 0,
-                          backgroundColor: 'rgba(0,0,0,0.7)',
-                          padding: '10px',
-                          display: 'flex',
-                          justifyContent: 'center',
-                          gap: '10px',
-                          transition: 'opacity 0.3s ease'
-                        }}>
-                          {!interactions.liked ? (
-                            <Button
-                              color="primary"
-                              className="interaction-btn"
-                              onClick={() => handleInteraction(promo.id, 'like')}
-                            >
-                              <i className="fas fa-thumbs-up mr-2" /> Liker cette vidéo
-                            </Button>
-                          ) : (
-                            <Button
-                              color="success"
-                              className="interaction-btn"
-                              onClick={() => openShareModal(promo)}
-                            >
-                              <i className="fas fa-share mr-2" /> Partager maintenant
-                            </Button>
-                          )}
-                        </div>
-                      )}
+              <Card className="p-3 shadow-sm">
+                 <h5>Historique Récent</h5>
+                 <div className="history-list">
+                  {withdrawHistory.length > 0 ? withdrawHistory.slice(0, 5).map((item, index) => (
+                    <div key={index} className="history-item">
+                      <p className="mb-0 small">
+                        Retrait de <strong>{Number(item.montant).toFixed(0)} XOF</strong>
+                        <span className={`badge ml-2 badge-${item.statut === 'traite' ? 'success' : item.statut === 'rejete' ? 'danger' : 'warning'}`}>
+                          {item.statut}
+                        </span>
+                      </p>
+                       <p className="text-muted" style={{fontSize: '0.7rem'}}>{new Date(item.date).toLocaleDateString()}</p>
                     </div>
-
-                    <CardBody>
-                      <h4>{promo.titre}</h4>
-                      <p>{promo.description}</p>
-
-                      {interactionState[promo.id] && interactionState[promo.id].shared && (
-                        <div className="alert alert-success mt-3">
-                          <i className="fas fa-check-circle mr-2"></i>
-                          Merci d'avoir partagé cette vidéo ! Elle disparaîtra bientôt.
-                        </div>
-                      )}
-
-                      <hr />
- {/* 4. AFFICHER LE PRIX DU PACK */}
- {promo.remuneration_pack && (
-                        <Alert color="info" className="text-center small py-2">
-                          <i className="fas fa-coins mr-2"></i>
-                          Cette promotion vous rapporte <strong>{promo.remuneration_pack} FCFA</strong>.
-                        </Alert>
-                      )}
-                      <Form onSubmit={(e) => handleCommentSubmit(e, promo.id)}>
-                        <Input
-                          type="textarea"
-                          placeholder="Ajouter un commentaire..."
-                          rows="2"
-                          value={commentText[promo.id] || ''}
-                          onChange={(e) => handleCommentChange(promo.id, e.target.value)}
-                          disabled={interactionState[promo.id] && interactionState[promo.id].shared}
-                        />
-                        <Button
-                          color="default"
-                          size="sm"
-                          className="mt-2"
-                          type="submit"
-                          disabled={commentSending[promo.id] || (interactionState[promo.id] && interactionState[promo.id].shared)}
-                        >
-                          {commentSending[promo.id] ?
-                            <><Spinner size="sm" /> Envoi...</> :
-                            'Envoyer le commentaire'
-                          }
-                        </Button>
-                      </Form>
-                    </CardBody>
-                  </Card>
-                </Col>
-              );
-            })}
-
-            {/* Share modal */}
-            {promoToShare && (
-              <ShareModal
-                isOpen={shareModalOpen}
-                toggle={() => setShareModalOpen(false)}
-                promotion={promoToShare}
-                onShare={() => handleInteraction(promoToShare.id, 'partage')}
-              />
-            )}
+                  )) : (
+                    <p className="text-muted small">Aucun retrait récent.</p>
+                  )}
+                 </div>
+                 <Button color="warning" block className="mt-3">
+                    Invitez vos amis et gagnez gros !
+                 </Button>
+              </Card>
+            </Col>
           </Row>
         )}
       </Container>
 
-      {/* 2. MODIFIER LA MODALE DE RETRAIT */}
+      {/* WITHDRAW MODAL */}
       <Modal isOpen={withdrawModalOpen} toggle={() => setWithdrawModalOpen(false)}>
-        <ModalHeader toggle={() => setWithdrawModalOpen(false)}>
-          Demander un retrait
-        </ModalHeader>
+        <ModalHeader toggle={() => setWithdrawModalOpen(false)}>Demander un retrait</ModalHeader>
         <ModalBody>
           <div className="text-center mb-4">
             <p className="text-muted mb-0">Solde disponible</p>
             <h4>{Number(earnings.total || 0).toFixed(2)} XOF</h4>
           </div>
-
           <FormGroup>
             <Label for="withdrawAmount">Montant à retirer</Label>
-            <Input
-              id="withdrawAmount"
-              type="number"
-              placeholder="Ex: 500"
-              value={withdrawAmount}
-              onChange={(e) => setWithdrawAmount(e.target.value)}
-              max={earnings.total} // Ajoute une validation HTML5
-              min="1"
-            />
+            <Input id="withdrawAmount" type="number" placeholder="Ex: 500" value={withdrawAmount} onChange={(e) => setWithdrawAmount(e.target.value)} max={earnings.total} min="1"/>
           </FormGroup>
-
           <FormGroup>
             <Label>Opérateur mobile money</Label>
             <SelectInput type="select" value={operator} onChange={(e) => setOperator(e.target.value)}>
@@ -832,64 +616,31 @@ const UserView = () => {
               <option value="moov">Moov Money</option>
             </SelectInput>
           </FormGroup>
-
           <FormGroup>
             <Label>Numéro de téléphone</Label>
             <Input type="tel" placeholder="Ex: 0701020304" value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} />
           </FormGroup>
-
-          {withdrawError && (
-            <div className="alert alert-danger mt-3">
-              {withdrawError}
-            </div>
-          )}
+          {withdrawError && <Alert color="danger" className="mt-3">{withdrawError}</Alert>}
         </ModalBody>
         <ModalFooter>
-          <Button color="secondary" onClick={() => setWithdrawModalOpen(false)}>
-            Annuler
-          </Button>
+          <Button color="secondary" onClick={() => setWithdrawModalOpen(false)}>Annuler</Button>
           <Button color="primary" onClick={handleWithdraw} disabled={withdrawing}>
             {withdrawing ? <Spinner size="sm" /> : 'Confirmer la demande'}
           </Button>
         </ModalFooter>
       </Modal>
 
-      <style>
-        {`
-          /* Filter bar */
-          .filter-bar { gap: 8px; }
-          .filter-btn { min-width: 120px; }
-          .filter-btn.active, .filter-btn:focus { box-shadow: 0 4px 12px rgba(0,123,255,0.15); }
+      {/* SHARE MODAL */}
+      {promoToShare && (
+        <ShareModal
+          isOpen={shareModalOpen}
+          toggle={() => setShareModalOpen(false)}
+          promotion={promoToShare}
+          onShare={() => handleInteraction(promoToShare.id, 'partage')}
+        />
+      )}
 
-          /* Interaction buttons */
-          .interaction-btn {
-            padding: 8px 20px;
-            font-weight: bold;
-            border-radius: 20px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-            transition: transform 0.2s, box-shadow 0.2s;
-          }
-          .interaction-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-          }
 
-          .player-wrapper { transition: all 0.3s ease; }
-          .player-wrapper:hover { box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
-
-          video {
-            border-radius: 8px;
-            overflow: hidden;
-            transition: transform 0.3s;
-          }
-          video:focus { outline: none; }
-
-          /* Désactiver les contrôles vidéo */
-          video::-webkit-media-controls { display: none !important; }
-          video::-webkit-media-controls-play-button { display: none !important; }
-          video::-webkit-media-controls-start-playback-button { display: none !important; }
-        `}
-      </style>
     </>
   );
 };

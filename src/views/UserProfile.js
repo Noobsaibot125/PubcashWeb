@@ -5,7 +5,9 @@ import {
 } from 'reactstrap';
 import DynamicUserHeader from "components/Headers/DynamicUserHeader.js";
 import api from '../services/api';
-
+import { useNavigate } from 'react-router-dom'; // <-- IMPORTER useNavigate
+// IMPORTER LA NAVBAR PARTAGÉE
+import UserNavbar from 'components/Navbars/UserNavbar.js';
 const UserProfile = () => {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -17,7 +19,7 @@ const UserProfile = () => {
   const [isUpdating, setIsUpdating] = useState(false);
   const profileImageRef = useRef(null);
   const backgroundImageRef = useRef(null);
-
+  const navigate = useNavigate(); 
   const fetchProfile = useCallback(async () => {
     setLoading(true);
     setUpdateError('');
@@ -109,7 +111,21 @@ const UserProfile = () => {
       setIsUpdating(false);
     }
   };
-
+// AJOUTER LA FONCTION DE DÉCONNEXION
+const handleLogout = async () => {
+  try {
+    const refreshToken = localStorage.getItem('refreshToken');
+    if (refreshToken) {
+      await api.post('/auth/logout', { token: refreshToken });
+    }
+    localStorage.clear();
+    navigate('/auth/login');
+  } catch (error) {
+    console.error('Erreur handleLogout:', error);
+    localStorage.clear();
+    navigate('/auth/login');
+  }
+};
   if (loading) return <div className="text-center p-5"><Spinner /></div>;
   if (!profile) return <div className="text-center p-5 text-warning">{updateError || "Profil non trouvé."}</div>;
 
@@ -118,8 +134,9 @@ const UserProfile = () => {
   // Le reste du composant (JSX) est inchangé car il utilise déjà les bonnes variables
   return (
     <>
-      <DynamicUserHeader profile={profile} />
-      <Container className="mt--7" fluid>
+    <UserNavbar handleLogout={handleLogout} />
+    <DynamicUserHeader profile={profile} />
+    <Container className="mt--7" fluid>
         {/* ... votre JSX existant qui est déjà correct ... */}
          <Row>
           <Col className="order-xl-2 mb-5 mb-xl-0" xl="4">

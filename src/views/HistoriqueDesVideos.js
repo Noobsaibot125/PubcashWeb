@@ -4,6 +4,10 @@ import {
   Input, Form, ListGroup, ListGroupItem, Badge,Collapse
 } from 'reactstrap';
 import api from './../services/api';
+import { useNavigate } from 'react-router-dom'; // <-- IMPORTER useNavigate
+
+// IMPORTER LA NAVBAR PARTAGÉE
+import UserNavbar from 'components/Navbars/UserNavbar.js'; 
 const HistoriqueDesVideos = () => {
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -11,7 +15,7 @@ const HistoriqueDesVideos = () => {
   const [commentText, setCommentText] = useState({});
   const [sending, setSending] = useState({});
   const [expandedComments, setExpandedComments] = useState({});
-
+  const navigate = useNavigate();
   useEffect(() => {
     fetchHistory();
   }, []);
@@ -64,9 +68,27 @@ const HistoriqueDesVideos = () => {
     });
   };
 
+  // AJOUTER LA FONCTION DE DÉCONNEXION
+  const handleLogout = async () => {
+    try {
+      const refreshToken = localStorage.getItem('refreshToken');
+      if (refreshToken) {
+        await api.post('/auth/logout', { token: refreshToken });
+      }
+      localStorage.clear();
+      navigate('/auth/login');
+    } catch (error) {
+      console.error('Erreur handleLogout:', error);
+      localStorage.clear();
+      navigate('/auth/login');
+    }
+  };
   return (
-    <Container style={{ paddingTop: 60 }}>
-      <h2 className="mb-4">Historique des vidéos</h2>
+    // Utilisez un Fragment pour envelopper la Navbar et le Container
+    <>
+    <UserNavbar handleLogout={handleLogout} /> 
+    <Container className="mt-5 pt-4"> {/* Ajustement du padding top */}
+        <h2 className="mb-4">Historique des vidéos</h2>
       
       {loading && <div className="text-center"><Spinner color="primary" /></div>}
       {error && <div className="alert alert-danger">{error}</div>}
@@ -183,9 +205,10 @@ const HistoriqueDesVideos = () => {
             </Card>
           </Col>
         ))}
-      </Row>
+    </Row>
     </Container>
-  );
+  </>
+);
 };
 
 export default HistoriqueDesVideos;

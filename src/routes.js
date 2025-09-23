@@ -168,7 +168,7 @@ var routes = [
   component: <UserView />,
   layout: "/user",
   role: "utilisateur",
-  hideNavbar: true, // <- ajoute ceci pour cacher la navbar sur cette route
+ // hideNavbar: true, // <- ajoute ceci pour cacher la navbar sur cette route
 },
 {
   path: "/historique-videos",
