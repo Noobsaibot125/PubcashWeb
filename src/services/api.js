@@ -1,11 +1,14 @@
 // src/services/api.js
 import axios from 'axios';
 
-const BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+//const BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
+const BASE_URL = process.env.REACT_APP_API_URL || 'http://31.97.68.170:5000/api';
 const api = axios.create({
   baseURL: BASE_URL,
-  // withCredentials: true, // décommente si tu utilises des cookies côté serveur
+  headers: {
+    'Content-Type': 'application/json',
+  },
 });
 
 // Request interceptor : ajoute access token
