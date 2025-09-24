@@ -539,7 +539,7 @@ useEffect(() => {
                 <div className="text-center mt-5">
                   <Card className="shadow-lg bg-secondary text-center p-5">
                     <h4>C'est tout pour le moment !</h4>
-                    <p className="text-muted">Il n'y a plus de promotions QDdisponibles. Revenez plus tard !</p>
+                    <p className="text-muted">Il n'y a plus de promotions disponibles. Revenez plus tard !</p>
                   </Card>
                 </div>
               )}
