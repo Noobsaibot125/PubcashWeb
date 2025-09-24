@@ -410,153 +410,142 @@ useEffect(() => {
 
   return (
     <>
-    {/* 5. PASSEZ LES NOUVELLES PROPS À VOTRE NAVBAR */}
-    <UserNavbar 
-      handleLogout={handleLogout}
-      showFilters={true}
-      filter={filter}
-      setFilter={setFilter}
-      theme={theme}
-      toggleTheme={toggleTheme}
-    />
+      <UserNavbar 
+        handleLogout={handleLogout}
+        showFilters={true}
+        filter={filter}
+        setFilter={setFilter}
+        theme={theme}
+        toggleTheme={toggleTheme}
+      />
       <Container fluid className="user-view-container">
         {loading && <div className="text-center w-100"><Spinner color="primary" style={{ width: '3rem', height: '3rem' }} /></div>}
         {error && <Alert color="danger" className="text-center w-100">{error}</Alert>}
         
-        {!loading && !error && !mainVideo && (
-          <Row className="justify-content-center">
-            <Col xs="12" md="8" className="text-center mt-5">
-              <Card className="shadow-lg bg-secondary text-center p-5">
-                <h4>C'est tout pour le moment !</h4>
-                <p className="text-muted">Il n'y a plus de promotions disponibles. Revenez plus tard !</p>
-              </Card>
-            </Col>
-          </Row>
-        )}
-
-        {!loading && !error && mainVideo && (
+        {/* CHANGEMENT MAJEUR : La structure commence ici */}
+        {!loading && !error && (
           <Row>
-            {/* MAIN VIDEO COLUMN */}
+            {/* Colonne de gauche : Contenu principal (Vidéo ou message si vide) */}
             <Col lg="8" className="main-content-col">
-              <div className="video-player-main mb-3" style={{ position: 'relative' }}>
-                {/* <-- IMPORTANT: add key so React remounts the <video> when mainVideo changes */}
-                <video
-                  key={mainVideo.id}
-                  ref={el => videoRefs.current[mainVideo.id] = el}
-                  controls={false}
-                  width="100%"
-                  poster={mainVideo.thumbnail_url}
-                  className="main-video"
-                  onPlay={() => onVideoPlay(mainVideo.id)}
-                  onPause={(e) => onVideoPause(e, mainVideo.id)}
-                  onEnded={() => onEnded(mainVideo.id)}
-                  onTimeUpdate={(e) => onTimeUpdate(mainVideo.id, e)}
-                  onLoadedData={() => setVideoLoaded(prev => ({ ...prev, [mainVideo.id]: true }))}
-                  muted={videoMuted[mainVideo.id] ?? true}
-                  onClick={() => startPlayback(mainVideo.id)}
-                  onSeeking={(e) => onSeeking(e, mainVideo.id)}
-                  onContextMenu={(e) => e.preventDefault()}
-                >
-                  <source src={mainVideo.url_video} type={'video/mp4'} />
-                  Votre navigateur ne supporte pas la lecture de vidéos.
-                </video>
+              {mainVideo ? (
+                // Si une vidéo existe, on affiche le lecteur et les recommandations
+                <>
+                  <div className="video-player-main mb-3" style={{ position: 'relative' }}>
+                    <video
+                      key={mainVideo.id}
+                      ref={el => videoRefs.current[mainVideo.id] = el}
+                      controls={false}
+                      width="100%"
+                      poster={mainVideo.thumbnail_url}
+                      className="main-video"
+                      onPlay={() => onVideoPlay(mainVideo.id)}
+                      onPause={(e) => onVideoPause(e, mainVideo.id)}
+                      onEnded={() => onEnded(mainVideo.id)}
+                      onTimeUpdate={(e) => onTimeUpdate(mainVideo.id, e)}
+                      onLoadedData={() => setVideoLoaded(prev => ({ ...prev, [mainVideo.id]: true }))}
+                      muted={videoMuted[mainVideo.id] ?? true}
+                      onClick={() => startPlayback(mainVideo.id)}
+                      onSeeking={(e) => onSeeking(e, mainVideo.id)}
+                      onContextMenu={(e) => e.preventDefault()}
+                    >
+                      <source src={mainVideo.url_video} type={'video/mp4'} />
+                      Votre navigateur ne supporte pas la lecture de vidéos.
+                    </video>
 
-              {/* Play overlay before playback starts */}
-{!playbackStarted[mainVideo.id] && !videoPlaying[mainVideo.id] && (
-  <div
-    className="video-overlay play-button-overlay"
-    onClick={() => startPlayback(mainVideo.id)}
-    style={{ zIndex: 40, pointerEvents: 'auto' }}
-  >
-    <i className="fas fa-play fa-3x"></i>
-  </div>
-)}
+                    {!playbackStarted[mainVideo.id] && !videoPlaying[mainVideo.id] && (
+                      <div
+                        className="video-overlay play-button-overlay"
+                        onClick={() => startPlayback(mainVideo.id)}
+                        style={{ zIndex: 40, pointerEvents: 'auto' }}
+                      >
+                        <i className="fas fa-play fa-3x"></i>
+                      </div>
+                    )}
 
-                {/* Sound toggle and progress while playing */}
-                {videoPlaying[mainVideo.id] && (
-                  <>
-                    <Button color="light" className="mute-toggle-btn" onClick={() => toggleMute(mainVideo.id)}>
-                      <i className={`fas ${videoMuted[mainVideo.id] ?? true ? 'fa-volume-mute' : 'fa-volume-up'}`} />
-                    </Button>
-                    <div className="progress-bar-container">
-                      <div className="progress-bar-inner" style={{ width: `${(videoProgress[mainVideo.id] / (videoRefs.current[mainVideo.id]?.duration || 1)) * 100}%`}} />
-                    </div>
-                  </>
-                )}
+                    {videoPlaying[mainVideo.id] && (
+                      <>
+                        <Button color="light" className="mute-toggle-btn" onClick={() => toggleMute(mainVideo.id)}>
+                          <i className={`fas ${videoMuted[mainVideo.id] ?? true ? 'fa-volume-mute' : 'fa-volume-up'}`} />
+                        </Button>
+                        <div className="progress-bar-container">
+                          <div className="progress-bar-inner" style={{ width: `${(videoProgress[mainVideo.id] / (videoRefs.current[mainVideo.id]?.duration || 1)) * 100}%`}} />
+                        </div>
+                      </>
+                    )}
 
-                {/* Interaction overlay for MAIN VIDEO when ended */}
-                {videoEnded[mainVideo.id] && (
-                  <div className="video-overlay interaction-overlay" style={{
-                    position: 'absolute',
-                    bottom: 0,
-                    left: 0,
-                    right: 0,
-                    backgroundColor: 'rgba(0,0,0,0.7)',
-                    padding: '12px',
-                    display: 'flex',
-                    justifyContent: 'center',
-                    gap: '12px',
-                    zIndex: 20
-                  }}>
-                    {!interactionState[mainVideo.id]?.liked ? (
-                      <Button color="primary" className="interaction-btn" onClick={() => handleInteraction(mainVideo.id, 'like')}>
-                        <i className="fas fa-thumbs-up mr-2" /> Liker cette vidéo
-                      </Button>
-                    ) : (
-                      <Button color="success" className="interaction-btn" onClick={() => openShareModal(mainVideo)}>
-                        <i className="fas fa-share mr-2" /> Partager maintenant
-                      </Button>
+                    {videoEnded[mainVideo.id] && (
+                      <div className="video-overlay interaction-overlay" style={{
+                        position: 'absolute', bottom: 0, left: 0, right: 0,
+                        backgroundColor: 'rgba(0,0,0,0.7)', padding: '12px',
+                        display: 'flex', justifyContent: 'center', gap: '12px', zIndex: 20
+                      }}>
+                        {!interactionState[mainVideo.id]?.liked ? (
+                          <Button color="primary" className="interaction-btn" onClick={() => handleInteraction(mainVideo.id, 'like')}>
+                            <i className="fas fa-thumbs-up mr-2" /> Liker cette vidéo
+                          </Button>
+                        ) : (
+                          <Button color="success" className="interaction-btn" onClick={() => openShareModal(mainVideo)}>
+                            <i className="fas fa-share mr-2" /> Partager maintenant
+                          </Button>
+                        )}
+                      </div>
                     )}
                   </div>
-                )}
-              </div>
 
-              <Button color="primary" block className="earn-button">
-                Regarder pour Gagner +{mainVideo.remuneration_pack || '...'} XOF
-              </Button>
+                  <Button color="primary" block className="earn-button">
+                    Regarder pour Gagner +{mainVideo.remuneration_pack || '...'} XOF
+                  </Button>
 
-              <div className="comment-section mt-4">
-                <Form onSubmit={(e) => handleCommentSubmit(e, mainVideo.id)}>
-                  <Row>
-                    <Col>
-                      <Input
-                        type="textarea"
-                        placeholder="Ajouter un commentaire..."
-                        rows="1"
-                        value={commentText[mainVideo.id] || ''}
-                        onChange={(e) => handleCommentChange(mainVideo.id, e.target.value)}
-                      />
-                    </Col>
-                    <Col xs="auto">
-                      <Button color="primary" type="submit" disabled={commentSending[mainVideo.id]}>
-                         {commentSending[mainVideo.id] ? <Spinner size="sm"/> : 'Envoyer'}
-                      </Button>
-                    </Col>
-                  </Row>
-                </Form>
-              </div>
+                  <div className="comment-section mt-4">
+                    <Form onSubmit={(e) => handleCommentSubmit(e, mainVideo.id)}>
+                      <Row>
+                        <Col>
+                          <Input
+                            type="textarea" placeholder="Ajouter un commentaire..." rows="1"
+                            value={commentText[mainVideo.id] || ''}
+                            onChange={(e) => handleCommentChange(mainVideo.id, e.target.value)}
+                          />
+                        </Col>
+                        <Col xs="auto">
+                          <Button color="primary" type="submit" disabled={commentSending[mainVideo.id]}>
+                            {commentSending[mainVideo.id] ? <Spinner size="sm"/> : 'Envoyer'}
+                          </Button>
+                        </Col>
+                      </Row>
+                    </Form>
+                  </div>
 
-              <hr />
+                  <hr />
 
-              <div className="recommended-videos mt-4">
-                <h5>Vidéos Recommandées</h5>
-                <Row>
-                  {recommendedVideos.map(promo => (
-                    <Col key={promo.id} xs="6" md="4" lg="3">
-                      <Card className="recommended-video-card" onClick={() => swapToPromo(promo.id)}>
-                        <img src={promo.thumbnail_url} alt={promo.titre} className="img-fluid"/>
-                        <CardBody className="p-2">
-                           <h6 className="mb-1">{promo.titre}</h6>
-                           <p className="text-muted small mb-0">{promo.remuneration_pack} XOF</p>
-                        </CardBody>
-                      </Card>
-                    </Col>
-                  ))}
-                </Row>
-              </div>
+                  <div className="recommended-videos mt-4">
+                    <h5>Vidéos Recommandées</h5>
+                    <Row>
+                      {recommendedVideos.map(promo => (
+                        <Col key={promo.id} xs="6" md="4" lg="3">
+                          <Card className="recommended-video-card" onClick={() => swapToPromo(promo.id)}>
+                            <img src={promo.thumbnail_url} alt={promo.titre} className="img-fluid"/>
+                            <CardBody className="p-2">
+                              <h6 className="mb-1">{promo.titre}</h6>
+                              <p className="text-muted small mb-0">{promo.remuneration_pack} XOF</p>
+                            </CardBody>
+                          </Card>
+                        </Col>
+                      ))}
+                    </Row>
+                  </div>
+                </>
+              ) : (
+                // S'il n'y a PAS de vidéo, on affiche le message
+                <div className="text-center mt-5">
+                  <Card className="shadow-lg bg-secondary text-center p-5">
+                    <h4>C'est tout pour le moment !</h4>
+                    <p className="text-muted">Il n'y a plus de promotions disponibles. Revenez plus tard !</p>
+                  </Card>
+                </div>
+              )}
             </Col>
 
-            {/* RIGHT SIDEBAR */}
+            {/* Colonne de droite : Gains et Historique (toujours visible) */}
             <Col lg="4" className="right-sidebar-col">
               <Card className="p-3 shadow-sm mb-4">
                 <p className="text-muted mb-1">Mes Gains Actuels</p>

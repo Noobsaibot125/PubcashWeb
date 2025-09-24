@@ -3,3 +3,6 @@
 package-lock.json
 /build
 .eslintcache
+# Fichiers secrets et de configuration locale
+.env
+src/services/api.js
