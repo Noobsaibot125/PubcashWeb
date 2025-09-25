@@ -10,7 +10,7 @@ import api from 'services/api'; // <--- AJOUTEZ CETTE LIGNE
 import { Line } from "react-chartjs-2";
 import { chartOptions, parseOptions, chartExample1 } from "variables/charts.js";
 import Chart from "chart.js";
-
+import { getMediaUrl } from 'utils/mediaUrl'; // AJOUT IMPORT
 // S'assurer que Chart.js est configuré une seule fois
 if (window.Chart) {
   parseOptions(Chart, chartOptions());
@@ -78,30 +78,29 @@ const ImageWithPlaceholder = ({ src, alt, height = 180, style = {}, onErrorFallb
   
 
 // --- COMPOSANT PromotionCard (Optimisé) ---
-const normalizeMediaUrl = (url) => {
-  if (!url) return null;
-  if (url.startsWith('http')) return url;
-  const apiBase = process.env.REACT_APP_API_URL || 'http://localhost:5000';
-  return url.startsWith('/') ? `${apiBase}${url}` : `${apiBase}/${url}`;
-};
+// const normalizeMediaUrl = (url) => {
+//   if (!url) return null;
+//   if (url.startsWith('http')) return url;
+//   const apiBase = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+//   return url.startsWith('/') ? `${apiBase}${url}` : `${apiBase}/${url}`;
+// };
 const PromotionCard = React.memo(({ promotion, onClick }) => {
   const getThumbnail = () => {
-    // Utilisez directement l'URL complète fournie par l'API
+    // Utilisez la fonction getMediaUrl pour générer l'URL complète
     if (promotion.thumbnail_url) {
-      return promotion.thumbnail_url;
+      return getMediaUrl(promotion.thumbnail_url); // CORRECTION ICI
     }
-        try {
-          if (promotion.url_video) {
-            const url = new URL(promotion.url_video);
-            if (url.hostname.includes("youtube.com") || url.hostname.includes("youtu.be")) {
-              const videoId = url.searchParams.get('v') || url.pathname.split('/').pop();
-              return `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`;
-            }
-          }
-        } catch (e) { /* ignore */ }
-        return "https://via.placeholder.com/320x180.png?text=PubCash+Vidéo";
-      };
-      
+    try {
+      if (promotion.url_video) {
+        const url = new URL(promotion.url_video);
+        if (url.hostname.includes("youtube.com") || url.hostname.includes("youtu.be")) {
+          const videoId = url.searchParams.get('v') || url.pathname.split('/').pop();
+          return `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`;
+        }
+      }
+    } catch (e) { /* ignore */ }
+    return "https://via.placeholder.com/320x180.png?text=PubCash+Vidéo";
+  };
 
   return (
     <Col xl="3" lg="4" md="6" className="mb-4">
@@ -317,7 +316,7 @@ const Index = () => {
     key={selectedPromo.url_video} // Important pour forcer le re-render
     style={{ backgroundColor: 'black' }}
   >
-    <source src={selectedPromo.url_video} type="video/mp4" />
+   <source src={getMediaUrl(selectedPromo.url_video)} type="video/mp4" />
     Votre navigateur ne prend pas en charge la lecture de vidéos.
   </video>
 </div>

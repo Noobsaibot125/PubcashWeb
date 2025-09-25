@@ -12,6 +12,7 @@ import { io } from 'socket.io-client';
 import UserNavbar from 'components/Navbars/UserNavbar.js';
 import '../assets/css/UserView.css'; 
 import '../assets/css/UserViewDark.css';
+import { getMediaUrl } from 'utils/mediaUrl'; // AJOUT IMPORT
 const UserView = () => {
   // STATES
   const [promotions, setPromotions] = useState([]);
@@ -233,8 +234,12 @@ useEffect(() => {
   useEffect(() => {
     const userInfo = JSON.parse(localStorage.getItem('userInfo'));
     if (!userInfo || !userInfo.id) return;
-    const socket = io('http://31.97.68.170:5000');
-    socketRef.current = socket;
+    const socketUrl = process.env.NODE_ENV === 'development' 
+    ? 'http://localhost:5000' 
+    : 'https://pub-cash.com';
+    
+  const socket = io(socketUrl); // CORRECTION ICI
+  socketRef.current = socket;
     socket.on('connect', () => {
       socket.emit('user_online', userInfo.id);
     });
@@ -431,26 +436,26 @@ useEffect(() => {
                 // Si une vidéo existe, on affiche le lecteur et les recommandations
                 <>
                   <div className="video-player-main mb-3" style={{ position: 'relative' }}>
-                    <video
-                      key={mainVideo.id}
-                      ref={el => videoRefs.current[mainVideo.id] = el}
-                      controls={false}
-                      width="100%"
-                      poster={mainVideo.thumbnail_url}
-                      className="main-video"
-                      onPlay={() => onVideoPlay(mainVideo.id)}
-                      onPause={(e) => onVideoPause(e, mainVideo.id)}
-                      onEnded={() => onEnded(mainVideo.id)}
-                      onTimeUpdate={(e) => onTimeUpdate(mainVideo.id, e)}
-                      onLoadedData={() => setVideoLoaded(prev => ({ ...prev, [mainVideo.id]: true }))}
-                      muted={videoMuted[mainVideo.id] ?? true}
-                      onClick={() => startPlayback(mainVideo.id)}
-                      onSeeking={(e) => onSeeking(e, mainVideo.id)}
-                      onContextMenu={(e) => e.preventDefault()}
-                    >
-                      <source src={mainVideo.url_video} type={'video/mp4'} />
-                      Votre navigateur ne supporte pas la lecture de vidéos.
-                    </video>
+                  <video
+        key={mainVideo.id}
+        ref={el => videoRefs.current[mainVideo.id] = el}
+        controls={false}
+        width="100%"
+        poster={getMediaUrl(mainVideo.thumbnail_url)} 
+        className="main-video"
+        onPlay={() => onVideoPlay(mainVideo.id)}
+        onPause={(e) => onVideoPause(e, mainVideo.id)}
+        onEnded={() => onEnded(mainVideo.id)}
+        onTimeUpdate={(e) => onTimeUpdate(mainVideo.id, e)}
+        onLoadedData={() => setVideoLoaded(prev => ({ ...prev, [mainVideo.id]: true }))}
+        muted={videoMuted[mainVideo.id] ?? true}
+        onClick={() => startPlayback(mainVideo.id)}
+        onSeeking={(e) => onSeeking(e, mainVideo.id)}
+        onContextMenu={(e) => e.preventDefault()}
+      >
+        <source src={getMediaUrl(mainVideo.url_video)} type={'video/mp4'} /> 
+        Votre navigateur ne supporte pas la lecture de vidéos.
+      </video>
 
                     {!playbackStarted[mainVideo.id] && !videoPlaying[mainVideo.id] && (
                       <div
@@ -523,7 +528,7 @@ useEffect(() => {
                       {recommendedVideos.map(promo => (
                         <Col key={promo.id} xs="6" md="4" lg="3">
                           <Card className="recommended-video-card" onClick={() => swapToPromo(promo.id)}>
-                            <img src={promo.thumbnail_url} alt={promo.titre} className="img-fluid"/>
+                          <img src={getMediaUrl(promo.thumbnail_url)} alt={promo.titre} className="img-fluid"/>
                             <CardBody className="p-2">
                               <h6 className="mb-1">{promo.titre}</h6>
                               <p className="text-muted small mb-0">{promo.remuneration_pack} XOF</p>

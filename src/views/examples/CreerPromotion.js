@@ -44,7 +44,11 @@ const CreerPromotion = () => {
         const form = new FormData();
         form.append('video', file);
       
-        const res = await api.post('/videos/upload', form);
+        const res = await api.post('/videos/upload', form, {
+            headers: {
+              'Content-Type': 'multipart/form-data',
+            },
+          });
         return res.data; // Axios renvoie les données directement dans .data
     };
   

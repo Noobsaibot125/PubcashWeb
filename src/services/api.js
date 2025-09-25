@@ -1,9 +1,9 @@
 // src/services/api.js
 import axios from 'axios';
 
-//const BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+// URL de base intelligente qui s'adapte à l'environnement
+const BASE_URL = process.env.REACT_APP_API_URL || '/api';
 
-const BASE_URL = process.env.REACT_APP_API_URL || 'http://31.97.68.170:5000/api';
 const api = axios.create({
   baseURL: BASE_URL,
   headers: {
@@ -15,10 +15,20 @@ const api = axios.create({
 api.interceptors.request.use(
   (config) => {
     const accessToken = localStorage.getItem('accessToken');
-    if (accessToken) {
+    
+    // Validation robuste du token
+    if (accessToken && typeof accessToken === 'string' && accessToken.trim() !== '') {
+      // Nettoyer le token (supprimer 'Bearer ' s'il est déjà présent)
+      const cleanToken = accessToken.trim().replace(/^Bearer\s+/i, '');
       config.headers = config.headers || {};
-      config.headers['Authorization'] = `Bearer ${accessToken}`;
+      config.headers['Authorization'] = `Bearer ${cleanToken}`;
+      
+      // Log pour debug (à supprimer en production)
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🔐 Token envoyé:', cleanToken.substring(0, 20) + '...');
+      }
     }
+    
     return config;
   },
   (error) => Promise.reject(error)
@@ -36,39 +46,40 @@ api.interceptors.response.use(
       return Promise.reject(error);
     }
 
-    // Cas 401
+    // Cas 401 - Token expiré ou invalide
     if (error.response && error.response.status === 401 && !originalConfig._retry) {
       originalConfig._retry = true;
 
       try {
         const refreshToken = localStorage.getItem('refreshToken');
         if (!refreshToken) {
-          // pas de refresh -> logout
+          // Pas de refresh token -> déconnexion
           localStorage.clear();
           window.location.href = '/auth/login';
           return Promise.reject(new Error('No refresh token'));
         }
 
-        // Utiliser axios (global) avec BASE_URL pour refresh
-        const rs = await axios.post(`${BASE_URL}/auth/refresh-token`, { token: refreshToken }, {
+        // Utiliser l'URL complète pour le refresh
+        const refreshUrl = `${BASE_URL}/auth/refresh-token`;
+        const rs = await axios.post(refreshUrl, { token: refreshToken }, {
           headers: { 'Content-Type': 'application/json' }
         });
 
         const { accessToken: newAccessToken } = rs.data || {};
         if (!newAccessToken) {
-          // refresh non valide
+          // Refresh non valide
           localStorage.clear();
           window.location.href = '/auth/login';
           return Promise.reject(new Error('Refresh failed'));
         }
 
-        // stocke et met à jour l'instance
+        // Stocker et mettre à jour l'instance
         localStorage.setItem('accessToken', newAccessToken);
         api.defaults.headers.common['Authorization'] = `Bearer ${newAccessToken}`;
         originalConfig.headers = originalConfig.headers || {};
         originalConfig.headers['Authorization'] = `Bearer ${newAccessToken}`;
 
-        // relancer la requête originale
+        // Relancer la requête originale
         return api(originalConfig);
       } catch (refreshErr) {
         console.error('Refresh token failed:', refreshErr);
