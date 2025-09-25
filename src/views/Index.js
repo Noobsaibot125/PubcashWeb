@@ -248,7 +248,7 @@ const Index = () => {
             className="mr-2"
             size="sm"
           >
-            Toutes mes promotions
+            Toutes mes promotionsXXX
           </Button>
           <Button
             color={filter === 'ma_commune' ? 'primary' : 'secondary'}
