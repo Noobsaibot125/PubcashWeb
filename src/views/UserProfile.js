@@ -67,50 +67,55 @@ const UserProfile = () => {
   const handleInputChange = (e) => setEditData({ ...editData, [e.target.name]: e.target.value });
   const handlePasswordChange = (e) => setPasswordData({ ...passwordData, [e.target.name]: e.target.value });
 
-  const handleImageUpload = async (imageType, file) => {
+  const uploadImage = async (file, endpoint) => {
+    if (!file) return null;
+  
     const formData = new FormData();
-    formData.append(imageType, file); // profileImage ou backgroundImage
+    formData.append('file', file); // ⚡ CORRECTION: toujours "file"
+  
     try {
-      const endpoint = imageType === 'profileImage' ? '/user/upload-profile-image' : '/user/upload-background-image';
-      await api.post(endpoint, formData, { headers: { 'Content-Type': 'multipart/form-data' }});
+      const response = await api.post(endpoint, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      return response.data;
     } catch (error) {
-      throw new Error(`Échec de l'upload de l'image: ${error.response?.data?.message || error.message}`);
+      console.error(`Erreur upload ${endpoint}:`, error);
+      throw error;
     }
   };
-  
 
   const handleUpdateProfile = async (e) => {
     e.preventDefault();
     setUpdateError('');
     setUpdateSuccess('');
     setIsUpdating(true);
-
+  
     try {
-      // 1. Mise à jour des données texte et mot de passe
+      // 1. Mise à jour des données texte + mot de passe
       await api.put('/user/profile', { ...editData, ...passwordData });
-
-      // 2. Upload des images séparément, si elles ont été modifiées
+  
+      // 2. Upload images
       const profileImageFile = profileImageRef.current?.files[0];
-      if (profileImageFile) {
-        await handleImageUpload('profileImage', profileImageFile);
-      }
-
       const backgroundImageFile = backgroundImageRef.current?.files[0];
-      if (backgroundImageFile) {
-        // Le nom du champ pour le FormData est 'backgroundImage'
-        await handleImageUpload('backgroundImage', backgroundImageFile);
+  
+      if (profileImageFile) {
+        await uploadImage(profileImageFile, '/user/upload-profile-image');
       }
-      
+      if (backgroundImageFile) {
+        await uploadImage(backgroundImageFile, '/user/upload-background-image');
+      }
+  
       setUpdateSuccess("Profil mis à jour avec succès !");
-      await fetchProfile(); // Recharger le profil pour afficher les nouvelles images
-      setTimeout(() => toggleModal(), 1500);
-
+      await fetchProfile(); 
+      setTimeout(() => toggleModal(), 2000);
+  
     } catch (err) {
-      setUpdateError(err.response?.data?.message || err.message || "Une erreur est survenue lors de la mise à jour.");
+      setUpdateError(err.response?.data?.message || "Une erreur est survenue lors de la mise à jour.");
     } finally {
       setIsUpdating(false);
     }
   };
+  
 // AJOUTER LA FONCTION DE DÉCONNEXION
 const handleLogout = async () => {
   try {

@@ -53,7 +53,7 @@
     if (!file) return null;
     
     const formData = new FormData();
-    formData.append('file', file);
+    formData.append('file', file); // ✅ le backend attend 'file'
     
     try {
       const response = await api.post(endpoint, formData, {
@@ -114,11 +114,11 @@
         const backgroundImageFile = backgroundImageRef.current?.files[0];
   
         if (profileImageFile) {
-          await uploadImage(profileImageFile, '/client/upload-profile-image');
+          await uploadImage(profileImageFile, '/client/upload-profile-image', 'profileImage');
         }
-  
+        
         if (backgroundImageFile) {
-          await uploadImage(backgroundImageFile, '/client/upload-background-image');
+          await uploadImage(backgroundImageFile, '/client/upload-background-image', 'backgroundImage');
         }
   
         setUpdateSuccess("Profil mis à jour avec succès !");
@@ -264,7 +264,7 @@
               <div className="pl-lg-4">
                 <Row>
                   <Col lg="6"><FormGroup><Label>Mot de passe actuel</Label><Input type="password" name="currentPassword" value={passwordData.currentPassword} onChange={handlePasswordChange} autoComplete="current-password" /></FormGroup></Col>
-                  <Col lg="6"><FormGroup><Label>LA Nouveau mot de passe</Label><Input type="password" name="newPassword" value={passwordData.newPassword} onChange={handlePasswordChange} autoComplete="new-password" /></FormGroup></Col>
+                  <Col lg="6"><FormGroup><Label>Nouveau mot de passe</Label><Input type="password" name="newPassword" value={passwordData.newPassword} onChange={handlePasswordChange} autoComplete="new-password" /></FormGroup></Col>
                 </Row>
               </div>
               {updateError && <div className="text-danger text-center mt-3"><small>{updateError}</small></div>}
