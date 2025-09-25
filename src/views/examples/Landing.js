@@ -3,7 +3,7 @@ import React, { useEffect, useState } from "react";
 import { Container, Row, Col, Button, Spinner } from "reactstrap";
 import { Link, useNavigate } from "react-router-dom"; // Importez useNavigate
 import { jwtDecode } from 'jwt-decode'; // Installez avec : npm install jwt-decode
-
+import { getMediaUrl } from 'utils/mediaUrl'; // AJOUT IMPORT
 import "../../assets/css/Landing.css";
 
 // Fichiers de secours locaux
@@ -84,9 +84,9 @@ const Landing = () => {
     return `${serverBaseUrl}${cleanPath}`;
   };
 
-  const logoSrc = !loadingInfo && info?.logo_path ? assetUrl(info.logo_path) : logoFallback;
-  const posterSrc = !loadingInfo && info?.hero_image_path ? assetUrl(info.hero_image_path) : posterFallback;
-  const videoSrc = !loadingInfo && info?.hero_video_path ? assetUrl(info.hero_video_path) : (process.env.PUBLIC_URL + "/videos/landing-hero.mp4");
+  const logoSrc = !loadingInfo && info?.logo_path ? getMediaUrl(info.logo_path) : logoFallback;
+  const posterSrc = !loadingInfo && info?.hero_image_path ? getMediaUrl(info.hero_image_path) : posterFallback;
+  const videoSrc = !loadingInfo && info?.hero_video_path ? getMediaUrl(info.hero_video_path) : (process.env.PUBLIC_URL + "/videos/landing-hero.mp4");
 
   // Affichez un spinner si l'authentification est en cours de vérification OU si les infos de la page chargent
   if (isCheckingAuth || loadingInfo) {

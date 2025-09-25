@@ -13,12 +13,18 @@ export const getMediaUrl = (path) => {
     // Déterminer l'URL de base selon l'environnement
     let baseUrl;
     
-    if (process.env.NODE_ENV === 'development') {
-      // En développement : backend sur localhost:5000
+    // Méthode plus fiable pour détecter l'environnement
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+      // Développement local
       baseUrl = 'http://localhost:5000';
     } else {
-      // En production : utiliser le domaine principal
-      baseUrl = 'https://pub-cash.com';
+      // Production - utilise le domaine actuel
+      baseUrl = window.location.origin; // Cela donnera 'https://pub-cash.com'
+      
+      // Si le backend est sur un port différent, ajustez
+      if (process.env.REACT_APP_API_URL && process.env.REACT_APP_API_URL.includes(':5000')) {
+        baseUrl = process.env.REACT_APP_API_URL.replace('/api', '');
+      }
     }
     
     // Gérer les chemins absolus et relatifs
@@ -30,9 +36,10 @@ export const getMediaUrl = (path) => {
   };
   
   /**
-   * Version spécifique pour les uploads (videos, thumbnails)
+   * Version de debug qui loggue les URLs
    */
-  export const getUploadUrl = (filename) => {
-    if (!filename) return null;
-    return getMediaUrl(`/uploads/${filename}`);
+  export const getMediaUrlDebug = (path, context = '') => {
+    const url = getMediaUrl(path);
+    console.log(`🖼️ Media URL [${context}]:`, { path, finalUrl: url });
+    return url;
   };
