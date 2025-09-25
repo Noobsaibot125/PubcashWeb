@@ -7,6 +7,7 @@
   } from 'reactstrap';
   import DynamicUserHeader from "components/Headers/DynamicUserHeader.js"; // On utilise un Header dynamique
   import api from '../../services/api';
+  import { getMediaUrl } from 'utils/mediaUrl'; // IMPORT CORRIGÉ
   const Profile = () => {
     // --- États du composant ---
     const [profile, setProfile] = useState(null);
@@ -24,45 +25,72 @@
 
     // --- Fonctions de récupération et de gestion ---
     const fetchProfile = useCallback(async () => {
-      try {
-        if (!loading) setLoading(true);
-        const response = await api.get('/client/profile');
-        const data = response.data;
-    
-        // Base API (fallback)
-        const baseApi = process.env.REACT_APP_API_URL || window.location.origin;
-    
-        const profile_image_url = data.profile_image_url
-          ? (data.profile_image_url.startsWith('http') ? data.profile_image_url : `${baseApi}/uploads/profile/${encodeURIComponent(data.profile_image_url)}`)
-          : null;
-    
-        const background_image_url = data.background_image_url
-          ? (data.background_image_url.startsWith('http') ? data.background_image_url : `${baseApi}/uploads/background/${encodeURIComponent(data.background_image_url)}`)
-          : null;
-    
-        const final = { ...data, profile_image_url, background_image_url };
-        setProfile(final);
-        setEditData(final);
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    }, [loading]);
+    try {
+      setLoading(true);
+      const response = await api.get('/client/profile');
+      const data = response.data;
 
-    useEffect(() => {
-      fetchProfile();
-    }, [fetchProfile]); // Utilisation de la fonction useCallback
+      // UTILISER getMediaUrl AU LIEU DE LA LOGIQUE MANUELLE
+      const profile_image_url = data.profile_image_url ? getMediaUrl(data.profile_image_url) : null;
+      const background_image_url = data.background_image_url ? getMediaUrl(data.background_image_url) : null;
 
-    const toggleModal = () => {
-      setIsModalOpen(!isModalOpen);
-      setUpdateError('');
-      setUpdateSuccess('');
-      setPasswordData({ currentPassword: '', newPassword: '' });
-      if (profile) setEditData(profile);
-    };
-    const handleInputChange = (e) => setEditData({ ...editData, [e.target.name]: e.target.value });
-    const handlePasswordChange = (e) => setPasswordData({ ...passwordData, [e.target.name]: e.target.value });
+      const final = { ...data, profile_image_url, background_image_url };
+      setProfile(final);
+      setEditData(final);
+    } catch (err) {
+      console.error("Erreur fetchProfile:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, []); // ✅ SUPPRIMER 'loading' DES DÉPENDANCES
+
+  useEffect(() => {
+    fetchProfile();
+  }, [fetchProfile]);
+
+  // --- CORRECTION : Fonction d'upload d'images séparée ---
+  const uploadImage = async (file, endpoint) => {
+    if (!file) return null;
+    
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    try {
+      const response = await api.post(endpoint, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      return response.data;
+    } catch (error) {
+      console.error(`Erreur upload ${endpoint}:`, error);
+      throw error;
+    }
+  };
+
+
+  const toggleModal = () => {
+    setIsModalOpen(!isModalOpen);
+    setUpdateError('');
+    setUpdateSuccess('');
+    setPasswordData({ currentPassword: '', newPassword: '' });
+    if (profile) setEditData(profile);
+  };
+
+  const handleInputChange = (e) => {
+    setEditData({ ...editData, [e.target.name]: e.target.value });
+  };
+
+  const handlePasswordChange = (e) => {
+    setPasswordData({ ...passwordData, [e.target.name]: e.target.value });
+  };
+
+  if (loading) {
+    return (
+      <div className="text-center p-5">
+        <Spinner color="primary" />
+        <p className="mt-2">Chargement du profil...</p>
+      </div>
+    );
+  }
 
     // 3. On corrige la fonction de mise à jour pour utiliser 'api.put' et 'api.post'
     const handleUpdateProfile = async (e) => {
@@ -70,38 +98,43 @@
       setUpdateError('');
       setUpdateSuccess('');
       setIsUpdating(true);
-
+  
       try {
-        // Mise à jour des informations textuelles
-        await api.put('/client/profile', { ...editData, ...passwordData });
-
-        // Upload de l'image de profil
+        // 1. Mise à jour des données texte
+        const updatePayload = { ...editData };
+        if (passwordData.currentPassword && passwordData.newPassword) {
+          updatePayload.currentPassword = passwordData.currentPassword;
+          updatePayload.newPassword = passwordData.newPassword;
+        }
+  
+        await api.put('/client/profile', updatePayload);
+  
+        // 2. Upload des images (séparément)
         const profileImageFile = profileImageRef.current?.files[0];
-        if (profileImageFile) {
-          const formData = new FormData();
-          formData.append('profileImage', profileImageFile);
-          await api.post('/client/upload-profile-image', formData);
-        }
-
-        // Upload de l'image de bannière
         const backgroundImageFile = backgroundImageRef.current?.files[0];
-        if (backgroundImageFile) {
-          const formData = new FormData();
-          formData.append('backgroundImage', backgroundImageFile);
-          await api.post('/client/upload-background-image', formData);
+  
+        if (profileImageFile) {
+          await uploadImage(profileImageFile, '/client/upload-profile-image');
         }
-        
+  
+        if (backgroundImageFile) {
+          await uploadImage(backgroundImageFile, '/client/upload-background-image');
+        }
+  
         setUpdateSuccess("Profil mis à jour avec succès !");
-        await fetchProfile();
-        setTimeout(() => toggleModal(), 2000);
-
+        await fetchProfile(); // Recharger les données
+        setTimeout(() => setIsModalOpen(false), 2000);
+  
       } catch (err) {
-        const errorMessage = err.response?.data?.message || "Une erreur est survenue.";
+        const errorMessage = err.response?.data?.message || 
+                            err.response?.data?.error || 
+                            "Une erreur est survenue lors de la mise à jour.";
         setUpdateError(errorMessage);
       } finally {
         setIsUpdating(false);
       }
     };
+  
     
     if (loading) return <div className="text-center p-5"><Spinner /></div>;
 
@@ -231,11 +264,29 @@
               <div className="pl-lg-4">
                 <Row>
                   <Col lg="6"><FormGroup><Label>Mot de passe actuel</Label><Input type="password" name="currentPassword" value={passwordData.currentPassword} onChange={handlePasswordChange} autoComplete="current-password" /></FormGroup></Col>
-                  <Col lg="6"><FormGroup><Label>Nouveau mot de passe</Label><Input type="password" name="newPassword" value={passwordData.newPassword} onChange={handlePasswordChange} autoComplete="new-password" /></FormGroup></Col>
+                  <Col lg="6"><FormGroup><Label>LA Nouveau mot de passe</Label><Input type="password" name="newPassword" value={passwordData.newPassword} onChange={handlePasswordChange} autoComplete="new-password" /></FormGroup></Col>
                 </Row>
               </div>
               {updateError && <div className="text-danger text-center mt-3"><small>{updateError}</small></div>}
               {updateSuccess && <div className="text-success text-center mt-3"><small>{updateSuccess}</small></div>}
+               {/* CORRECTION : Ajouter un feedback visuel pendant l'upload */}
+            {isUpdating && (
+              <div className="text-center mb-3">
+                <Spinner size="sm" className="mr-2" />
+                <small>Mise à jour en cours...</small>
+              </div>
+            )}
+            
+            {updateError && (
+              <div className="alert alert-danger text-center">
+                <small>{updateError}</small>
+              </div>
+            )}
+            {updateSuccess && (
+              <div className="alert alert-success text-center">
+                <small>{updateSuccess}</small>
+              </div>
+            )}
             </ModalBody>
             <ModalFooter>
               <Button color="primary" type="submit" disabled={isUpdating}>

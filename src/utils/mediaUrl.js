@@ -10,21 +10,28 @@ export const getMediaUrl = (path) => {
     // Si c'est déjà une URL complète
     if (path.startsWith('http')) return path;
     
-    // Déterminer l'URL de base selon l'environnement
-    let baseUrl;
+    // Déterminer l'URL de base de manière plus fiable
+    let baseUrl = process.env.REACT_APP_API_URL || '';
     
-    // Méthode plus fiable pour détecter l'environnement
-    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-      // Développement local
-      baseUrl = 'http://localhost:5000';
-    } else {
-      // Production - utilise le domaine actuel
-      baseUrl = window.location.origin; // Cela donnera 'https://pub-cash.com'
+    // En production, utiliser le domaine actuel sans le /api
+    if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+      // Production - utiliser le domaine principal
+      baseUrl = window.location.origin;
       
-      // Si le backend est sur un port différent, ajustez
-      if (process.env.REACT_APP_API_URL && process.env.REACT_APP_API_URL.includes(':5000')) {
-        baseUrl = process.env.REACT_APP_API_URL.replace('/api', '');
+      // Si le chemin commence par uploads, c'est correct
+      if (path.startsWith('/uploads/')) {
+        return `${baseUrl}${path}`;
       }
+      
+      // Pour les chemins relatifs sans /uploads
+      if (path.includes('uploads/')) {
+        return `${baseUrl}/${path}`;
+      }
+    }
+    
+    // En développement ou cas général
+    if (baseUrl.endsWith('/api')) {
+      baseUrl = baseUrl.slice(0, -4); // Retirer /api
     }
     
     // Gérer les chemins absolus et relatifs
