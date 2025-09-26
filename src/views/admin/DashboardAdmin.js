@@ -4,9 +4,29 @@ import {
   UncontrolledDropdown, DropdownToggle, DropdownMenu, DropdownItem, Badge
 } from "reactstrap";
 import { Bar } from "react-chartjs-2";
-import api from '../../services/api'; 
+import api from '../../services/api';
 import { io } from "socket.io-client";
 import { useWebSocket } from "../../contexts/WebSocketContext";
+
+// Chart.js v3+ registration (important)
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+} from 'chart.js';
+
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend
+);
 // --- HEADER COMPONENT ---
 // Ce composant affiche les cartes de statistiques en haut de la page.
 const AdminDashboardHeader = ({ stats, wallet }) => (
