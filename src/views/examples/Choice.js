@@ -44,7 +44,7 @@ const Choice = () => {
               >
                 <div className="choice-overlay">
                   <div className="choice-text">
-                    <h2>JE VEUX REGARDER...</h2>
+                  <h2 style={{ color: 'white' }}>JE VEUX PUBLIER DES VIDÉOS</h2>
                     <p>Découvrez des vidéos captives et gagnez des récompenses.</p>
                   </div>
                 </div>
@@ -62,7 +62,7 @@ const Choice = () => {
               >
                 <div className="choice-overlay">
                   <div className="choice-text">
-                    <h2>JE VEUX PUBLIER DES VIDÉOS</h2>
+                  <h2 style={{ color: 'white' }}>JE VEUX PUBLIER DES VIDÉOS</h2>
                     <p>Partagez vos créations et touchez une large audience.</p>
                   </div>
                 </div>
