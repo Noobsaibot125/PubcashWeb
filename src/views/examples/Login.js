@@ -105,7 +105,7 @@ const Login = () => {
             </Form>
             <Row className="mt-3">
               <Col className="text-right" xs="12">
-                <Link to="/auth/register" className="link-pubcash-secondary"><small>Créer un nouveau compte promoteur</small></Link>
+              <Link to="/auth/choice" className="link-pubcash-secondary"><small>Créer un nouveau compte</small></Link>
               </Col>
             </Row>
           </CardBody>

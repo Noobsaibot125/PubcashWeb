@@ -8,6 +8,7 @@
   import DynamicUserHeader from "components/Headers/DynamicUserHeader.js"; // On utilise un Header dynamique
   import api from '../../services/api';
   import { getMediaUrl } from 'utils/mediaUrl'; // IMPORT CORRIGÉ
+  
   const Profile = () => {
     // --- États du composant ---
     const [profile, setProfile] = useState(null);
@@ -18,7 +19,8 @@
     const [updateError, setUpdateError] = useState('');
     const [updateSuccess, setUpdateSuccess] = useState('');
     const [isUpdating, setIsUpdating] = useState(false);
-
+    const [isPasswordConfirmModalOpen, setIsPasswordConfirmModalOpen] = useState(false);
+    const [confirmPassword, setConfirmPassword] = useState("");
     // Références aux champs de type "fichier"
     const profileImageRef = useRef(null);
     const backgroundImageRef = useRef(null);
@@ -93,47 +95,56 @@
   }
 
     // 3. On corrige la fonction de mise à jour pour utiliser 'api.put' et 'api.post'
-    const handleUpdateProfile = async (e) => {
-      e.preventDefault();
+    const handleUpdateProfile = async (password) => {
       setUpdateError('');
       setUpdateSuccess('');
       setIsUpdating(true);
-  
+    
       try {
-        // 1. Mise à jour des données texte
-        const updatePayload = { ...editData };
-        if (passwordData.currentPassword && passwordData.newPassword) {
-          updatePayload.currentPassword = passwordData.currentPassword;
-          updatePayload.newPassword = passwordData.newPassword;
-        }
-  
+        // construire le payload : inclure currentPassword (confirmation)
+        const updatePayload = {
+          ...editData,
+          currentPassword: password,              // confirmation obligatoire
+          newPassword: passwordData.newPassword || null // si utilisateur veut changer le mot de passe
+        };
+    
+        // appel backend
         await api.put('/client/profile', updatePayload);
-  
-        // 2. Upload des images (séparément)
+    
+        // upload images (si présents)
         const profileImageFile = profileImageRef.current?.files[0];
         const backgroundImageFile = backgroundImageRef.current?.files[0];
-  
+    
         if (profileImageFile) {
-          await uploadImage(profileImageFile, '/client/upload-profile-image', 'profileImage');
+          await uploadImage(profileImageFile, '/client/upload-profile-image');
         }
-        
         if (backgroundImageFile) {
-          await uploadImage(backgroundImageFile, '/client/upload-background-image', 'backgroundImage');
+          await uploadImage(backgroundImageFile, '/client/upload-background-image');
         }
-  
-        setUpdateSuccess("Profil mis à jour avec succès !");
-        await fetchProfile(); // Recharger les données
-        setTimeout(() => setIsModalOpen(false), 2000);
-  
+    
+        // succès : afficher message
+        setUpdateSuccess("Vos informations de profil ont bien été mises à jour ✅");
+        // recharger le profil
+        await fetchProfile();
+    
+        // fermer les modales après un petit délai pour que l'utilisateur voit le message
+        setTimeout(() => {
+          setIsPasswordConfirmModalOpen(false);
+          setIsModalOpen(false);
+          setConfirmPassword('');
+          setPasswordData({ currentPassword: '', newPassword: '' });
+          setUpdateSuccess('');
+        }, 1500);
+    
       } catch (err) {
-        const errorMessage = err.response?.data?.message || 
-                            err.response?.data?.error || 
-                            "Une erreur est survenue lors de la mise à jour.";
+        // propager l'erreur dans la modale de confirmation pour que l'utilisateur voie pourquoi
+        const errorMessage = err.response?.data?.message || "Une erreur est survenue lors de la mise à jour.";
         setUpdateError(errorMessage);
       } finally {
         setIsUpdating(false);
       }
     };
+    
   
     
     if (loading) return <div className="text-center p-5"><Spinner /></div>;
@@ -213,7 +224,7 @@
         {/* --- Modale d'Édition --- */}
         <Modal isOpen={isModalOpen} toggle={toggleModal} size="lg">
           <ModalHeader toggle={toggleModal}>Modifier mon profil</ModalHeader>
-          <Form onSubmit={handleUpdateProfile}>
+          <Form onSubmit={(e) => e.preventDefault()}>
             <ModalBody>
               <h6 className="heading-small text-muted mb-4">Informations Utilisateur</h6>
               <div className="pl-lg-4">
@@ -289,12 +300,44 @@
             )}
             </ModalBody>
             <ModalFooter>
-              <Button color="primary" type="submit" disabled={isUpdating}>
-                {isUpdating ? <><Spinner size="sm" /> Enregistrement...</> : "Enregistrer"}
-              </Button>
+            <Button 
+  color="primary" 
+  onClick={() => setIsPasswordConfirmModalOpen(true)} 
+  disabled={isUpdating}
+>
+  {isUpdating ? <><Spinner size="sm" /> Enregistrement...</> : "Enregistrer"}
+</Button>
               <Button color="secondary" onClick={toggleModal}>Annuler</Button>
             </ModalFooter>
           </Form>
+          <Modal isOpen={isPasswordConfirmModalOpen} toggle={() => setIsPasswordConfirmModalOpen(false)}>
+  <ModalHeader toggle={() => setIsPasswordConfirmModalOpen(false)}>
+    Confirmation requise
+  </ModalHeader>
+  <ModalBody>
+    <p>Veuillez entrer votre mot de passe pour confirmer les modifications :</p>
+    <Input
+      type="password"
+      placeholder="Mot de passe"
+      value={confirmPassword}
+      onChange={(e) => setConfirmPassword(e.target.value)}
+      required
+      autoFocus
+    />
+    {updateError && <div className="text-danger mt-2"><small>{updateError}</small></div>}
+  </ModalBody>
+  <ModalFooter>
+    <Button
+      color="primary"
+      onClick={() => handleUpdateProfile(confirmPassword)}
+      disabled={isUpdating}
+    >
+      {isUpdating ? <><Spinner size="sm" /> Vérification...</> : "Confirmer"}
+    </Button>
+    <Button color="secondary" onClick={() => setIsPasswordConfirmModalOpen(false)}>Annuler</Button>
+  </ModalFooter>
+</Modal>
+
         </Modal>
       </>
     );

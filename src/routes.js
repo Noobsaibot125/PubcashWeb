@@ -34,7 +34,7 @@ import AjoutAdmin from "views/admin/AjoutAdmin.js";
 import AdminLandingSettings from "views/admin/AdminLandingSettings.js";
 import UserView from "views/UserView.js";
 import UserProfile from "views/UserProfile.js";
-
+import Choice from "views/examples/Choice.js";
 var routes = [
   {
     path: "/index",
@@ -118,6 +118,13 @@ var routes = [
     icon: "ni ni-key-25 text-info",
     component: <Login />,
     layout: "/auth",
+  },
+  {
+    path: "/choice",
+    name: "User Choice",
+    icon: "ni ni-ui-04 text-info", // Choisissez une icône si nécessaire
+    component: <Choice />,
+    layout: "/auth", // Important: ce layout correspond à l'URL /auth/choice
   },
   {
     path: "/register",

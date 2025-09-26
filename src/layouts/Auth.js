@@ -29,6 +29,7 @@ import routes from "routes.js";
 const Auth = (props) => {
   const mainContent = React.useRef(null);
   const location = useLocation();
+  const isChoicePage = location.pathname === "/auth/choice";
 
   React.useEffect(() => {
     document.body.classList.add("bg-default");
@@ -65,7 +66,7 @@ const Auth = (props) => {
                 <Col lg="5" md="6">
                   <h1 className="text-whites"  >Bienvenue Sur Pubcash</h1>
                   <p className="text-lead text-light">
-                    Veuillez vous connecter en tant que promoteur ou cree un nouveau promoteur.
+                    Veuillez vous connecter en tant que promoteur ou Client ou cree un nouveau compte.
                   </p>
                 </Col>
               </Row>
