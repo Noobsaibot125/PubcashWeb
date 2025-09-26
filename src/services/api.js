@@ -1,46 +1,71 @@
 // src/services/api.js
 import axios from 'axios';
 
-// URL de base intelligente qui s'adapte à l'environnement
-const BASE_URL = process.env.REACT_APP_API_URL || '/api';
+// Correction : Utiliser une URL absolue en production
+const getBaseUrl = () => {
+  if (process.env.NODE_ENV === 'production') {
+    return process.env.REACT_APP_API_URL || 'https://votre-domaine.com/api';
+  } else {
+    return process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
+  }
+};
+
+const BASE_URL = getBaseUrl();
 
 const api = axios.create({
   baseURL: BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
+  // Ajouter un timeout
+  timeout: 10000,
 });
 
-// Request interceptor : ajoute access token
+// Ajouter des logs pour le débogage
 api.interceptors.request.use(
   (config) => {
     const accessToken = localStorage.getItem('accessToken');
     
-    // Validation robuste du token
+    console.log('🌐 Requête API:', {
+      url: config.url,
+      baseURL: config.baseURL,
+      hasToken: !!accessToken,
+      method: config.method
+    });
+
     if (accessToken && typeof accessToken === 'string' && accessToken.trim() !== '') {
-      // Nettoyer le token (supprimer 'Bearer ' s'il est déjà présent)
       const cleanToken = accessToken.trim().replace(/^Bearer\s+/i, '');
       config.headers = config.headers || {};
       config.headers['Authorization'] = `Bearer ${cleanToken}`;
-      
-      // Log pour debug (à supprimer en production)
-      if (process.env.NODE_ENV === 'development') {
-        console.log('🔐 Token envoyé:', cleanToken.substring(0, 20) + '...');
-      }
     }
     
     return config;
   },
-  (error) => Promise.reject(error)
+  (error) => {
+    console.error('❌ Erreur requête API:', error);
+    return Promise.reject(error);
+  }
 );
 
-// Response interceptor : gère 401 -> refresh token
+// Response interceptor avec meilleur logging
 api.interceptors.response.use(
-  response => response,
+  response => {
+    console.log('✅ Réponse API réussie:', {
+      url: response.config.url,
+      status: response.status,
+      data: response.data
+    });
+    return response;
+  },
   async (error) => {
-    const originalConfig = error.config;
+    console.error('❌ Erreur réponse API:', {
+      url: error.config?.url,
+      status: error.response?.status,
+      message: error.message,
+      data: error.response?.data
+    });
 
-    // Protection : si pas de config ou si on est déjà sur /auth/refresh-token -> rejeter
+    const originalConfig = error.config;
     if (!originalConfig) return Promise.reject(error);
     if (originalConfig.url && originalConfig.url.includes('/auth/refresh-token')) {
       return Promise.reject(error);
