@@ -33,7 +33,7 @@ const UserHeader = () => {
         }}
       >
         {/* Mask */}
-        <span className="mask bg-gradient-default opacity-8" />
+        <span className="mask bg-gradient-default opacity-1" />
         {/* Header container */}
         <Container className="d-flex align-items-center" fluid>
           <Row>

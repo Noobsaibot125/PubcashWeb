@@ -12,7 +12,7 @@ const DynamicUserHeader = ({ profile }) => {
 
   return (
     <div className="header pb-8 pt-5 pt-lg-8 d-flex align-items-center" style={headerStyle}>
-      <span className="mask bg-gradient-default opacity-8" />
+      <span className="mask bg-gradient-default opacity-1" />
       <Container className="d-flex align-items-center" fluid>
         <Row>
           <Col lg="7" md="10">
