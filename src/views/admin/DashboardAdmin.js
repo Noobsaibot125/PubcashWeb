@@ -43,10 +43,10 @@ const AdminDashboardHeader = ({ stats, wallet }) => (
                       Commissions Totales
                     </CardTitle>
                     <span className="h1 font-weight-bold mb-0">
-                      {wallet
-                        ? `${parseFloat(wallet.solde || 0).toLocaleString("fr-FR")} FCFA`
-                        : <Spinner size="sm" />}
-                    </span>
+  {wallet
+    ? `${(parseFloat(wallet.solde || 0) / 1000).toFixed(4)} FCFA`
+    : <Spinner size="sm" />}
+</span>
                   </div>
                   <Col className="col-auto">
                     <div className="icon icon-shape bg-success text-white rounded-circle shadow">

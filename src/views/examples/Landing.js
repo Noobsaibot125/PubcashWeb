@@ -197,7 +197,7 @@ return (
                 <Link to="/auth/login">
                   <Button size="lg" className="mr-3 btn-cta-primary">Se connecter</Button>
                 </Link>
-                <Link to="/auth/choice">
+                <Link to="/auth/register">
                   <Button outline size="lg" className="btn-cta-outline">S'inscrire</Button>
                 </Link>
               </div>

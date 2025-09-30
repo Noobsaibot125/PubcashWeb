@@ -1,8 +1,24 @@
 // src/views/admin/AdminLandingSettings.js
-import React, { useEffect, useState } from "react";
-import { Container, Row, Col, Card, CardBody, Form, FormGroup, Label, Input, Button, Spinner, Alert } from "reactstrap";
-import api from '../../services/api';
-import { getMediaUrl } from 'utils/mediaUrl';
+import React, { useEffect, useState, useCallback } from "react";
+import {
+  Card, CardHeader, CardBody, Container, Row, Col,
+  Form, FormGroup, Label, Input, Button, Spinner, Alert
+} from "reactstrap";
+import api from "../../services/api";
+import { getMediaUrl } from "../../utils/mediaUrl";
+
+// --- HEADER STYLE IDENTIQUE AU DASHBOARD ---
+const AdminLandingHeader = ({ title }) => (
+  <div className="header bg-gradient-primary pb-8 pt-5 pt-md-8">
+    <Container fluid>
+      <div className="header-body text-white">
+        <h1 className="display-4 font-weight-bold">
+          {title || "Paramètres de la page d'accueil"}
+        </h1>
+      </div>
+    </Container>
+  </div>
+);
 
 const AdminLandingSettings = () => {
   const [info, setInfo] = useState(null);
@@ -11,17 +27,15 @@ const AdminLandingSettings = () => {
   const [videoFile, setVideoFile] = useState(null);
   const [title, setTitle] = useState("");
   const [subtitle, setSubtitle] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState({ type: '', text: '' });
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState({ type: "", text: "" });
 
-  useEffect(() => {
-    fetchInfo();
-  }, []);
-
-  const fetchInfo = async () => {
+  // --- Récupération initiale ---
+  const fetchInfo = useCallback(async () => {
     try {
-      const response = await api.get('/admin/info-accueil');
-      const data = response.data;
+      setLoading(true);
+      const { data } = await api.get("/admin/info-accueil");
       if (data) {
         setInfo(data);
         setTitle(data.title || "");
@@ -29,126 +43,127 @@ const AdminLandingSettings = () => {
       }
     } catch (err) {
       console.error("Erreur chargement infos:", err);
-      setMessage({ type: 'error', text: 'Erreur lors du chargement des données' });
-    }
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setMessage({ type: '', text: '' });
-
-    try {
-      const formData = new FormData();
-      if (logoFile) formData.append('logo', logoFile);
-      if (imageFile) formData.append('image', imageFile);
-      if (videoFile) formData.append('video', videoFile);
-
-      formData.append('title', title);
-      formData.append('subtitle', subtitle);
-
-      const response = await api.post('/admin/info-accueil', formData, {
-        headers: { "Content-Type": "multipart/form-data" }
-      });
-
-      setInfo(response.data);
-      setMessage({ type: 'success', text: 'Mis à jour avec succès !' });
-      setLogoFile(null);
-      setImageFile(null);
-      setVideoFile(null);
-      await fetchInfo();
-
-    } catch (err) {
-      console.error('Erreur sauvegarde:', err);
-      const errorMessage = err.response?.data?.message || 'Erreur lors de la sauvegarde.';
-      setMessage({ type: 'error', text: errorMessage });
+      setMessage({ type: "error", text: "Erreur lors du chargement des données" });
     } finally {
       setLoading(false);
     }
+  }, []);
+
+  useEffect(() => {
+    fetchInfo();
+  }, [fetchInfo]);
+
+  // --- Soumission formulaire ---
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    setMessage({ type: "", text: "" });
+
+    try {
+      const formData = new FormData();
+      if (logoFile) formData.append("logo", logoFile);
+      if (imageFile) formData.append("image", imageFile);
+      if (videoFile) formData.append("video", videoFile);
+      formData.append("title", title);
+      formData.append("subtitle", subtitle);
+
+      const { data } = await api.post("/admin/info-accueil", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+
+      setInfo(data);
+      setLogoFile(null);
+      setImageFile(null);
+      setVideoFile(null);
+      setMessage({ type: "success", text: "Mise à jour réussie !" });
+      await fetchInfo();
+    } catch (err) {
+      console.error("Erreur sauvegarde:", err);
+      const errorMessage = err.response?.data?.message || "Erreur lors de la sauvegarde.";
+      setMessage({ type: "error", text: errorMessage });
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const renderMediaPreview = (path, alt, type = 'image', width = 120) => {
+  // --- Prévisualisation média ---
+  const MediaPreview = ({ path, alt, type = "image", width = 200 }) => {
     if (!path) return null;
     const url = getMediaUrl(path);
-    if (type === 'video') {
-      return (
-        <div className="mt-2">
-          <video width={width} controls src={url} />
-          <small>URL: {url}</small>
-        </div>
-      );
-    }
-    return (
-      <div className="mt-2">
-        <img src={url} alt={alt} style={{ width }} />
-        <br />
-        <small>URL: {url}</small>
-      </div>
+    return type === "video" ? (
+      <video width={width} controls src={url} className="mt-2 rounded shadow" />
+    ) : (
+      <img src={url} alt={alt} width={width} className="mt-2 rounded shadow" />
     );
   };
 
   return (
-    <Container className="mt-4">
-      <Row>
-        <Col md="8" className="mx-auto">
-          <Card>
-            <CardBody>
-              <h4>Paramètres de la page d'accueil</h4>
-              {message.text && (
-                <Alert color={message.type === 'success' ? 'success' : 'danger'}>
-                  {message.text}
-                </Alert>
-              )}
+    <>
+      <AdminLandingHeader title="Paramètres Accueil" />
+      <Container className="mt--7" fluid>
+        <Row>
+          <Col xl="8" className="mx-auto">
+            <Card className="shadow">
+              <CardHeader>
+                <h3 className="mb-0">Configuration de la page d'accueil</h3>
+              </CardHeader>
+              <CardBody>
+                {message.text && (
+                  <Alert color={message.type === "success" ? "success" : "danger"}>
+                    {message.text}
+                  </Alert>
+                )}
 
-              <Form onSubmit={handleSubmit}>
-                <FormGroup>
-                  <Label>Logo</Label>
-                  <Input type="file" accept="image/*" onChange={e => setLogoFile(e.target.files[0])} />
-                  {info?.logo_path && renderMediaPreview(info.logo_path, "Logo actuel")}
-                  {logoFile && <div><small>Nouveau logo:</small><br/><img src={URL.createObjectURL(logoFile)} alt="preview" style={{ width: 120 }} /></div>}
-                </FormGroup>
+                {loading ? (
+                  <div className="text-center p-5">
+                    <Spinner color="primary" />
+                  </div>
+                ) : (
+                  <Form onSubmit={handleSubmit}>
+                    <FormGroup>
+                      <Label>Logo</Label>
+                      <Input type="file" accept="image/*" onChange={e => setLogoFile(e.target.files[0])} />
+                      {info?.logo_path && <MediaPreview path={info.logo_path} alt="Logo actuel" />}
+                      {logoFile && <MediaPreview path={URL.createObjectURL(logoFile)} alt="Nouveau logo" />}
+                    </FormGroup>
 
-                <FormGroup>
-                  <Label>Image d'arrière-plan</Label>
-                  <Input type="file" accept="image/*" onChange={e => setImageFile(e.target.files[0])} />
-                  {info?.hero_image_path && renderMediaPreview(info.hero_image_path, "Image hero actuelle", "image", 240)}
-                  {imageFile && <div><small>Nouvelle image:</small><br/><img src={URL.createObjectURL(imageFile)} alt="preview" style={{ width: 240 }} /></div>}
-                </FormGroup>
+                    <FormGroup>
+                      <Label>Image d'arrière-plan</Label>
+                      <Input type="file" accept="image/*" onChange={e => setImageFile(e.target.files[0])} />
+                      {info?.hero_image_path && <MediaPreview path={info.hero_image_path} alt="Image actuelle" width={300} />}
+                      {imageFile && <MediaPreview path={URL.createObjectURL(imageFile)} alt="Nouvelle image" width={300} />}
+                    </FormGroup>
 
-                <FormGroup>
-                  <Label>Vidéo de fond</Label>
-                  <Input type="file" accept="video/mp4,video/webm" onChange={e => setVideoFile(e.target.files[0])} />
-                  {info?.hero_video_path && renderMediaPreview(info.hero_video_path, "Vidéo actuelle", "video", 320)}
-                  {videoFile && <div><small>Nouvelle vidéo:</small><br/><video width="320" controls src={URL.createObjectURL(videoFile)} /></div>}
-                </FormGroup>
+                    <FormGroup>
+                      <Label>Vidéo de fond</Label>
+                      <Input type="file" accept="video/mp4,video/webm" onChange={e => setVideoFile(e.target.files[0])} />
+                      {info?.hero_video_path && <MediaPreview path={info.hero_video_path} alt="Vidéo actuelle" type="video" width={320} />}
+                      {videoFile && <MediaPreview path={URL.createObjectURL(videoFile)} alt="Nouvelle vidéo" type="video" width={320} />}
+                    </FormGroup>
 
-                <FormGroup>
-                  <Label>Titre principal</Label>
-                  <Input value={title} onChange={e => setTitle(e.target.value)} />
-                </FormGroup>
+                    <FormGroup>
+                      <Label>Titre principal</Label>
+                      <Input value={title} onChange={e => setTitle(e.target.value)} />
+                    </FormGroup>
 
-                <FormGroup>
-                  <Label>Sous-titre</Label>
-                  <Input type="textarea" value={subtitle} onChange={e => setSubtitle(e.target.value)} />
-                </FormGroup>
+                    <FormGroup>
+                      <Label>Sous-titre</Label>
+                      <Input type="textarea" value={subtitle} onChange={e => setSubtitle(e.target.value)} />
+                    </FormGroup>
 
-                <div className="text-right">
-                  <Button color="primary" type="submit" disabled={loading}>
-                    {loading ? <><Spinner size="sm" /> Sauvegarde...</> : "Sauvegarder"}
-                  </Button>
-                </div>
-              </Form>
-
-              <div className="mt-4 p-3 bg-light rounded">
-                <h6>Debug Info:</h6>
-                <pre>{JSON.stringify(info, null, 2)}</pre>
-              </div>
-
-            </CardBody>
-          </Card>
-        </Col>
-      </Row>
-    </Container>
+                    <div className="text-right">
+                      <Button color="primary" type="submit" disabled={saving}>
+                        {saving ? <><Spinner size="sm" /> Sauvegarde…</> : "Sauvegarder"}
+                      </Button>
+                    </div>
+                  </Form>
+                )}
+              </CardBody>
+            </Card>
+          </Col>
+        </Row>
+      </Container>
+    </>
   );
 };
 

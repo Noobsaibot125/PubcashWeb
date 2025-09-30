@@ -552,16 +552,19 @@ useEffect(() => {
 
             {/* Colonne de droite : Gains et Historique (toujours visible) */}
             <Col lg="4" className="right-sidebar-col">
-              <Card className="p-3 shadow-sm mb-4">
-                <p className="text-muted mb-1">Mes Gains Actuels</p>
-                <h1 className="display-4 font-weight-bold my-0">{Number(earnings.total || 0).toLocaleString()} <span className="h4 font-weight-normal">XOF</span></h1>
-                <div className="progress-info my-2">
-                    <small>Prochain Palier : 5,000 XOF</small>
-                </div>
-                <Button color="primary" block onClick={() => setWithdrawModalOpen(true)} disabled={Number(earnings.total || 0) <= 0}>
-                  Retirer mes gains
-                </Button>
-              </Card>
+            <Card className="p-3 shadow-sm mb-4">
+  <p className="text-muted mb-1">Mes Gains Actuels</p>
+  <h1 className="display-4 font-weight-bold my-0">
+    {(Number(earnings.total || 0) / 1000).toFixed(4)} 
+    <span className="h4 font-weight-normal"> XOF</span>
+  </h1>
+  <div className="progress-info my-2">
+    <small>Prochain Palier : 5.0000 XOF</small>
+  </div>
+  <Button color="primary" block onClick={() => setWithdrawModalOpen(true)} disabled={Number(earnings.total || 0) <= 0}>
+    Retirer mes gains
+  </Button>
+</Card>
 
               <Card className="p-3 shadow-sm">
                  <h5>Historique Récent</h5>
