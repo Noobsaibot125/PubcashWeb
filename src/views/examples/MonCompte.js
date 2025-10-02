@@ -10,7 +10,7 @@ const MonCompteHeader = ({ profile }) => (
           <Col lg="7" md="10">
             <h1 className="display-2 text-white">Bonjour, {profile?.prenom || 'Promoteur'}</h1>
             <p className="text-white mt-0 mb-5">
-              C'est votre espace personnel. Gérez votre solde et préparez vos prochaines campagnes de promotion.
+            Transformez votre solde en résultats, planifiez vos campagnes promotionnelles dès maintenant.
             </p>
           </Col>
         </Row>

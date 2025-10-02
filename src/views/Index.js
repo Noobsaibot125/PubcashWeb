@@ -284,24 +284,19 @@ const Index = () => {
       const response = await api.get('/client/detailed-stats');
       const data = response.data;
       
-      if (data.monthlyStats && data.monthlyStats.length > 0) {
-        // Préparer les données pour 12 mois (année complète)
-        const currentDate = new Date();
+      if (data.monthlyStats) { // Modifié pour s'exécuter même si les stats sont vides
+        // Préparer les données pour l'année civile en cours
+        const currentYear = new Date().getFullYear();
         const monthlyData = [];
         
-        // Créer un tableau pour les 12 derniers mois
-        for (let i = 11; i >= 0; i--) {
-          const targetDate = new Date(currentDate);
-          targetDate.setMonth(targetDate.getMonth() - i);
-          const year = targetDate.getFullYear();
-          const month = targetDate.getMonth() + 1;
-          
+        // Créer un tableau pour les 12 mois de l'année en cours (Janvier à Décembre)
+        for (let month = 1; month <= 12; month++) {
           const existingData = data.monthlyStats.find(stat => 
-            stat.annee === year && stat.mois === month
+            stat.annee === currentYear && stat.mois === month
           );
           
           monthlyData.push({
-            annee: year,
+            annee: currentYear,
             mois: month,
             nom_mois: getFrenchMonthName(month).substring(0, 3),
             total_vues: existingData?.total_vues || 0,
@@ -310,8 +305,9 @@ const Index = () => {
             nombre_promotions: existingData?.nombre_promotions || 0
           });
         }
-
-        const labels = monthlyData.map(item => `${item.nom_mois} ${item.annee.toString().slice(2)}`);
+      
+        // L'année est maintenant toujours la même, on peut l'afficher de manière plus concise
+        const labels = monthlyData.map(item => `${item.nom_mois}`); // On retire l'année du label mensuel
         
         // Données pour chaque métrique
         const vuesData = monthlyData.map(item => item.total_vues);

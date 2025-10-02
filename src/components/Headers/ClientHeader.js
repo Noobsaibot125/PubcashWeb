@@ -44,10 +44,9 @@ const ClientHeaderComponent = () => {
                 {loading ? (
                   <Spinner size="sm" />
                 ) : isSolde ? (
-                  // Format spécial pour le solde : 11.0868 FCFA
-                  `${(parseFloat(value || 0) / 1000).toFixed(4)} FCFA`
+                  // Ici on enlève les points et les décimales
+                  `${parseInt(value || 0)} FCFA`
                 ) : (
-                  // Format normal pour les autres statistiques
                   (value || 0).toLocaleString('fr-FR')
                 )}
               </span>
@@ -62,6 +61,7 @@ const ClientHeaderComponent = () => {
       </Card>
     </Col>
   );
+  
 
   return (
     <div className="header bg-gradient-primary pb-8 pt-5 pt-md-8">

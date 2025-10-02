@@ -224,7 +224,9 @@ const CreerPromotion = () => {
                             required
                         >
                             <option value="toutes">Toutes les communes</option>
-                            <option value="ma_commune">Ma commune seulement</option>
+                            <option value="ma_commune">
+                                                                {`Ma commune seulement ${profile.commune ? `(${profile.commune})` : ''}`}
+                                                            </option>
                         </Input>
                     </FormGroup>
                 </Col>
@@ -329,13 +331,18 @@ const CreerPromotion = () => {
                         <li>Budget total : <b>{parseFloat(formData.budget).toLocaleString('fr-FR')} FCFA</b></li>
                         <li>Nouveau solde estimé : <b>{parseFloat(nouveauSolde).toLocaleString('fr-FR')} FCFA</b></li>
                         <li>Vues estimées : <b>~ {vuesPotentielles} personnes</b></li>
-                        {/* Nouveaux champs dans la confirmation */}
                         <li>Tranche d'âge : <b>
-                    {formData.tranche_age === 'tous' ? 'Tout le monde' : 
-                     formData.tranche_age === '12-17' ? 'Adolescents (12-17 ans)' : 
-                     'Adultes (18 ans et plus)'}
-                </b></li>
-                        <li>Ciblage : <b>{formData.ciblage_commune === 'toutes' ? 'Toutes les communes' : 'Ma commune seulement'}</b></li>
+                            {formData.tranche_age === 'tous' ? 'Tout le monde' : 
+                             formData.tranche_age === '12-17' ? 'Adolescents (12-17 ans)' : 
+                             'Adultes (18 ans et plus)'}
+                        </b></li>
+                        {/* MODIFIÉ ICI: Le texte de confirmation est aussi dynamique */}
+                        <li>Ciblage : <b>
+                            {formData.ciblage_commune === 'toutes' 
+                                ? 'Toutes les communes' 
+                                : `Ma commune seulement ${profile.commune ? `(${profile.commune})` : ''}`
+                            }
+                        </b></li>
                     </ul>
                     <p>Êtes-vous sûr de vouloir continuer ? Cette action est irréversible.</p>
                 </ModalBody>

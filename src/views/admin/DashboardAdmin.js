@@ -43,9 +43,12 @@ const AdminDashboardHeader = ({ stats, wallet }) => (
                       Commissions Totales
                     </CardTitle>
                     <span className="h1 font-weight-bold mb-0">
-  {wallet
-    ? `${(parseFloat(wallet.solde || 0) / 1000).toFixed(4)} FCFA`
-    : <Spinner size="sm" />}
+  {wallet ? (
+    // calcule, force 4 décimales puis enlève . , et espaces
+    `${((parseFloat(wallet.solde || 0) / 1000).toFixed(4)).replace(/[\.,\s]/g, '')} FCFA`
+  ) : (
+    <Spinner size="sm" />
+  )}
 </span>
                   </div>
                   <Col className="col-auto">

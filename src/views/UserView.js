@@ -61,6 +61,18 @@ const UserView = () => {
     videoEndedRef.current = videoEnded;
   }, [playbackStarted, videoEnded]);
 
+ // helper: calcule (valeur/divideBy).toFixed(decimals) puis garde uniquement les chiffres
+const compactValue = (value, divideBy = 1000, decimals = 4) => {
+  const num = Number(value ?? 0);
+  const formatted = (num / divideBy).toFixed(decimals); // ex: "11.0868"
+  return String(formatted).replace(/[^0-9]/g, ''); // ex: "110868"
+  };
+  
+  
+  // helper pour valeurs déjà en XOF (arrondi) -> garde uniquement les chiffres
+  const compactInteger = (value) => {
+  return String(Number(value ?? 0).toFixed(0)).replace(/[^0-9]/g, '');
+  };
   const fetchPromotions = useCallback(async (currentFilter) => {
     setLoading(true);
     try {
@@ -552,14 +564,15 @@ useEffect(() => {
 
             {/* Colonne de droite : Gains et Historique (toujours visible) */}
             <Col lg="4" className="right-sidebar-col">
-            <Card className="p-3 shadow-sm mb-4">
+        <Card className="p-3 shadow-sm mb-4">
   <p className="text-muted mb-1">Mes Gains Actuels</p>
   <h1 className="display-4 font-weight-bold my-0">
-    {(Number(earnings.total || 0) / 1000).toFixed(4)} 
-    <span className="h4 font-weight-normal"> XOF</span>
-  </h1>
+  {compactInteger(earnings.total)}
+  <span className="h4 font-weight-normal"> XOF</span>
+</h1>
   <div className="progress-info my-2">
-    <small>Prochain Palier : 5.0000 XOF</small>
+    {/* Exemple : si ton palier est 5.0000 (visuellement) -> on le compacte de la même façon */}
+    <small>Prochain Palier : {compactValue(5, 1, 4)} XOF</small>
   </div>
   <Button color="primary" block onClick={() => setWithdrawModalOpen(true)} disabled={Number(earnings.total || 0) <= 0}>
     Retirer mes gains
@@ -572,7 +585,7 @@ useEffect(() => {
                   {withdrawHistory.length > 0 ? withdrawHistory.slice(0, 5).map((item, index) => (
                     <div key={index} className="history-item">
                       <p className="mb-0 small">
-                        Retrait de <strong>{Number(item.montant).toFixed(0)} XOF</strong>
+                        Retrait de <strong>{compactInteger(item.montant)} XOF</strong>
                         <span className={`badge ml-2 badge-${item.statut === 'traite' ? 'success' : item.statut === 'rejete' ? 'danger' : 'warning'}`}>
                           {item.statut}
                         </span>
@@ -596,10 +609,10 @@ useEffect(() => {
       <Modal isOpen={withdrawModalOpen} toggle={() => setWithdrawModalOpen(false)}>
         <ModalHeader toggle={() => setWithdrawModalOpen(false)}>Demander un retrait</ModalHeader>
         <ModalBody>
-          <div className="text-center mb-4">
-            <p className="text-muted mb-0">Solde disponible</p>
-            <h4>{Number(earnings.total || 0).toFixed(2)} XOF</h4>
-          </div>
+        <div className="text-center mb-4">
+  <p className="text-muted mb-0">Solde disponible</p>
+  <h4>{compactInteger(earnings.total)} XOF</h4>
+</div>
           <FormGroup>
             <Label for="withdrawAmount">Montant à retirer</Label>
             <Input id="withdrawAmount" type="number" placeholder="Ex: 500" value={withdrawAmount} onChange={(e) => setWithdrawAmount(e.target.value)} max={earnings.total} min="1"/>
