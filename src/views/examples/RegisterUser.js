@@ -351,7 +351,6 @@ const RegisterUser = () => {
                   <option value="">Sélectionner votre genre (optionnel)</option>
                   <option value="Homme">Homme</option>
                   <option value="Femme">Femme</option>
-                  <option value="Autre">Autre</option>
                 </Input>
               </InputGroup>
             </FormGroup>
