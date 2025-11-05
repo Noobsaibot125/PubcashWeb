@@ -338,7 +338,7 @@ const RegisterUser = () => {
                 <InputGroupAddon addonType="prepend">
                   <InputGroupText><i className="ni ni-mobile-button" /></InputGroupText>
                 </InputGroupAddon>
-                <Input type="tel" name="contact" placeholder="Contact (optionnel)" value={formData.contact} onChange={handleChange} />
+                <Input type="tel" name="contact" placeholder="Contact" value={formData.contact} onChange={handleChange} />
               </InputGroup>
             </FormGroup>
 
@@ -348,7 +348,7 @@ const RegisterUser = () => {
                   <InputGroupText><i className="ni ni-badge" /></InputGroupText>
                 </InputGroupAddon>
                 <Input type="select" name="genre" value={formData.genre} onChange={handleChange}>
-                  <option value="">Sélectionner votre genre (optionnel)</option>
+                  <option value="">Sélectionner votre genre</option>
                   <option value="Homme">Homme</option>
                   <option value="Femme">Femme</option>
                 </Input>
@@ -361,7 +361,7 @@ const RegisterUser = () => {
                   <InputGroupText><i className="ni ni-building" /></InputGroupText>
                 </InputGroupAddon>
                 <Input type="select" name="ville" value={formData.ville} onChange={handleChange} disabled={loadingVilles}>
-                  <option value="">{loadingVilles ? "Chargement..." : "Choisir une ville (optionnel)"}</option>
+                  <option value="">{loadingVilles ? "Chargement..." : "Choisir une ville"}</option>
                   {villes.map((ville) => (
                     <option key={ville.id} value={ville.nom}>{ville.nom}</option>
                   ))}
