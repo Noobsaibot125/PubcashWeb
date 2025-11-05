@@ -24,6 +24,7 @@ const Register = () => {
     confirmer_mot_de_passe: "",
     ville_id: "",
     commune: "",
+    genre: "", // <-- AJOUTER LE GENRE
   });
 
   const [villes, setVilles] = useState([]);
@@ -110,7 +111,8 @@ const Register = () => {
         telephone: formData.telephone,
         mot_de_passe: formData.mot_de_passe,
         commune: formData.commune,
-        ville_id: formData.ville_id // envoyé au backend si utile
+        ville_id: formData.ville_id, // envoyé au backend si utile
+        genre: formData.genre // <-- AJOUTER LE GENRE AU PAYLOAD
       };
       const res = await api.post('/auth/client/register', payload);
       console.log('Inscription réussie:', res.data);
@@ -182,7 +184,19 @@ const Register = () => {
                   <Input placeholder="Téléphone" type="tel" name="telephone" value={formData.telephone} onChange={handleChange} required />
                 </InputGroup>
               </FormGroup>
-
+                {/* genre */}
+              <FormGroup>
+                <InputGroup className="input-group-alternative mb-3">
+                  <InputGroupAddon addonType="prepend">
+                    <InputGroupText><i className="ni ni-badge" /></InputGroupText>
+                  </InputGroupAddon>
+                  <Input type="select" name="genre" value={formData.genre} onChange={handleChange}>
+                    <option value="">Sélectionner votre genre (Optionnel)</option>
+                    <option value="Homme">Homme</option>
+                    <option value="Femme">Femme</option>
+                  </Input>
+                </InputGroup>
+              </FormGroup>
               {/* Mot de passe */}
               <FormGroup>
                 <InputGroup className="input-group-alternative">

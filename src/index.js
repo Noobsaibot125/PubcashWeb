@@ -9,6 +9,7 @@ import "./assets/scss/argon-dashboard-react-light.scss";
 import AdminLayout from "layouts/Admin.js";
 import ClientLayout from "layouts/Client.js";
 import AuthLayout from "layouts/Auth.js";
+import { GoogleOAuthProvider } from '@react-oauth/google';
 import UserLayout from "layouts/User.js";
 import CompleteFacebookProfile from "views/examples/CompleteFacebookProfile.js";
 import Landing from "views/examples/Landing.js";
@@ -45,9 +46,11 @@ const AppContent = () => (
 
 // Un seul render — providers autour de AppContent
 root.render(
-  <AuthProvider>
-    <WebSocketProvider>
-      <AppContent />
-    </WebSocketProvider>
-  </AuthProvider>
+  <GoogleOAuthProvider clientId={process.env.REACT_APP_GOOGLE_CLIENT_ID}>
+    <AuthProvider>
+      <WebSocketProvider>
+        <AppContent />
+      </WebSocketProvider>
+    </AuthProvider>
+  </GoogleOAuthProvider>
 );

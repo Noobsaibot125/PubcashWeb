@@ -1,0 +1,55 @@
+/* src/views/examples/RegisterUser.css */
+
+/* Styles pour les boutons sociaux */
+.social-btn {
+    border-radius: 50% !important;
+    width: 50px !important;
+    height: 50px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    margin: 0 8px !important;
+    border: none !important;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2) !important;
+    transition: all 0.3s ease !important;
+    font-size: 18px !important;
+  }
+  
+  .social-btn:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3) !important;
+  }
+  
+  .social-btn:active {
+    transform: translateY(0) !important;
+  }
+  
+  /* Bouton Facebook */
+  .facebook-btn {
+    background-color: #4267B2 !important;
+    color: white !important;
+  }
+  
+  .facebook-btn:hover {
+    background-color: #365899 !important;
+  }
+  
+  /* Bouton Google */
+  .google-btn {
+    background-color: #DB4437 !important;
+    color: white !important;
+  }
+  
+  .google-btn:hover {
+    background-color: #C33D2E !important;
+  }
+  
+  /* Responsive */
+  @media (max-width: 576px) {
+    .social-btn {
+      width: 45px !important;
+      height: 45px !important;
+      margin: 0 6px !important;
+      font-size: 16px !important;
+    }
+  }

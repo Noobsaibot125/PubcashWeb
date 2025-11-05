@@ -22,7 +22,10 @@ import Profile from "views/examples/Profile.js";
 import VerifyOTP from "views/examples/VerifyOTP.js";
 import Register from "views/examples/Register.js";
 import RegisterAdmin from "views/examples/RegisterAdmin.js";
-import Login from "views/examples/Login.js";
+// import Login from "views/examples/Login.js";
+import LoginClient from "views/examples/LoginClient.js";
+import LoginAdmin from "views/examples/LoginAdmin.js";
+import LoginUser from "views/examples/LoginUser.js";
 import CreerPromotion from "views/examples/CreerPromotion.js"; // Exemple de page future
 import MonCompte from "views/examples/MonCompte.js"; // Exemple de page future
 import HistoriquePromotions from "views/examples/HistoriquePromotions.js";
@@ -112,13 +115,25 @@ var routes = [
     layout: "/admin",
     role: ["superadmin", "admin"],
   },
-  {
-    path: "/login",
-    name: "Login",
-    icon: "ni ni-key-25 text-info",
-    component: <Login />,
-    layout: "/auth",
-  },
+ // AJOUTEZ CES TROIS NOUVELLES ROUTES
+ {
+  path: "/login-client",
+  name: "Login Client",
+  component: <LoginClient />,
+  layout: "/auth",
+},
+{
+  path: "/login-admin",
+  name: "Login Admin",
+  component: <LoginAdmin />,
+  layout: "/auth",
+},
+{
+  path: "/login-user",
+  name: "Login Utilisateur",
+  component: <LoginUser />,
+  layout: "/auth",
+},
   {
     path: "/choice",
     name: "User Choice",
