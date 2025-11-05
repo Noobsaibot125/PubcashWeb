@@ -142,7 +142,15 @@ const RegisterUser = () => {
       navigate("/auth/complete-profile");
     }
   };
-
+  const getFacebookAppId = () => {
+    // En production, utilisez l'App ID de production
+    if (window.location.hostname === 'pub-cash.com' || 
+        window.location.hostname === 'www.pub-cash.com') {
+      return process.env.REACT_APP_FB_APP_ID_PROD || process.env.REACT_APP_FB_APP_ID;
+    }
+    // En développement
+    return process.env.REACT_APP_FB_APP_ID;
+  };
   const handleGoogleSuccess = async (tokenResponse) => {
     try {
       const response = await api.post('/auth/google', { 
