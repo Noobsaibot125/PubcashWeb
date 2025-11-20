@@ -160,26 +160,48 @@ useEffect(() => {
       setWithdrawError('Veuillez sélectionner un opérateur et entrer votre numéro');
       return;
     }
+
     setWithdrawing(true);
     setWithdrawError(null);
     setWithdrawSuccess(false);
+
     try {
-      await api.post('/promotions/utilisateur/retrait', { amount: amountToWithdraw, operator, phoneNumber });
-      setWithdrawSuccess('Votre demande de retrait a été envoyée !');
-      fetchEarnings();
-      fetchWithdrawHistory();
+      // La requête va maintenant prendre quelques secondes car elle appelle CinetPay
+      const response = await api.post('/promotions/utilisateur/retrait', { 
+          amount: amountToWithdraw, 
+          operator, 
+          phoneNumber 
+      });
+
+      // Si on arrive ici, c'est que le code 200 a été renvoyé (Succès)
+      setWithdrawSuccess(response.data.message || 'Retrait effectué avec succès !');
+      
+      // Mise à jour immédiate des données
+      await fetchEarnings();
+      await fetchWithdrawHistory();
+      
+      // On ferme la modal et on reset
       setWithdrawModalOpen(false);
       setWithdrawAmount('');
+      
+      // Notification Toast ou simple message
       setTimeout(() => setWithdrawSuccess(false), 8000);
+
     } catch (err) {
-      const errorMessage = err.response?.data?.message || "Erreur lors du retrait";
-      setWithdrawError(errorMessage);
-      setTimeout(() => setWithdrawError(null), 5000);
+      const errorMessage = err.response?.data?.message || "Erreur lors du retrait ou solde insuffisant.";
+      const errorDetails = err.response?.data?.details ? ` (${err.response.data.details})` : '';
+      
+      setWithdrawError(errorMessage + errorDetails);
+      
+      // Même en cas d'erreur (remboursement), on rafraichit pour montrer que le solde est revenu
+      await fetchEarnings(); 
+      await fetchWithdrawHistory();
+
+      setTimeout(() => setWithdrawError(null), 8000);
     } finally {
       setWithdrawing(false);
     }
   };
-
   // ===== FIXED swap function =====
   const swapToPromo = (promoId) => {
     const idx = promotions.findIndex(p => p.id === promoId);
@@ -615,7 +637,7 @@ useEffect(() => {
 </div>
           <FormGroup>
             <Label for="withdrawAmount">Montant à retirer</Label>
-            <Input id="withdrawAmount" type="number" placeholder="Ex: 500" value={withdrawAmount} onChange={(e) => setWithdrawAmount(e.target.value)} max={earnings.total} min="1"/>
+            <Input id="withdrawAmount" type="number" placeholder="Ex: 200" value={withdrawAmount} onChange={(e) => setWithdrawAmount(e.target.value)} max={earnings.total} min="1"/>
           </FormGroup>
           <FormGroup>
             <Label>Opérateur mobile money</Label>

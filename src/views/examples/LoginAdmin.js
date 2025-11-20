@@ -1,6 +1,6 @@
 // views/examples/LoginAdmin.js
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import api from '../../services/api';
 import { jwtDecode } from 'jwt-decode'; 
 import { ToastContainer, toast } from 'react-toastify';
@@ -14,16 +14,43 @@ const LoginAdmin = () => {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
 
+  // --- NOUVEAU : État pour l'œil ---
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     document.body.classList.add('hide-navbar');
     return () => document.body.classList.remove('hide-navbar');
   }, []);
 
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
+  };
+
+  // --- Configuration du Popup Stylisé ---
+  const toastOptions = {
+    position: "top-center",
+    autoClose: 5000,
+    hideProgressBar: false,
+    closeOnClick: true,
+    pauseOnHover: true,
+    draggable: true,
+    progress: undefined,
+    theme: "colored",
+    style: { fontSize: '16px', fontWeight: 'bold' }
+  };
+
   const handleLogin = async (e) => {
     e.preventDefault();
-   
+
+    // 1. VÉRIFICATION LOCALE
+    if (!email.trim() || !password.trim()) {
+      toast.error("Email et mot de passe requis.", toastOptions);
+      return;
+    }
+
+    setLoading(true);
 
     try {
       // API endpoint pour ADMIN
@@ -41,25 +68,16 @@ const LoginAdmin = () => {
       else navigate("/admin/dashboard", { replace: true });
 
     } catch (err) {
-      const errorMessage = err.response?.data?.message || err.message || "Une erreur est survenue.";
-      toast.error(errorMessage);
+      // 2. ERREUR API : Message générique sécurisé
+      toast.error('Email ou mot de passe incorrect.', toastOptions);
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <>
-    {/* AJOUTER LE CONTAINER TOAST */}
-    <ToastContainer
-        position="top-right"
-        autoClose={5000}
-        hideProgressBar={false}
-        newestOnTop={false}
-        closeOnClick
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-      />
+      <ToastContainer />
       <Col lg="5" md="7">
         <Card className="bg-secondary shadow border-0">
           <CardBody className="px-lg-5 py-lg-5">
@@ -67,24 +85,58 @@ const LoginAdmin = () => {
               <small className='MM'>Connexion Administrateur</small>
             </div>
             <Form role="form" onSubmit={handleLogin}>
-        _       <FormGroup className="mb-3">
+              <FormGroup className="mb-3">
                 <InputGroup className="input-group-alternative">
                   <InputGroupAddon addonType="prepend"><InputGroupText><i className="ni ni-email-83" /></InputGroupText></InputGroupAddon>
-                  <Input placeholder="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required/>
+                  <Input 
+                    placeholder="Email" 
+                    type="email" 
+                    value={email} 
+                    onChange={(e) => setEmail(e.target.value)} 
+                    disabled={loading}
+                    // "required" retiré
+                  />
                 </InputGroup>
               </FormGroup>
               <FormGroup>
                 <InputGroup className="input-group-alternative">
                   <InputGroupAddon addonType="prepend"><InputGroupText><i className="ni ni-lock-circle-open" /></InputGroupText></InputGroupAddon>
-                  <Input placeholder="Mot de passe" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required/>
+                  
+                  {/* --- MODIFIÉ : Gestion Show/Hide Password --- */}
+                  <Input 
+                    placeholder="Mot de passe" 
+                    type={showPassword ? "text" : "password"} 
+                    value={password} 
+                    onChange={(e) => setPassword(e.target.value)} 
+                    disabled={loading}
+                  />
+
+                  <InputGroupAddon addonType="append">
+                    <InputGroupText onClick={togglePasswordVisibility} style={{ cursor: 'pointer' }}>
+                      <i className={showPassword ? "fa fa-eye-slash" : "fa fa-eye"} />
+                    </InputGroupText>
+                  </InputGroupAddon>
+
                 </InputGroup>
-            _ </FormGroup>
-             
+               </FormGroup>
+              
               <div className="text-center">
-                <Button className="my-4 btn-pubcash-primary" type="submit">Se connecter</Button>
+                <Button 
+                  className="my-4 btn-pubcash-primary" 
+                  type="submit"
+                  disabled={loading}
+                  style={{width: '100%'}}
+                >
+                  {loading ? 'Connexion...' : 'Se connecter'}
+                </Button>
               </div>
             </Form>
-            {/* PAS DE LIENS D'INSCRIPTION */}
+            
+            <div className="text-center mt-3">
+              <Link to="/auth/forgot-password" className="text-muted">
+                <small>Mot de passe oublié ?</small>
+              </Link>
+            </div>
           </CardBody>
         </Card>
       </Col>

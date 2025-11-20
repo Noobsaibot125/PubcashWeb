@@ -37,6 +37,7 @@ import AjoutAdmin from "views/admin/AjoutAdmin.js";
 import AdminLandingSettings from "views/admin/AdminLandingSettings.js";
 import UserView from "views/UserView.js";
 import UserProfile from "views/UserProfile.js";
+import ForgotPassword from "views/examples/ForgotPassword.js";
 import Choice from "views/examples/Choice.js";
 var routes = [
   {
@@ -54,6 +55,12 @@ var routes = [
     component: <CreerPromotion />,
     layout: "/client",
     role: "client",
+  },
+  {
+    path: "/forgot-password",
+    name: "Mot de passe oublié",
+    component: <ForgotPassword />,
+    layout: "/auth", // C'EST ICI QUE LE BACKGROUND EST DÉFINI
   },
   {
     path: "/dashboard",

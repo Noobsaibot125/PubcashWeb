@@ -13,7 +13,6 @@ import { GoogleOAuthProvider } from '@react-oauth/google';
 import UserLayout from "layouts/User.js";
 import CompleteFacebookProfile from "views/examples/CompleteFacebookProfile.js";
 import Landing from "views/examples/Landing.js";
-
 import { AuthProvider } from "./contexts/AuthContext";
 import { WebSocketProvider } from "./contexts/WebSocketContext";
 
@@ -31,7 +30,7 @@ const AppContent = () => (
       <Route path="/admin/*" element={<AdminLayout />} />
       <Route path="/client/*" element={<ClientLayout />} />
       <Route path="/auth/*" element={<AuthLayout />} />
-
+      
       {/* Utilisateurs */}
       <Route path="/user/*" element={<UserLayout />} />
 
