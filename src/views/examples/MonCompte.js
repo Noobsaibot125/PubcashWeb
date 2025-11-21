@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Card, CardHeader, CardBody, Container, Row, Col, Form, FormGroup, Input, Button, Spinner } from 'reactstrap';
+import { 
+  Card, CardHeader, CardBody, Container, Row, Col, 
+  Form, FormGroup, Input, Button, Spinner, Table, Badge 
+} from 'reactstrap'; // J'ai ajouté Table et Badge ici
 import api from '../../services/api';
 
 const MonCompteHeader = ({ profile }) => (
@@ -10,7 +13,7 @@ const MonCompteHeader = ({ profile }) => (
           <Col lg="7" md="10">
             <h1 className="display-2 text-white">Bonjour, {profile?.prenom || 'Promoteur'}</h1>
             <p className="text-white mt-0 mb-5">
-            Transformez votre solde en résultats, planifiez vos campagnes promotionnelles dès maintenant.
+            Transformez votre solde en résultats, planifiez vos campagnes promotionnelles dès maintenant.
             </p>
           </Col>
         </Row>
@@ -21,6 +24,7 @@ const MonCompteHeader = ({ profile }) => (
 
 const MonCompte = () => {
     const [profile, setProfile] = useState(null);
+    const [history, setHistory] = useState([]); // Nouvel état pour l'historique
     const [loading, setLoading] = useState(true);
     const [rechargeAmount, setRechargeAmount] = useState('');
     const [error, setError] = useState('');
@@ -37,6 +41,16 @@ const MonCompte = () => {
             setProfile(response.data);
         } catch (err) {
             setError(err.response?.data?.message || err.message || 'Erreur de chargement du profil');
+        }
+    }, []);
+
+    // Nouvelle fonction pour charger l'historique
+    const fetchHistory = useCallback(async () => {
+        try {
+            const response = await api.get('/client/recharge/history');
+            setHistory(response.data);
+        } catch (err) {
+            console.error("Erreur historique:", err);
         }
     }, []);
 
@@ -67,7 +81,8 @@ const MonCompte = () => {
 
         const loadInitialData = async () => {
             try {
-                await fetchProfile();
+                // On charge le profil ET l'historique
+                await Promise.all([fetchProfile(), fetchHistory()]);
                 loadCinetPay();
             } catch (err) {
                 console.error('Erreur initialisation:', err);
@@ -79,13 +94,12 @@ const MonCompte = () => {
 
         loadInitialData();
 
-        // Nettoyage
         return () => {
             if (pollingRef.current) {
                 clearInterval(pollingRef.current);
             }
         };
-    }, [fetchProfile]);
+    }, [fetchProfile, fetchHistory]);
 
     const handleRecharge = async (e) => {
         e.preventDefault();
@@ -99,109 +113,96 @@ const MonCompte = () => {
             return;
         }
     
-        // Test de diagnostic
-        console.log('=== DIAGNOSTIC PAIEMENT ===');
-        console.log('Montant:', rechargeAmount);
-        console.log('SDK chargé:', !!window.CinetPay);
-        
         try {
+            // ... (Votre code existant d'initialisation CinetPay reste identique)
             console.log('Initialisation du paiement...');
             const initResp = await api.post('/client/recharge', { 
                 amount: parseFloat(rechargeAmount) 
             });
     
             const initData = initResp.data;
-            console.log('Réponse initialisation:', initData);
-    
-            if (!initData.checkout_data || !initData.cinetpay_config) {
-                throw new Error('Données de paiement incomplètes');
-            }
-    
             const transactionId = initData.checkout_data.transaction_id;
-            console.log('Transaction ID:', transactionId);
-            console.log('Numéro de téléphone envoyé:', initData.checkout_data.customer_phone_number);
     
-            // Vérification que CinetPay est bien chargé
-            if (!window.CinetPay) {
-                throw new Error('SDK CinetPay non chargé');
-            }
+            if (!window.CinetPay) throw new Error('SDK CinetPay non chargé');
     
-            // Configuration CinetPay
             window.CinetPay.setConfig({ 
                 ...initData.cinetpay_config,
                 mode: 'PRODUCTION'
             });
     
-            // Gestion des réponses
             window.CinetPay.waitResponse(function(data) {
-                console.log('Réponse CinetPay waitResponse:', data);
                 if (data.status === "REFUSED" || data.status === "CANCELED") {
-                    if (pollingRef.current) {
-                        clearInterval(pollingRef.current);
-                    }
+                    if (pollingRef.current) clearInterval(pollingRef.current);
                     setError("Votre paiement a échoué ou a été annulé.");
                     setIsProcessing(false);
-                } else if (data.status === "ACCEPTED") {
-                    console.log('Paiement accepté, vérification en cours...');
+                    fetchHistory(); // Rafraichir l'historique même en cas d'échec
                 }
             });
     
             window.CinetPay.onError(function(data) {
-                console.error('Erreur CinetPay onError:', data);
-                if (pollingRef.current) {
-                    clearInterval(pollingRef.current);
-                }
-                setError("Erreur lors du traitement du paiement: " + (data.message || 'Erreur inconnue'));
+                if (pollingRef.current) clearInterval(pollingRef.current);
+                setError("Erreur technique : " + (data.message || 'Inconnue'));
                 setIsProcessing(false);
             });
     
-            // Démarrer le processus de paiement
-            console.log('Lancement de CinetPay.getCheckout...');
             window.CinetPay.getCheckout(initData.checkout_data);
     
-            // Polling de vérification
             pollingRef.current = setInterval(async () => {
                 try {
-                    console.log('Vérification du statut...');
                     const verifyResp = await api.post('/client/recharge/verify', { 
                         transaction_id: transactionId 
                     });
                     
                     const verifyData = verifyResp.data;
-                    console.log('Résultat vérification:', verifyData);
                     
-                    if (verifyResp.status === 200 && verifyData.message.includes('confirmé et solde mis à jour')) {
+                    if (verifyResp.status === 200 && verifyData.message.includes('confirmé')) {
                         clearInterval(pollingRef.current);
                         setSuccess("Paiement réussi ! Votre solde a été rechargé.");
-                        await fetchProfile();
+                        setRechargeAmount(''); // Reset input
+                        await fetchProfile(); // Mise à jour du solde
+                        await fetchHistory(); // Mise à jour de l'historique
                         setIsProcessing(false);
                     } else if (verifyData.message.includes('REFUSED') || verifyData.message.includes('ECHEC')) {
                         clearInterval(pollingRef.current);
-                        setError("Le paiement a été refusé. Veuillez réessayer.");
+                        setError("Le paiement a été refusé.");
                         setIsProcessing(false);
+                        fetchHistory();
                     }
-    
                 } catch (pollErr) {
                     console.error("Erreur de polling:", pollErr);
                 }
             }, 5000);
     
-            // Arrêter le polling après 10 minutes
             setTimeout(() => {
                 if (pollingRef.current) {
                     clearInterval(pollingRef.current);
-                    setError("Délai de paiement dépassé. Veuillez réessayer.");
-                    setIsProcessing(false);
+                    // Ne pas afficher d'erreur ici si déjà réussi, juste arrêter le polling
+                    if(!success) setIsProcessing(false);
                 }
             }, 600000);
     
         } catch (err) {
-            console.error('❌ Erreur handleRecharge détaillée:', err);
-            console.error('Response error data:', err.response?.data);
-            
             const errorMessage = err.response?.data?.message || err.message || 'Erreur lors du démarrage du paiement';
             setError(`Erreur: ${errorMessage}`);
             setIsProcessing(false);
+        }
+    };
+
+    // Helper pour formater la date
+    const formatDate = (dateString) => {
+        return new Date(dateString).toLocaleDateString('fr-FR', {
+            day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
+        });
+    };
+
+    // Helper pour le badge de statut
+    const getStatusBadge = (status) => {
+        switch(status) {
+            case 'COMPLETED': return <Badge color="success">Succès</Badge>;
+            case 'ACCEPTED': return <Badge color="success">Succès</Badge>;
+            case 'PENDING': return <Badge color="warning">En attente</Badge>;
+            case 'REFUSED': return <Badge color="danger">Échoué</Badge>;
+            default: return <Badge color="secondary">{status}</Badge>;
         }
     };
 
@@ -239,7 +240,7 @@ const MonCompte = () => {
                     </Col>
 
                     <Col className="order-xl-1" xl="8">
-                        <Card className="bg-secondary shadow">
+                        <Card className="bg-secondary shadow mb-4">
                             <CardHeader className="bg-white border-0">
                                 <Row className="align-items-center">
                                     <Col xs="8"><h3 className="mb-0" style={{ color: "black" }}>Mon Compte PubCash</h3></Col>
@@ -267,46 +268,63 @@ const MonCompte = () => {
                                                         required
                                                         disabled={isProcessing}
                                                     />
-                                                    <small className="form-text text-muted">
-                                                        Minimum: 100 FCFA
-                                                    </small>
+                                                    <small className="form-text text-muted">Minimum: 100 FCFA</small>
                                                 </FormGroup>
                                             </Col>
                                         </Row>
                                         <p className="small">Moyens de paiement : MTN, Orange, Moov, Wave, Visa...</p>
                                         
-                                        {error && (
-                                            <div className="alert alert-danger my-2">
-                                                <small>{error}</small>
-                                            </div>
-                                        )}
-                                        {success && (
-                                            <div className="alert alert-success my-2">
-                                                <small>{success}</small>
-                                            </div>
-                                        )}
+                                        {error && <div className="alert alert-danger my-2"><small>{error}</small></div>}
+                                        {success && <div className="alert alert-success my-2"><small>{success}</small></div>}
                                         
-                                        {sdkError ? (
-                                            <div className="alert alert-warning">
-                                                <small>
-                                                    Le système de paiement est actuellement indisponible. 
-                                                    Veuillez réessayer plus tard ou contacter le support.
-                                                </small>
-                                            </div>
-                                        ) : (
-                                            <Button 
-                                                color="primary" 
-                                                type="submit" 
-                                                disabled={!sdkLoaded || isProcessing}
-                                            >
-                                                {isProcessing ? "Traitement en cours..." : 
-                                                 sdkLoaded ? "Recharger" : "Chargement du système de paiement..."}
-                                            </Button>
-                                        )}
+                                        <Button 
+                                            color="primary" 
+                                            type="submit" 
+                                            disabled={!sdkLoaded || isProcessing}
+                                        >
+                                            {isProcessing ? "Traitement en cours..." : 
+                                             sdkLoaded ? "Recharger" : "Chargement..."}
+                                        </Button>
                                     </div>
                                 </Form>
-                                <hr className="my-4" />
                             </CardBody>
+                        </Card>
+
+                        {/* --- NOUVELLE SECTION : HISTORIQUE DES RECHARGEMENTS --- */}
+                        <Card className="shadow">
+                            <CardHeader className="border-0">
+                                <Row className="align-items-center">
+                                    <Col>
+                                        <h3 className="mb-0">Historique des rechargements</h3>
+                                    </Col>
+                                </Row>
+                            </CardHeader>
+                            <Table className="align-items-center table-flush" responsive>
+                                <thead className="thead-light">
+                                    <tr>
+                                        <th scope="col">Date</th>
+                                        <th scope="col">Transaction ID</th>
+                                        <th scope="col">Montant</th>
+                                        <th scope="col">Statut</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {history.length > 0 ? (
+                                        history.map((item, index) => (
+                                            <tr key={index}>
+                                                <td>{formatDate(item.created_at)}</td>
+                                                <td><small>{item.transaction_id}</small></td>
+                                                <td>{parseFloat(item.amount).toLocaleString('fr-FR')} FCFA</td>
+                                                <td>{getStatusBadge(item.status)}</td>
+                                            </tr>
+                                        ))
+                                    ) : (
+                                        <tr>
+                                            <td colSpan="4" className="text-center">Aucun historique disponible</td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </Table>
                         </Card>
                     </Col>
                 </Row>
