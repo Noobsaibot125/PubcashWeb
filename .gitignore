@@ -5,3 +5,4 @@ package-lock.json
 .eslintcache
 # Fichiers secrets et de configuration locale
 .env
+.agent/
