@@ -1,3 +1,34 @@
+// src/views/examples/Landing.js
+import React, { useState, useEffect, useRef, Suspense } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import {
+  Container,
+  Row,
+  Col,
+  Button,
+  Spinner
+} from 'reactstrap';
+import { motion } from 'framer-motion';
+import { Canvas, useFrame } from '@react-three/fiber';
+import {
+  Float,
+  Sphere,
+  MeshDistortMaterial,
+  Torus,
+  Box,
+  Environment,
+  Stars,
+  OrbitControls
+} from '@react-three/drei';
+import { jwtDecode } from 'jwt-decode';
+import { getMediaUrl } from 'utils/mediaUrl';
+
+// CSS Import
+import 'assets/css/Landing.css';
+
+// Logo fallback
+const logoFallback = `${process.env.PUBLIC_URL}/img/brand/pub cash.png`;
+
 // --- 3D COMPONENTS ---
 const AnimatedSphere = () => {
   const sphereRef = useRef();
@@ -394,7 +425,7 @@ const Landing = () => {
                   className="testimonial-box mb-5"
                 >
                   <p className="testimonial-text">
-                    "{info?.testimonial_text || "J'ai simplement donné une consigne indiquant qu'il devait utiliser des modèles 3D, des animations, etc. L’interface utilisateur et l’expérience utilisateur sont parfaites et entièrement réactives."}"
+                    "{info?.testimonial_text || "J'ai simplement donné une consigne indiquant qu'il devait utiliser des modèles 3D, des animations, etc. L'interface utilisateur et l'expérience utilisateur sont parfaites et entièrement réactives."}"
                   </p>
                   <div className="testimonial-author">- {info?.testimonial_author || "Client Satisfait"}</div>
                 </motion.div>
