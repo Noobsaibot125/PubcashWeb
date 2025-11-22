@@ -1,17 +1,3 @@
-// src/views/examples/Landing.js
-import React, { useEffect, useState, Suspense, useRef } from "react";
-import { Container, Row, Col, Button, Spinner, Card, CardBody } from "reactstrap";
-import { Link, useNavigate } from "react-router-dom";
-import { jwtDecode } from 'jwt-decode';
-import { getMediaUrl } from 'utils/mediaUrl';
-import { Canvas, useFrame } from "@react-three/fiber";
-import { OrbitControls, Sphere, MeshDistortMaterial, Float, Stars, Environment, Torus, Box } from "@react-three/drei";
-import { motion, useScroll, useTransform } from "framer-motion";
-import "../../assets/css/Landing.css";
-
-// Fallback assets
-import logoFallback from "../../assets/img/brand/pub cash.png";
-
 // --- 3D COMPONENTS ---
 const AnimatedSphere = () => {
   const sphereRef = useRef();
@@ -91,28 +77,51 @@ const FeatureSection = ({ title, description, features, align = "left", icon3d, 
         <Row className="align-items-center">
           <Col lg="6" className={align === "right" ? "order-lg-2" : ""}>
             <motion.div
-              initial={{ opacity: 0, x: align === "left" ? -50 : 50 }}
+              initial={{ opacity: 0, x: align === "left" ? -100 : 100 }}
               whileInView={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.8 }}
-              viewport={{ once: true }}
+              transition={{ duration: 1, ease: "easeOut" }}
+              viewport={{ once: true, amount: 0.3 }}
             >
-              <h2 className="section-title">{title}</h2>
-              <p className="section-desc">{description}</p>
+              <motion.h2
+                className="section-title"
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.2 }}
+                viewport={{ once: true }}
+              >
+                {title}
+              </motion.h2>
+              <motion.p
+                className="section-desc"
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.3 }}
+                viewport={{ once: true }}
+              >
+                {description}
+              </motion.p>
               <ul className="feature-list">
                 {features.map((feat, idx) => (
-                  <li key={idx} className="feature-item">
+                  <motion.li
+                    key={idx}
+                    className="feature-item"
+                    initial={{ opacity: 0, x: -20 }}
+                    whileInView={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.5, delay: 0.4 + (idx * 0.1) }}
+                    viewport={{ once: true }}
+                  >
                     <span className="feature-icon">✓</span> {feat}
-                  </li>
+                  </motion.li>
                 ))}
               </ul>
             </motion.div>
           </Col>
           <Col lg="6" className={align === "right" ? "order-lg-1" : ""}>
             <motion.div
-              initial={{ opacity: 0, scale: 0.8 }}
-              whileInView={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.8 }}
-              viewport={{ once: true }}
+              initial={{ opacity: 0, x: align === "left" ? 100 : -100, scale: 0.8 }}
+              whileInView={{ opacity: 1, x: 0, scale: 1 }}
+              transition={{ duration: 1, ease: "easeOut", delay: 0.2 }}
+              viewport={{ once: true, amount: 0.3 }}
               className="feature-visual"
             >
               {/* Placeholder for 3D or Image */}
