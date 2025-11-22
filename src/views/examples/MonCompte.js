@@ -1,25 +1,25 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { 
-  Card, CardHeader, CardBody, Container, Row, Col, 
-  Form, FormGroup, Input, Button, Spinner, Table, Badge 
+import {
+    Card, CardHeader, CardBody, Container, Row, Col,
+    Form, FormGroup, Input, Button, Spinner, Table, Badge
 } from 'reactstrap'; // J'ai ajouté Table et Badge ici
 import api from '../../services/api';
 
 const MonCompteHeader = ({ profile }) => (
-  <div className="header bg-gradient-primary pb-8 pt-5 pt-md-8">
-    <Container fluid>
-      <div className="header-body">
-        <Row>
-          <Col lg="7" md="10">
-            <h1 className="display-2 text-white">Bonjour, {profile?.prenom || 'Promoteur'}</h1>
-            <p className="text-white mt-0 mb-5">
-            Transformez votre solde en résultats, planifiez vos campagnes promotionnelles dès maintenant.
-            </p>
-          </Col>
-        </Row>
-      </div>
-    </Container>
-  </div>
+    <div className="header bg-gradient-primary pb-8 pt-5 pt-md-8">
+        <Container fluid>
+            <div className="header-body">
+                <Row>
+                    <Col lg="7" md="10">
+                        <h1 className="display-2 text-white">Bonjour, {profile?.prenom || 'Promoteur'}</h1>
+                        <p className="text-white mt-0 mb-5">
+                            Transformez votre solde en résultats, planifiez vos campagnes promotionnelles dès maintenant.
+                        </p>
+                    </Col>
+                </Row>
+            </div>
+        </Container>
+    </div>
 );
 
 const MonCompte = () => {
@@ -30,7 +30,7 @@ const MonCompte = () => {
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
     const [sdkLoaded, setSdkLoaded] = useState(false);
-    const [sdkError, setSdkError] = useState(false);
+    // const [sdkError, setSdkError] = useState(false); // Unused
     const [isProcessing, setIsProcessing] = useState(false);
     const scriptAddedRef = useRef(false);
     const pollingRef = useRef(null);
@@ -60,21 +60,21 @@ const MonCompte = () => {
                 setSdkLoaded(true);
                 return;
             }
-            
+
             scriptAddedRef.current = true;
-            
+
             const script = document.createElement('script');
             script.src = 'https://cdn.cinetpay.com/seamless/main.js';
             script.async = true;
             script.id = 'cinetpay-sdk';
-            script.onload = () => { 
+            script.onload = () => {
                 console.log('SDK CinetPay chargé avec succès');
-                setSdkLoaded(true); 
+                setSdkLoaded(true);
             };
-            script.onerror = (err) => { 
+            script.onerror = (err) => {
                 console.error('Erreur chargement SDK CinetPay:', err);
-                setSdkError(true); 
-                setError('Impossible de charger le système de paiement'); 
+                // setSdkError(true);
+                setError('Impossible de charger le système de paiement');
             };
             document.body.appendChild(script);
         };
@@ -106,31 +106,31 @@ const MonCompte = () => {
         setError('');
         setSuccess('');
         setIsProcessing(true);
-    
+
         if (!rechargeAmount || Number(rechargeAmount) < 100) {
             setError("Veuillez entrer un montant valide (minimum 100 FCFA).");
             setIsProcessing(false);
             return;
         }
-    
+
         try {
             // ... (Votre code existant d'initialisation CinetPay reste identique)
             console.log('Initialisation du paiement...');
-            const initResp = await api.post('/client/recharge', { 
-                amount: parseFloat(rechargeAmount) 
+            const initResp = await api.post('/client/recharge', {
+                amount: parseFloat(rechargeAmount)
             });
-    
+
             const initData = initResp.data;
             const transactionId = initData.checkout_data.transaction_id;
-    
+
             if (!window.CinetPay) throw new Error('SDK CinetPay non chargé');
-    
-            window.CinetPay.setConfig({ 
+
+            window.CinetPay.setConfig({
                 ...initData.cinetpay_config,
                 mode: 'PRODUCTION'
             });
-    
-            window.CinetPay.waitResponse(function(data) {
+
+            window.CinetPay.waitResponse(function (data) {
                 if (data.status === "REFUSED" || data.status === "CANCELED") {
                     if (pollingRef.current) clearInterval(pollingRef.current);
                     setError("Votre paiement a échoué ou a été annulé.");
@@ -138,23 +138,23 @@ const MonCompte = () => {
                     fetchHistory(); // Rafraichir l'historique même en cas d'échec
                 }
             });
-    
-            window.CinetPay.onError(function(data) {
+
+            window.CinetPay.onError(function (data) {
                 if (pollingRef.current) clearInterval(pollingRef.current);
                 setError("Erreur technique : " + (data.message || 'Inconnue'));
                 setIsProcessing(false);
             });
-    
+
             window.CinetPay.getCheckout(initData.checkout_data);
-    
+
             pollingRef.current = setInterval(async () => {
                 try {
-                    const verifyResp = await api.post('/client/recharge/verify', { 
-                        transaction_id: transactionId 
+                    const verifyResp = await api.post('/client/recharge/verify', {
+                        transaction_id: transactionId
                     });
-                    
+
                     const verifyData = verifyResp.data;
-                    
+
                     if (verifyResp.status === 200 && verifyData.message.includes('confirmé')) {
                         clearInterval(pollingRef.current);
                         setSuccess("Paiement réussi ! Votre solde a été rechargé.");
@@ -172,15 +172,15 @@ const MonCompte = () => {
                     console.error("Erreur de polling:", pollErr);
                 }
             }, 5000);
-    
+
             setTimeout(() => {
                 if (pollingRef.current) {
                     clearInterval(pollingRef.current);
                     // Ne pas afficher d'erreur ici si déjà réussi, juste arrêter le polling
-                    if(!success) setIsProcessing(false);
+                    if (!success) setIsProcessing(false);
                 }
             }, 600000);
-    
+
         } catch (err) {
             const errorMessage = err.response?.data?.message || err.message || 'Erreur lors du démarrage du paiement';
             setError(`Erreur: ${errorMessage}`);
@@ -197,7 +197,7 @@ const MonCompte = () => {
 
     // Helper pour le badge de statut
     const getStatusBadge = (status) => {
-        switch(status) {
+        switch (status) {
             case 'COMPLETED': return <Badge color="success">Succès</Badge>;
             case 'ACCEPTED': return <Badge color="success">Succès</Badge>;
             case 'PENDING': return <Badge color="warning">En attente</Badge>;
@@ -273,17 +273,17 @@ const MonCompte = () => {
                                             </Col>
                                         </Row>
                                         <p className="small">Moyens de paiement : MTN, Orange, Moov, Wave, Visa...</p>
-                                        
+
                                         {error && <div className="alert alert-danger my-2"><small>{error}</small></div>}
                                         {success && <div className="alert alert-success my-2"><small>{success}</small></div>}
-                                        
-                                        <Button 
-                                            color="primary" 
-                                            type="submit" 
+
+                                        <Button
+                                            color="primary"
+                                            type="submit"
                                             disabled={!sdkLoaded || isProcessing}
                                         >
-                                            {isProcessing ? "Traitement en cours..." : 
-                                             sdkLoaded ? "Recharger" : "Chargement..."}
+                                            {isProcessing ? "Traitement en cours..." :
+                                                sdkLoaded ? "Recharger" : "Chargement..."}
                                         </Button>
                                     </div>
                                 </Form>

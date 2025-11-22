@@ -1,227 +1,414 @@
 // src/views/examples/Landing.js
-import React, { useEffect, useState } from "react";
-import { Container, Row, Col, Button, Spinner } from "reactstrap";
-import { Link, useNavigate } from "react-router-dom"; // Importez useNavigate
-import { jwtDecode } from 'jwt-decode'; // Installez avec : npm install jwt-decode
-import { getMediaUrl } from 'utils/mediaUrl'; // AJOUT IMPORT
+import React, { useEffect, useState, Suspense, useRef } from "react";
+import { Container, Row, Col, Button, Spinner, Card, CardBody } from "reactstrap";
+import { Link, useNavigate } from "react-router-dom";
+import { jwtDecode } from 'jwt-decode';
+import { getMediaUrl } from 'utils/mediaUrl';
+import { Canvas, useFrame } from "@react-three/fiber";
+import { OrbitControls, Sphere, MeshDistortMaterial, Float, Stars, Environment, Torus, Box } from "@react-three/drei";
+import { motion, useScroll, useTransform } from "framer-motion";
 import "../../assets/css/Landing.css";
 
-// Fichiers de secours locaux
+// Fallback assets
 import logoFallback from "../../assets/img/brand/pub cash.png";
-import posterFallback from "../../assets/img/brand/pub cash.png";
 
+// --- 3D COMPONENTS ---
+const AnimatedSphere = () => {
+  const sphereRef = useRef();
+  useFrame(({ clock }) => {
+    const t = clock.getElapsedTime();
+    if (sphereRef.current) {
+      sphereRef.current.rotation.x = t * 0.2;
+      sphereRef.current.rotation.y = t * 0.3;
+    }
+  });
+  return (
+    <Float speed={2} rotationIntensity={1.5} floatIntensity={2}>
+      <Sphere visible args={[1, 100, 200]} scale={2.2} ref={sphereRef}>
+        <MeshDistortMaterial color="#F36C21" attach="material" distort={0.4} speed={2} roughness={0.2} metalness={0.8} />
+      </Sphere>
+    </Float>
+  );
+};
+
+const FloatingCoin = ({ position }) => {
+  const ref = useRef();
+  useFrame(({ clock }) => {
+    if (ref.current) {
+      ref.current.rotation.y = clock.getElapsedTime();
+      ref.current.position.y = position[1] + Math.sin(clock.getElapsedTime() * 2) * 0.1;
+    }
+  });
+  return (
+    <group position={position} ref={ref}>
+      <Torus args={[0.6, 0.2, 16, 32]} rotation={[Math.PI / 2, 0, 0]}>
+        <meshStandardMaterial color="#FFD700" metalness={1} roughness={0.1} />
+      </Torus>
+      <Box args={[0.8, 0.1, 0.8]} rotation={[Math.PI / 2, 0, 0]}>
+        <meshStandardMaterial color="#FFD700" metalness={1} roughness={0.1} />
+      </Box>
+    </group>
+  );
+};
+
+const FloatingGraph = ({ position }) => {
+  const ref = useRef();
+  useFrame(({ clock }) => {
+    if (ref.current) {
+      ref.current.rotation.y = Math.sin(clock.getElapsedTime() * 0.5) * 0.2;
+    }
+  });
+  return (
+    <group position={position} ref={ref}>
+      <Box args={[0.2, 1, 0.2]} position={[-0.4, 0, 0]}><meshStandardMaterial color="#00C853" /></Box>
+      <Box args={[0.2, 1.5, 0.2]} position={[0, 0.25, 0]}><meshStandardMaterial color="#00E676" /></Box>
+      <Box args={[0.2, 2, 0.2]} position={[0.4, 0.5, 0]}><meshStandardMaterial color="#69F0AE" /></Box>
+    </group>
+  )
+}
+
+
+const BackgroundScene = () => {
+  return (
+    <Canvas className="canvas-container" camera={{ position: [0, 0, 5] }}>
+      <Suspense fallback={null}>
+        <Environment preset="city" />
+        <Stars radius={100} depth={50} count={5000} factor={4} saturation={0} fade speed={1} />
+        <ambientLight intensity={0.5} />
+        <directionalLight position={[10, 10, 5]} intensity={1} />
+        <AnimatedSphere />
+        <OrbitControls enableZoom={false} autoRotate autoRotateSpeed={0.5} />
+      </Suspense>
+    </Canvas>
+  );
+};
+
+// --- SECTIONS ---
+const FeatureSection = ({ title, description, features, align = "left", icon3d, imagePath }) => {
+  return (
+    <div className={`feature-section ${align === "right" ? "feature-right" : ""}`}>
+      <Container>
+        <Row className="align-items-center">
+          <Col lg="6" className={align === "right" ? "order-lg-2" : ""}>
+            <motion.div
+              initial={{ opacity: 0, x: align === "left" ? -50 : 50 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.8 }}
+              viewport={{ once: true }}
+            >
+              <h2 className="section-title">{title}</h2>
+              <p className="section-desc">{description}</p>
+              <ul className="feature-list">
+                {features.map((feat, idx) => (
+                  <li key={idx} className="feature-item">
+                    <span className="feature-icon">✓</span> {feat}
+                  </li>
+                ))}
+              </ul>
+            </motion.div>
+          </Col>
+          <Col lg="6" className={align === "right" ? "order-lg-1" : ""}>
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8 }}
+              whileInView={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.8 }}
+              viewport={{ once: true }}
+              className="feature-visual"
+            >
+              {/* Placeholder for 3D or Image */}
+              <div className="visual-placeholder">
+                {imagePath ? (
+                  <img src={getMediaUrl(imagePath)} alt={title} className="img-fluid rounded shadow" />
+                ) : (
+                  <>
+                    {icon3d === 'graph' && (
+                      <Canvas>
+                        <ambientLight intensity={0.5} />
+                        <directionalLight position={[5, 5, 5]} />
+                        <FloatingGraph position={[0, 0, 0]} />
+                        <OrbitControls enableZoom={false} />
+                      </Canvas>
+                    )}
+                    {icon3d === 'coin' && (
+                      <Canvas>
+                        <ambientLight intensity={0.5} />
+                        <directionalLight position={[5, 5, 5]} />
+                        <FloatingCoin position={[0, 0, 0]} />
+                        <OrbitControls enableZoom={false} />
+                      </Canvas>
+                    )}
+                  </>
+                )}
+              </div>
+            </motion.div>
+          </Col>
+        </Row>
+      </Container>
+
+    </div>
+  );
+};
+
+
+// --- MAIN COMPONENT ---
 const Landing = () => {
-  const navigate = useNavigate(); // Initialisez useNavigate
-  const [showVideo, setShowVideo] = useState(true);
+  const navigate = useNavigate();
   const [info, setInfo] = useState(null);
   const [loadingInfo, setLoadingInfo] = useState(true);
-  const [isCheckingAuth, setIsCheckingAuth] = useState(true); // Nouveau state pour le chargement de l'auth
-  const [videoError, setVideoError] = useState(false);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
 
+  // Auth Check Logic
   useEffect(() => {
-    // --- NOUVELLE LOGIQUE DE REDIRECTION AU DÉBUT DE L'EFFECT ---
     const accessToken = localStorage.getItem('accessToken');
-    const userRole = localStorage.getItem('userRole'); // Récupère le rôle stocké lors du login
+    const userRole = localStorage.getItem('userRole');
 
     if (accessToken && userRole) {
-        try {
-            const decodedToken = jwtDecode(accessToken);
-            // Vérifier si le token n'est pas expiré avant de rediriger
-            if (decodedToken.exp * 1000 > Date.now()) {
-                if (userRole === 'superadmin' || userRole === 'admin') {
-                    navigate("/admin/dashboard", { replace: true });
-                } else if (userRole === 'client') {
-                    navigate("/client/index", { replace: true });
-                } else if (userRole === 'utilisateur') {
-                    navigate("/user/dashboard", { replace: true });
-                }
-                setIsCheckingAuth(false); // La vérification est terminée
-                return; // Stoppe l'exécution du reste de l'useEffect
-            } else {
-                // Le token est expiré, le supprimer et continuer l'affichage normal
-                console.warn("Access Token expiré à la Landing page.");
-                localStorage.removeItem('accessToken');
-                localStorage.removeItem('refreshToken');
-                localStorage.removeItem('userRole');
-            }
-        } catch (error) {
-            console.error("Token invalide lors de la vérification à la Landing page:", error);
-            localStorage.removeItem('accessToken');
-            localStorage.removeItem('refreshToken');
-            localStorage.removeItem('userRole');
+      try {
+        const decodedToken = jwtDecode(accessToken);
+        if (decodedToken.exp * 1000 > Date.now()) {
+          const routes = {
+            superadmin: "/admin/dashboard",
+            admin: "/admin/dashboard",
+            client: "/client/index",
+            utilisateur: "/user/dashboard"
+          };
+          if (routes[userRole]) {
+            navigate(routes[userRole], { replace: true });
+            setIsCheckingAuth(false);
+            return;
+          }
+        } else {
+          localStorage.clear();
         }
+      } catch (error) {
+        localStorage.clear();
+      }
     }
-    setIsCheckingAuth(false); // La vérification est terminée, si pas de redirection
-    // --- FIN NOUVELLE LOGIQUE ---
+    setIsCheckingAuth(false);
 
-    const isMobile = window.innerWidth <= 768;
-    setShowVideo(!isMobile);
-
+    // Fetch Info
     const fetchInfo = async () => {
       setLoadingInfo(true);
       try {
         const apiBase = process.env.REACT_APP_API_URL || "";
         const res = await fetch(`${apiBase}/admin/info-accueil`);
-        
         if (res.ok) {
           const data = await res.json();
           setInfo(data);
-          console.log('Infos chargées:', data);
-          console.log('URL vidéo hero:', data.hero_video_path);
-          console.log('URL vidéo complète:', getMediaUrl(data.hero_video_path));
-        } else {
-          setInfo({});
         }
       } catch (err) {
-        console.warn("Impossible de charger les informations de l'accueil :", err);
-        setInfo({});
+        console.warn("Info fetch error:", err);
       } finally {
         setLoadingInfo(false);
       }
     };
-
     fetchInfo();
   }, [navigate]);
 
- // Gestion robuste des URLs
- const getVideoSource = () => {
-  if (!loadingInfo && info?.hero_video_path) {
-    const url = getMediaUrl(info.hero_video_path);
-    console.log('URL vidéo utilisée:', url);
-    return url;
-  }
-  
-  // Fallback local
-  const fallback = `${process.env.PUBLIC_URL}/videos/landing-hero.mp4`;
-  console.log('Utilisation du fallback vidéo:', fallback);
-  return fallback;
-};
-const getPosterSource = () => {
-  if (!loadingInfo && info?.hero_image_path) {
-    return getMediaUrl(info.hero_image_path);
-  }
-  return posterFallback;
-};
-const getLogoSource = () => {
-  if (!loadingInfo && info?.logo_path) {
-    return getMediaUrl(info.logo_path);
-  }
-  return logoFallback;
-};
-const videoSrc = getVideoSource();
-const posterSrc = getPosterSource();
-const logoSrc = getLogoSource();
+  const getLogoSource = () => {
+    if (!loadingInfo && info?.logo_path) {
+      return getMediaUrl(info.logo_path);
+    }
+    return logoFallback;
+  };
 
-const handleVideoError = (e) => {
-  console.error('Erreur de chargement de la vidéo:', {
-    error: e.target.error,
-    src: e.target.src,
-    networkState: e.target.networkState,
-    readyState: e.target.readyState
-  });
-  setVideoError(true);
-};
+  if (isCheckingAuth) {
+    return (
+      <div className="landing-loader">
+        <Spinner color="primary" />
+      </div>
+    );
+  }
 
-// Affichez un spinner si l'authentification est en cours de vérification OU si les infos de la page chargent
-if (isCheckingAuth || loadingInfo) {
   return (
-    <div className="landing-page d-flex justify-content-center align-items-center" style={{ minHeight: '100vh' }}>
-      <Spinner color="primary" />
+    <div className="landing-page-modern">
+      {/* Fixed Background: Video or 3D */}
+      <div className="landing-3d-bg">
+        {info?.hero_video_path ? (
+          <video
+            className="landing-video-bg"
+            autoPlay
+            loop
+            muted
+            playsInline
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              width: "100%",
+              height: "100%",
+              objectFit: "cover",
+              zIndex: -1
+            }}
+          >
+            <source src={getMediaUrl(info.hero_video_path)} type="video/mp4" />
+            Votre navigateur ne supporte pas la lecture de vidéos.
+          </video>
+        ) : (
+          <BackgroundScene />
+        )}
+      </div>
+
+      <div className="landing-overlay" />
+
+      <div className="landing-scroll-container">
+        {/* HERO SECTION */}
+        <section className="landing-hero">
+          <Container className="landing-container">
+            <Row className="align-items-center justify-content-center text-center" style={{ minHeight: '100vh' }}>
+              <Col lg="10" md="12" className="z-index-2">
+
+                <motion.div
+                  initial={{ opacity: 0, y: -50 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.8 }}
+                  className="mb-4"
+                >
+                  <img
+                    src={getLogoSource()}
+                    alt="PubCash Logo"
+                    className="landing-logo-modern"
+                    onError={(e) => { e.target.src = logoFallback; }}
+                  />
+                </motion.div>
+
+                <motion.h1
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.8, delay: 0.2 }}
+                  className="landing-title-modern"
+                >
+                  {info?.title || "PubCash — La pub qui rapporte"}
+                </motion.h1>
+
+                <motion.p
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.8, delay: 0.4 }}
+                  className="landing-subtitle-modern"
+                >
+                  {info?.subtitle || "La plateforme Watch-to-Earn qui connecte annonceurs et utilisateurs."}
+                </motion.p>
+
+                <motion.div
+                  initial={{ opacity: 0, y: 30 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.8, delay: 0.6 }}
+                  className="landing-ctas-modern mt-5"
+                >
+                  <Link to="/auth/login">
+                    <Button className="btn-modern-primary btn-lg mx-2">
+                      Se connecter
+                    </Button>
+                  </Link>
+                  <Link to="/auth/register">
+                    <Button className="btn-modern-outline btn-lg mx-2">
+                      S'inscrire
+                    </Button>
+                  </Link>
+                </motion.div>
+
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 1.5, duration: 1, repeat: Infinity, repeatType: "reverse" }}
+                  className="scroll-indicator"
+                >
+                  <span className="ni ni-bold-down"></span>
+                </motion.div>
+
+              </Col>
+            </Row>
+          </Container>
+        </section>
+
+        {/* ECOSYSTEM SECTION */}
+        <section className="landing-section ecosystem-section">
+          <Container>
+            <Row className="justify-content-center text-center">
+              <Col lg="8">
+                <motion.div
+                  initial={{ opacity: 0, y: 50 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.8 }}
+                >
+                  <h2 className="section-title-center">{info?.ecosystem_title || "L'Écosystème PubCash"}</h2>
+                  <p className="section-desc-center">
+                    {info?.ecosystem_description || "Une plateforme innovante où tout le monde est gagnant. Les annonceurs obtiennent de la visibilité, et les utilisateurs sont récompensés pour leur attention."}
+                  </p>
+                </motion.div>
+              </Col>
+            </Row>
+          </Container>
+        </section>
+
+        {/* ADVERTISERS SECTION */}
+        <FeatureSection
+          title={info?.advertisers_title || "Pour les Annonceurs"}
+          description={info?.advertisers_description || "Maximisez votre impact avec des campagnes ciblées et des statistiques détaillées."}
+          align="left"
+          icon3d="graph"
+          imagePath={info?.advertisers_image_path}
+          features={info?.advertisers_features || [
+            "Créez des campagnes vidéo et bannières en quelques clics.",
+            "Suivez vos performances en temps réel (Vues, Likes, Partages).",
+            "Accédez à des rapports détaillés pour optimiser votre ROI.",
+            "Rechargez votre compte simplement et gérez votre budget."
+          ]}
+        />
+
+        {/* USERS SECTION */}
+        <FeatureSection
+          title={info?.users_title || "Pour les Utilisateurs"}
+          description={info?.users_description || "Transformez votre temps libre en gains réels. Regardez, interagissez, gagnez."}
+          align="right"
+          icon3d="coin"
+          imagePath={info?.users_image_path}
+          features={info?.users_features || [
+            "Gagnez de l'argent en regardant des publicités.",
+            "Augmentez vos gains en likant et partageant.",
+            "Suivez votre solde et l'historique de vos gains.",
+            "Retraits rapides vers Mobile Money via CinetPay."
+          ]}
+        />
+
+        {/* TESTIMONIAL & FOOTER */}
+        <section className="landing-footer-section">
+          <Container>
+            <Row className="justify-content-center">
+              <Col lg="8" className="text-center">
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  whileInView={{ opacity: 1 }}
+                  transition={{ duration: 1 }}
+                  className="testimonial-box mb-5"
+                >
+                  <p className="testimonial-text">
+                    "{info?.testimonial_text || "J'ai simplement donné une consigne indiquant qu'il devait utiliser des modèles 3D, des animations, etc. L’interface utilisateur et l’expérience utilisateur sont parfaites et entièrement réactives."}"
+                  </p>
+                  <div className="testimonial-author">- {info?.testimonial_author || "Client Satisfait"}</div>
+                </motion.div>
+
+                <div className="final-cta mb-5">
+                  <h3>Prêt à commencer ?</h3>
+                  <div className="mt-4">
+                    <Link to="/auth/register">
+                      <Button className="btn-modern-primary btn-lg">Créer un compte maintenant</Button>
+                    </Link>
+                  </div>
+                </div>
+
+                <footer className="simple-footer">
+                  <small>© {new Date().getFullYear()} PubCash — Tous droits réservés</small>
+                </footer>
+              </Col>
+            </Row>
+          </Container>
+        </section>
+      </div>
     </div>
   );
-}
-
-return (
-  <div className="landing-page">
-    {showVideo && !videoError && (
-      <video
-        key={videoSrc}
-        className="landing-video"
-        autoPlay
-        muted
-        loop
-        playsInline
-        preload="auto"
-        poster={posterSrc}
-        onError={handleVideoError}
-        onCanPlayThrough={() => console.log('Vidéo prête à être jouée')}
-        onLoadStart={() => console.log('Début du chargement vidéo')}
-      >
-        <source src={videoSrc} type="video/mp4" />
-        <source src={videoSrc.replace('.mp4', '.webm')} type="video/webm" />
-        Votre navigateur ne supporte pas la vidéo de fond.
-      </video>
-    )}
-
-    {videoError && (
-      <div className="landing-video-fallback" style={{
-        backgroundImage: `url(${posterSrc})`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        width: '100%',
-        height: '100%',
-        zIndex: 1
-      }} />
-    )}
-
-    <div className="landing-video-overlay" aria-hidden="true" />
-    <div className="landing-bg gradient-bg" aria-hidden="true" />
-
-    <div className="landing-content-wrapper">
-      <Container>
-        <Row className="justify-content-center text-center">
-          <Col lg="8" md="10">
-            <div className="landing-card">
-              <div className="logo-wrap mb-4">
-                <img
-                  key={logoSrc}
-                  src={logoSrc}
-                  alt="PubCash logo"
-                  className="landing-logo"
-                  onError={(e) => {
-                    e.target.onerror = null;
-                    e.target.src = logoFallback;
-                  }}
-                />
-              </div>
-
-              <h1 className="landing-title">{info?.title || "PubCash — La pub qui rapporte"}</h1>
-              <p className="landing-subtitle">
-                {info?.subtitle || "Promoteurs : publiez vos vidéos. Utilisateurs : likez, partagez et gagnez."}
-              </p>
-
-              <div className="landing-ctas mt-4">
-                <Link to="/auth/login">
-                  <Button size="lg" className="mr-3 btn-cta-primary">Se connecter</Button>
-                </Link>
-                <Link to="/auth/register">
-                  <Button outline size="lg" className="btn-cta-outline">S'inscrire</Button>
-                </Link>
-              </div>
-
-              <div className="landing-info mt-4 text-muted small">
-                <span>Promoteur ? Créez des campagnes.</span> &nbsp;•&nbsp;
-                <span>Annonceur ? Contactez-nous pour plus d'infos.</span>
-              </div>
-            </div>
-
-            <div className="promo-strip mt-5">
-              <div className="promo-text">Ex : Campagne Diamant — 120k vues en 7 jours</div>
-              <div className="promo-badge">Découvrir</div>
-            </div>
-          </Col>
-        </Row>
-      </Container>
-    </div>
-
-    <footer className="landing-footer text-center">
-      <small>© {new Date().getFullYear()} PubCash — Tous droits réservés</small>
-    </footer>
-  </div>
-);
 };
 
 export default Landing;
