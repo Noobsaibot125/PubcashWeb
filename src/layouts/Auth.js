@@ -29,7 +29,6 @@ import routes from "routes.js";
 const Auth = (props) => {
   const mainContent = React.useRef(null);
   const location = useLocation();
-  const isChoicePage = location.pathname === "/auth/choice";
 
   React.useEffect(() => {
     document.body.classList.add("bg-default");
@@ -47,7 +46,7 @@ const Auth = (props) => {
     return routes.map((prop, key) => {
       if (prop.layout === "/auth") {
         return (
-          <Route path={prop.path} element={prop.component} key={key} exact />
+          <Route path={prop.path.replace(/^\//, "")} element={prop.component} key={key} exact />
         );
       } else {
         return null;

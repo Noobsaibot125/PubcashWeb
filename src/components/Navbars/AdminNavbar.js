@@ -3,7 +3,7 @@
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import React, { useState, useEffect } from "react";
 // 1. IMPORTEZ VOTRE INSTANCE 'api'
-import api from '../../services/api'; 
+import api from '../../services/api';
 import {
   DropdownMenu,
   DropdownItem,
@@ -17,15 +17,15 @@ import {
 import defaultAvatar from "../../assets/img/theme/team-4-800x800.jpg";
 
 const AdminNavbar = (props) => {
-  const navigate = useNavigate();
   const location = useLocation();
+
   const [profile, setProfile] = useState(null);
 
   // 2. CORRECTION DU useEffect POUR UTILISER 'api'
   useEffect(() => {
     const fetchProfileData = async () => {
       // On utilise la clé 'userRole' stockée par le composant Login
-      const userRole = localStorage.getItem('userRole'); 
+      const userRole = localStorage.getItem('userRole');
       let apiUrl = '';
 
       if (userRole === 'superadmin' || userRole === 'admin') {
@@ -54,23 +54,23 @@ const AdminNavbar = (props) => {
   // 3. CORRECTION DE LA FONCTION DE DÉCONNEXION
   const handleLogout = async (e) => {
     e?.preventDefault();
-    
+
     const refreshToken = localStorage.getItem('refreshToken');
     try {
-        if (refreshToken) {
-            // Prévenir le backend pour invalider la session côté serveur
-            await api.post('/auth/logout', { token: refreshToken });
-        }
+      if (refreshToken) {
+        // Prévenir le backend pour invalider la session côté serveur
+        await api.post('/auth/logout', { token: refreshToken });
+      }
     } catch (error) {
-        console.error("Erreur lors de la déconnexion côté serveur, nettoyage côté client quand même.", error);
+      console.error("Erreur lors de la déconnexion côté serveur, nettoyage côté client quand même.", error);
     } finally {
-        // Nettoyer TOUTES les clés de session du stockage local
-        localStorage.removeItem('accessToken');
-        localStorage.removeItem('refreshToken');
-        localStorage.removeItem('userRole');
-        
-        // La redirection via window.location.href est plus robuste pour forcer un reset complet de l'état
-        window.location.href = '/auth/login';
+      // Nettoyer TOUTES les clés de session du stockage local
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('refreshToken');
+      localStorage.removeItem('userRole');
+
+      // La redirection via window.location.href est plus robuste pour forcer un reset complet de l'état
+      window.location.href = '/auth/login';
     }
   };
 
@@ -80,7 +80,7 @@ const AdminNavbar = (props) => {
       return "/admin/profile";
     }
     // Assurez-vous que cette route existe bien dans votre fichier de routes pour le layout client
-    return "/client/user-profile"; 
+    return "/client/user-profile";
   };
 
   return (

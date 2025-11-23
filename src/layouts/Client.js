@@ -27,7 +27,7 @@ const Client = (props) => {
       // On charge uniquement les routes qui ont le layout "/client"
       if (prop.layout === "/client") {
         return (
-          <Route path={prop.path} element={prop.component} key={key} exact />
+          <Route path={prop.path.replace(/^\//, "")} element={prop.component} key={key} exact />
         );
       } else {
         return null;

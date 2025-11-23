@@ -1,14 +1,22 @@
 // views/examples/LoginAdmin.js
-import { useState, useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
-import api from '../../services/api';
-import { jwtDecode } from 'jwt-decode'; 
+import React, { useState, useEffect } from "react";
+import {
+  Button,
+  Card,
+  CardBody,
+  FormGroup,
+  Form,
+  Input,
+  InputGroupAddon,
+  InputGroupText,
+  InputGroup,
+  Col
+} from "reactstrap";
+import { Link, useNavigate } from "react-router-dom";
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import {
-  Button, Card, CardBody, FormGroup, Form, Input,
-  InputGroupAddon, InputGroupText, InputGroup, Row, Col,
-} from "reactstrap";
+import { jwtDecode } from "jwt-decode";
+import api from 'services/api';
 
 const LoginAdmin = () => {
   const navigate = useNavigate();
@@ -56,12 +64,12 @@ const LoginAdmin = () => {
       // API endpoint pour ADMIN
       const response = await api.post('/auth/admin/login', { email, password });
       const { accessToken, refreshToken, role } = response.data;
-      
+
       localStorage.setItem('accessToken', accessToken);
       localStorage.setItem('refreshToken', refreshToken);
-      
+
       const decodedToken = jwtDecode(accessToken);
-      localStorage.setItem('userRole', decodedToken.role); 
+      localStorage.setItem('userRole', decodedToken.role);
 
       // Redirection vers ADMIN (en fonction du rôle exact)
       if (role === 'superadmin') navigate("/super-admin/dashboard", { replace: true });
@@ -88,26 +96,26 @@ const LoginAdmin = () => {
               <FormGroup className="mb-3">
                 <InputGroup className="input-group-alternative">
                   <InputGroupAddon addonType="prepend"><InputGroupText><i className="ni ni-email-83" /></InputGroupText></InputGroupAddon>
-                  <Input 
-                    placeholder="Email" 
-                    type="email" 
-                    value={email} 
-                    onChange={(e) => setEmail(e.target.value)} 
+                  <Input
+                    placeholder="Email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
                     disabled={loading}
-                    // "required" retiré
+                  // "required" retiré
                   />
                 </InputGroup>
               </FormGroup>
               <FormGroup>
                 <InputGroup className="input-group-alternative">
                   <InputGroupAddon addonType="prepend"><InputGroupText><i className="ni ni-lock-circle-open" /></InputGroupText></InputGroupAddon>
-                  
+
                   {/* --- MODIFIÉ : Gestion Show/Hide Password --- */}
-                  <Input 
-                    placeholder="Mot de passe" 
-                    type={showPassword ? "text" : "password"} 
-                    value={password} 
-                    onChange={(e) => setPassword(e.target.value)} 
+                  <Input
+                    placeholder="Mot de passe"
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
                     disabled={loading}
                   />
 
@@ -118,20 +126,20 @@ const LoginAdmin = () => {
                   </InputGroupAddon>
 
                 </InputGroup>
-               </FormGroup>
-              
+              </FormGroup>
+
               <div className="text-center">
-                <Button 
-                  className="my-4 btn-pubcash-primary" 
+                <Button
+                  className="my-4 btn-pubcash-primary"
                   type="submit"
                   disabled={loading}
-                  style={{width: '100%'}}
+                  style={{ width: '100%' }}
                 >
                   {loading ? 'Connexion...' : 'Se connecter'}
                 </Button>
               </div>
             </Form>
-            
+
             <div className="text-center mt-3">
               <Link to="/auth/forgot-password" className="text-muted">
                 <small>Mot de passe oublié ?</small>

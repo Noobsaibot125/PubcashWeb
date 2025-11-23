@@ -5,7 +5,6 @@ import {
 } from "reactstrap";
 import { Bar } from "react-chartjs-2";
 import api from '../../services/api';
-import { io } from "socket.io-client";
 import { useWebSocket } from "../../contexts/WebSocketContext";
 
 // Chart.js v3+ registration (important)
@@ -27,40 +26,14 @@ ChartJS.register(
   Tooltip,
   Legend
 );
+
 // --- HEADER COMPONENT ---
-// Ce composant affiche les cartes de statistiques en haut de la page.
 const AdminDashboardHeader = ({ stats, wallet }) => (
   <div className="header bg-gradient-primary pb-8 pt-5 pt-md-8">
     <Container fluid>
       <div className="header-body">
+        {/* Card stats */}
         <Row>
-          <Col lg="6" xl="4">
-            <Card className="card-stats mb-4 mb-xl-0">
-              <CardBody>
-                <Row>
-                  <div className="col">
-                    <CardTitle tag="h5" className="text-uppercase text-muted mb-0">
-                      Commissions Totales
-                    </CardTitle>
-                    <span className="h1 font-weight-bold mb-0">
-  {wallet ? (
-    // calcule, force 4 décimales puis enlève . , et espaces
-    `${((parseFloat(wallet.solde || 0) / 1000).toFixed(4)).replace(/[\.,\s]/g, '')} FCFA`
-  ) : (
-    <Spinner size="sm" />
-  )}
-</span>
-                  </div>
-                  <Col className="col-auto">
-                    <div className="icon icon-shape bg-success text-white rounded-circle shadow">
-                      <i className="fas fa-wallet" />
-                    </div>
-                  </Col>
-                </Row>
-              </CardBody>
-            </Card>
-          </Col>
-
           <Col lg="6" xl="4">
             <Card className="card-stats mb-4 mb-xl-0">
               <CardBody>
@@ -111,13 +84,11 @@ const AdminDashboardHeader = ({ stats, wallet }) => (
 );
 
 // --- ONLINE USERS LIST COMPONENT ---
-// Ce composant est dédié à l'affichage et à la mise à jour en temps réel de la liste des utilisateurs connectés.
 const OnlineUsersList = ({ initialUsers }) => {
   const [onlineUsers, setOnlineUsers] = useState(initialUsers || []);
   const socket = useWebSocket();
 
   useEffect(() => {
-    // On initialise l'état avec les données chargées au départ
     setOnlineUsers(initialUsers);
 
     if (!socket) {
@@ -125,23 +96,16 @@ const OnlineUsersList = ({ initialUsers }) => {
       return;
     }
 
-    // NOUVELLE FONCTION DE MISE À JOUR (plus simple)
-    // Elle reçoit directement la nouvelle liste d'utilisateurs depuis le serveur
     const handleUsersUpdate = (updatedUsers) => {
       console.log("Événement 'update_online_users' reçu, mise à jour de la liste.", updatedUsers);
       setOnlineUsers(updatedUsers);
     };
 
-    // On s'abonne à l'événement
     socket.on('update_online_users', handleUsersUpdate);
 
-    // Très important : on se désabonne quand le composant est "démonté"
-    // pour éviter les fuites de mémoire et les listeners multiples.
     return () => {
       socket.off('update_online_users', handleUsersUpdate);
     };
-    
-    // On ne dépend que de 'initialUsers' et 'socket' pour ré-exécuter cet effet.
   }, [initialUsers, socket]);
 
   return (
@@ -182,9 +146,7 @@ const OnlineUsersList = ({ initialUsers }) => {
   );
 };
 
-
 // --- MAIN DASHBOARD COMPONENT ---
-// C'est le composant principal de la page, qui assemble tous les éléments.
 const DashboardAdmin = () => {
   const [data, setData] = useState({
     clients: [], stats: { totalClients: null, totalUtilisateurs: null },
@@ -192,38 +154,35 @@ const DashboardAdmin = () => {
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [onlineUsers, setOnlineUsers] = useState([]); // Nouvel état pour les utilisateurs en ligne
+  const [onlineUsers, setOnlineUsers] = useState([]);
 
-  // Fonction pour charger toutes les données initiales de la page.
   const fetchData = useCallback(async () => {
     try {
-      setLoading(true); // Mettre setLoading ici pour couvrir tous les appels
-      // On lance toutes les requêtes en parallèle pour améliorer les performances.
+      setLoading(true);
       const [dashboardRes, onlineUsersRes] = await Promise.all([
         api.get('/admin/dashboard-data'),
-        api.get('/admin/online-users') 
+        api.get('/admin/online-users')
       ]);
-      
+
       setData(dashboardRes.data);
-      setOnlineUsers(onlineUsersRes.data); // On stocke la liste initiale des utilisateurs connectés.
+      setOnlineUsers(onlineUsersRes.data);
 
     } catch (err) {
       setError(err.message || "Erreur de chargement des données.");
     } finally {
       setLoading(false);
     }
-  }, []); // Retiré 'loading' des dépendances, car il est géré à l'intérieur.
+  }, []);
 
   useEffect(() => {
     fetchData();
   }, [fetchData]);
 
-  // Fonction pour gérer la suppression d'un promoteur.
   const handleDeleteClient = async (clientId) => {
     if (window.confirm("Êtes-vous sûr de vouloir supprimer ce promoteur ? Cette action est irréversible.")) {
       try {
         await api.delete(`/admin/client/${clientId}`);
-        await fetchData(); // Recharge toutes les données après la suppression.
+        await fetchData();
       } catch (err) {
         const errorMessage = err.response?.data?.message || "Erreur lors de la suppression.";
         setError(errorMessage);
@@ -231,7 +190,6 @@ const DashboardAdmin = () => {
     }
   };
 
-  // Préparation des données pour le graphique.
   const chartData = {
     labels: data.activityByCommune.map((item) => item.commune),
     datasets: [{
@@ -243,7 +201,7 @@ const DashboardAdmin = () => {
 
   return (
     <>
-    <style>{`
+      <style>{`
       h1, h2, h3, h4, h5, h6,
       .h1, .h2, .h3, .h4, .h5, .h6 {
         color: black;
@@ -252,7 +210,6 @@ const DashboardAdmin = () => {
     `}</style>
       <AdminDashboardHeader stats={data.stats} wallet={data.wallet} />
       <Container className="mt--7" fluid>
-        {/* GRAPHIQUE */}
         <Row className="mb-4">
           <Col>
             <Card className="shadow">
@@ -264,7 +221,6 @@ const DashboardAdmin = () => {
           </Col>
         </Row>
 
-        {/* TABLEAU DES PROMOTEURS */}
         <Row>
           <Col className="mb-5 mb-xl-0" xl="12">
             <Card className="shadow">
@@ -318,8 +274,7 @@ const DashboardAdmin = () => {
             </Card>
           </Col>
         </Row>
-        
-        {/* NOUVEAU : AFFICHAGE DE LA LISTE DES UTILISATEURS EN LIGNE */}
+
         <Row className="mt-5">
           <Col className="mb-5 mb-xl-0" xl="12">
             {loading ? (
@@ -330,9 +285,7 @@ const DashboardAdmin = () => {
           </Col>
         </Row>
       </Container>
-      
     </>
-    
   );
 };
 

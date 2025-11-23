@@ -25,7 +25,7 @@ const api = axios.create({
 api.interceptors.request.use(
   (config) => {
     const accessToken = localStorage.getItem('accessToken');
-    
+
     console.log('🌐 Requête API:', {
       url: config.url,
       baseURL: config.baseURL,
@@ -38,7 +38,7 @@ api.interceptors.request.use(
       config.headers = config.headers || {};
       config.headers['Authorization'] = `Bearer ${cleanToken}`;
     }
-    
+
     return config;
   },
   (error) => {
@@ -117,5 +117,13 @@ api.interceptors.response.use(
     return Promise.reject(error);
   }
 );
+
+export const getMediaUrl = (path) => {
+  if (!path) return '';
+  if (path.startsWith('http')) return path;
+  // Supprime '/api' de la fin de BASE_URL pour obtenir la racine du serveur
+  const rootUrl = BASE_URL.replace(/\/api$/, '');
+  return `${rootUrl}${path.startsWith('/') ? '' : '/'}${path}`;
+};
 
 export default api;

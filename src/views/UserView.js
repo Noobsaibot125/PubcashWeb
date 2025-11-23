@@ -1,18 +1,19 @@
-// src/views/UserView.js
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import {
-  Container, Row, Col, Card, CardBody, Button, Spinner, Form, Input,
-  Toast, ToastHeader, ToastBody, Modal, ModalHeader, ModalBody, ModalFooter,
-  FormGroup, Label, Input as SelectInput, Alert
-} from 'reactstrap';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import api from './../services/api';
-import ShareModal from 'components/Share/ShareModal';
-import { io } from 'socket.io-client';
+import {
+  Container, Row, Col, Card, CardBody, Button, Form, FormGroup, Input, Label,
+  Spinner, Alert, Modal, ModalHeader, ModalBody, ModalFooter
+} from 'reactstrap';
+import { io } from "socket.io-client";
+import api from 'services/api';
 import UserNavbar from 'components/Navbars/UserNavbar.js';
-import '../assets/css/UserView.css'; 
+import ShareModal from 'components/Share/ShareModal.js';
+import { getMediaUrl } from 'utils/mediaUrl';
+import '../assets/css/UserView.css';
 import '../assets/css/UserViewDark.css';
-import { getMediaUrl } from 'utils/mediaUrl'; // AJOUT IMPORT
+
+// Alias Input as SelectInput for compatibility if needed, or just replace usage
+const SelectInput = Input;
 const UserView = () => {
   // STATES
   const [promotions, setPromotions] = useState([]);
@@ -61,17 +62,17 @@ const UserView = () => {
     videoEndedRef.current = videoEnded;
   }, [playbackStarted, videoEnded]);
 
- // helper: calcule (valeur/divideBy).toFixed(decimals) puis garde uniquement les chiffres
-const compactValue = (value, divideBy = 1000, decimals = 4) => {
-  const num = Number(value ?? 0);
-  const formatted = (num / divideBy).toFixed(decimals); // ex: "11.0868"
-  return String(formatted).replace(/[^0-9]/g, ''); // ex: "110868"
+  // helper: calcule (valeur/divideBy).toFixed(decimals) puis garde uniquement les chiffres
+  const compactValue = (value, divideBy = 1000, decimals = 4) => {
+    const num = Number(value ?? 0);
+    const formatted = (num / divideBy).toFixed(decimals); // ex: "11.0868"
+    return String(formatted).replace(/[^0-9]/g, ''); // ex: "110868"
   };
-  
-  
+
+
   // helper pour valeurs déjà en XOF (arrondi) -> garde uniquement les chiffres
   const compactInteger = (value) => {
-  return String(Number(value ?? 0).toFixed(0)).replace(/[^0-9]/g, '');
+    return String(Number(value ?? 0).toFixed(0)).replace(/[^0-9]/g, '');
   };
   const fetchPromotions = useCallback(async (currentFilter) => {
     setLoading(true);
@@ -104,19 +105,19 @@ const compactValue = (value, divideBy = 1000, decimals = 4) => {
       setLoading(false);
     }
   }, []);
- // 3. AJOUTEZ UNE FONCTION POUR CHANGER LE THÈME
- const toggleTheme = () => {
-  const newTheme = theme === 'light' ? 'dark' : 'light';
-  setTheme(newTheme);
-  localStorage.setItem('theme', newTheme); // On sauvegarde le choix
-};
+  // 3. AJOUTEZ UNE FONCTION POUR CHANGER LE THÈME
+  const toggleTheme = () => {
+    const newTheme = theme === 'light' ? 'dark' : 'light';
+    setTheme(newTheme);
+    localStorage.setItem('theme', newTheme); // On sauvegarde le choix
+  };
 
-// 4. UTILISEZ useEffect POUR APPLIQUER LA CLASSE AU BODY
-useEffect(() => {
-  // On nettoie les classes précédentes et on ajoute la nouvelle
-  document.body.classList.remove('light-mode', 'dark-mode');
-  document.body.classList.add(`${theme}-mode`);
-}, [theme]); // Cet effet se déclenche chaque fois que `theme` change
+  // 4. UTILISEZ useEffect POUR APPLIQUER LA CLASSE AU BODY
+  useEffect(() => {
+    // On nettoie les classes précédentes et on ajoute la nouvelle
+    document.body.classList.remove('light-mode', 'dark-mode');
+    document.body.classList.add(`${theme}-mode`);
+  }, [theme]); // Cet effet se déclenche chaque fois que `theme` change
   useEffect(() => {
     fetchPromotions(filter);
   }, [filter, fetchPromotions]);
@@ -138,7 +139,7 @@ useEffect(() => {
       console.error('Erreur fetchWithdrawHistory:', error);
     }
   }, []);
-  
+
   useEffect(() => {
     fetchEarnings();
     fetchWithdrawHistory();
@@ -167,34 +168,34 @@ useEffect(() => {
 
     try {
       // La requête va maintenant prendre quelques secondes car elle appelle CinetPay
-      const response = await api.post('/promotions/utilisateur/retrait', { 
-          amount: amountToWithdraw, 
-          operator, 
-          phoneNumber 
+      const response = await api.post('/promotions/utilisateur/retrait', {
+        amount: amountToWithdraw,
+        operator,
+        phoneNumber
       });
 
       // Si on arrive ici, c'est que le code 200 a été renvoyé (Succès)
       setWithdrawSuccess(response.data.message || 'Retrait effectué avec succès !');
-      
+
       // Mise à jour immédiate des données
       await fetchEarnings();
       await fetchWithdrawHistory();
-      
+
       // On ferme la modal et on reset
       setWithdrawModalOpen(false);
       setWithdrawAmount('');
-      
+
       // Notification Toast ou simple message
       setTimeout(() => setWithdrawSuccess(false), 8000);
 
     } catch (err) {
       const errorMessage = err.response?.data?.message || "Erreur lors du retrait ou solde insuffisant.";
       const errorDetails = err.response?.data?.details ? ` (${err.response.data.details})` : '';
-      
+
       setWithdrawError(errorMessage + errorDetails);
-      
+
       // Même en cas d'erreur (remboursement), on rafraichit pour montrer que le solde est revenu
-      await fetchEarnings(); 
+      await fetchEarnings();
       await fetchWithdrawHistory();
 
       setTimeout(() => setWithdrawError(null), 8000);
@@ -268,12 +269,12 @@ useEffect(() => {
   useEffect(() => {
     const userInfo = JSON.parse(localStorage.getItem('userInfo'));
     if (!userInfo || !userInfo.id) return;
-    const socketUrl = process.env.NODE_ENV === 'development' 
-    ? 'http://localhost:5000' 
-    : 'https://pub-cash.com';
-    
-  const socket = io(socketUrl); // CORRECTION ICI
-  socketRef.current = socket;
+    const socketUrl = process.env.NODE_ENV === 'development'
+      ? 'http://localhost:5000'
+      : 'https://pub-cash.com';
+
+    const socket = io(socketUrl); // CORRECTION ICI
+    socketRef.current = socket;
     socket.on('connect', () => {
       socket.emit('user_online', userInfo.id);
     });
@@ -333,7 +334,7 @@ useEffect(() => {
         try {
           v.controls = false;
           v.style.pointerEvents = 'none';
-        } catch (e) {}
+        } catch (e) { }
       }
     }, 800);
   };
@@ -341,7 +342,7 @@ useEffect(() => {
   const startPlayback = (promoId) => {
     const v = videoRefs.current[promoId];
     if (v) {
-      v.play().catch(() => {});
+      v.play().catch(() => { });
       setVideoPlaying(prev => ({ ...prev, [promoId]: true }));
       onVideoPlay(promoId);
     }
@@ -365,7 +366,7 @@ useEffect(() => {
       setTimeout(() => {
         const v = videoRefs.current[promoId];
         if (v && v.paused && !videoEndedRef.current[promoId]) {
-          v.play().catch(() => {});
+          v.play().catch(() => { });
         }
       }, 50);
     } else {
@@ -411,7 +412,7 @@ useEffect(() => {
   const handleMouseEnter = (promoId) => {
     const v = videoRefs.current[promoId];
     if (v && !videoEnded[promoId] && videoPlaying[promoId]) {
-      v.play().catch(() => {});
+      v.play().catch(() => { });
     }
   };
 
@@ -438,7 +439,7 @@ useEffect(() => {
     } catch (error) {
       console.error('Erreur handleLogout:', error);
       localStorage.clear();
-      if (socketRef.current) { try { socketRef.current.disconnect(); } catch(e) {} socketRef.current = null; }
+      if (socketRef.current) { try { socketRef.current.disconnect(); } catch (e) { } socketRef.current = null; }
       navigate('/auth/login');
     }
   };
@@ -449,7 +450,7 @@ useEffect(() => {
 
   return (
     <>
-      <UserNavbar 
+      <UserNavbar
         handleLogout={handleLogout}
         showFilters={true}
         filter={filter}
@@ -460,7 +461,7 @@ useEffect(() => {
       <Container fluid className="user-view-container">
         {loading && <div className="text-center w-100"><Spinner color="primary" style={{ width: '3rem', height: '3rem' }} /></div>}
         {error && <Alert color="danger" className="text-center w-100">{error}</Alert>}
-        
+
         {/* CHANGEMENT MAJEUR : La structure commence ici */}
         {!loading && !error && (
           <Row>
@@ -470,26 +471,26 @@ useEffect(() => {
                 // Si une vidéo existe, on affiche le lecteur et les recommandations
                 <>
                   <div className="video-player-main mb-3" style={{ position: 'relative' }}>
-                  <video
-        key={mainVideo.id}
-        ref={el => videoRefs.current[mainVideo.id] = el}
-        controls={false}
-        width="100%"
-        poster={getMediaUrl(mainVideo.thumbnail_url)} 
-        className="main-video"
-        onPlay={() => onVideoPlay(mainVideo.id)}
-        onPause={(e) => onVideoPause(e, mainVideo.id)}
-        onEnded={() => onEnded(mainVideo.id)}
-        onTimeUpdate={(e) => onTimeUpdate(mainVideo.id, e)}
-        onLoadedData={() => setVideoLoaded(prev => ({ ...prev, [mainVideo.id]: true }))}
-        muted={videoMuted[mainVideo.id] ?? true}
-        onClick={() => startPlayback(mainVideo.id)}
-        onSeeking={(e) => onSeeking(e, mainVideo.id)}
-        onContextMenu={(e) => e.preventDefault()}
-      >
-        <source src={getMediaUrl(mainVideo.url_video)} type={'video/mp4'} /> 
-        Votre navigateur ne supporte pas la lecture de vidéos.
-      </video>
+                    <video
+                      key={mainVideo.id}
+                      ref={el => videoRefs.current[mainVideo.id] = el}
+                      controls={false}
+                      width="100%"
+                      poster={getMediaUrl(mainVideo.thumbnail_url)}
+                      className="main-video"
+                      onPlay={() => onVideoPlay(mainVideo.id)}
+                      onPause={(e) => onVideoPause(e, mainVideo.id)}
+                      onEnded={() => onEnded(mainVideo.id)}
+                      onTimeUpdate={(e) => onTimeUpdate(mainVideo.id, e)}
+                      onLoadedData={() => setVideoLoaded(prev => ({ ...prev, [mainVideo.id]: true }))}
+                      muted={videoMuted[mainVideo.id] ?? true}
+                      onClick={() => startPlayback(mainVideo.id)}
+                      onSeeking={(e) => onSeeking(e, mainVideo.id)}
+                      onContextMenu={(e) => e.preventDefault()}
+                    >
+                      <source src={getMediaUrl(mainVideo.url_video)} type={'video/mp4'} />
+                      Votre navigateur ne supporte pas la lecture de vidéos.
+                    </video>
 
                     {!playbackStarted[mainVideo.id] && !videoPlaying[mainVideo.id] && (
                       <div
@@ -507,7 +508,7 @@ useEffect(() => {
                           <i className={`fas ${videoMuted[mainVideo.id] ?? true ? 'fa-volume-mute' : 'fa-volume-up'}`} />
                         </Button>
                         <div className="progress-bar-container">
-                          <div className="progress-bar-inner" style={{ width: `${(videoProgress[mainVideo.id] / (videoRefs.current[mainVideo.id]?.duration || 1)) * 100}%`}} />
+                          <div className="progress-bar-inner" style={{ width: `${(videoProgress[mainVideo.id] / (videoRefs.current[mainVideo.id]?.duration || 1)) * 100}%` }} />
                         </div>
                       </>
                     )}
@@ -547,7 +548,7 @@ useEffect(() => {
                         </Col>
                         <Col xs="auto">
                           <Button color="primary" type="submit" disabled={commentSending[mainVideo.id]}>
-                            {commentSending[mainVideo.id] ? <Spinner size="sm"/> : 'Envoyer'}
+                            {commentSending[mainVideo.id] ? <Spinner size="sm" /> : 'Envoyer'}
                           </Button>
                         </Col>
                       </Row>
@@ -562,7 +563,7 @@ useEffect(() => {
                       {recommendedVideos.map(promo => (
                         <Col key={promo.id} xs="6" md="4" lg="3">
                           <Card className="recommended-video-card" onClick={() => swapToPromo(promo.id)}>
-                          <img src={getMediaUrl(promo.thumbnail_url)} alt={promo.titre} className="img-fluid"/>
+                            <img src={getMediaUrl(promo.thumbnail_url)} alt={promo.titre} className="img-fluid" />
                             <CardBody className="p-2">
                               <h6 className="mb-1">{promo.titre}</h6>
                               <p className="text-muted small mb-0">{promo.remuneration_pack} XOF</p>
@@ -586,24 +587,24 @@ useEffect(() => {
 
             {/* Colonne de droite : Gains et Historique (toujours visible) */}
             <Col lg="4" className="right-sidebar-col">
-        <Card className="p-3 shadow-sm mb-4">
-  <p className="text-muted mb-1">Mes Gains Actuels</p>
-  <h1 className="display-4 font-weight-bold my-0">
-  {compactInteger(earnings.total)}
-  <span className="h4 font-weight-normal"> XOF</span>
-</h1>
-  <div className="progress-info my-2">
-    {/* Exemple : si ton palier est 5.0000 (visuellement) -> on le compacte de la même façon */}
-    <small>Prochain Palier : {compactValue(5, 1, 4)} XOF</small>
-  </div>
-  <Button color="primary" block onClick={() => setWithdrawModalOpen(true)} disabled={Number(earnings.total || 0) <= 0}>
-    Retirer mes gains
-  </Button>
-</Card>
+              <Card className="p-3 shadow-sm mb-4">
+                <p className="text-muted mb-1">Mes Gains Actuels</p>
+                <h1 className="display-4 font-weight-bold my-0">
+                  {compactInteger(earnings.total)}
+                  <span className="h4 font-weight-normal"> XOF</span>
+                </h1>
+                <div className="progress-info my-2">
+                  {/* Exemple : si ton palier est 5.0000 (visuellement) -> on le compacte de la même façon */}
+                  <small>Prochain Palier : {compactValue(5, 1, 4)} XOF</small>
+                </div>
+                <Button color="primary" block onClick={() => setWithdrawModalOpen(true)} disabled={Number(earnings.total || 0) <= 0}>
+                  Retirer mes gains
+                </Button>
+              </Card>
 
               <Card className="p-3 shadow-sm">
-                 <h5>Historique Récent</h5>
-                 <div className="history-list">
+                <h5>Historique Récent</h5>
+                <div className="history-list">
                   {withdrawHistory.length > 0 ? withdrawHistory.slice(0, 5).map((item, index) => (
                     <div key={index} className="history-item">
                       <p className="mb-0 small">
@@ -612,15 +613,15 @@ useEffect(() => {
                           {item.statut}
                         </span>
                       </p>
-                       <p className="text-muted" style={{fontSize: '0.7rem'}}>{new Date(item.date).toLocaleDateString()}</p>
+                      <p className="text-muted" style={{ fontSize: '0.7rem' }}>{new Date(item.date).toLocaleDateString()}</p>
                     </div>
                   )) : (
                     <p className="text-muted small">Aucun retrait récent.</p>
                   )}
-                 </div>
-                 <Button color="warning" block className="mt-3">
-                    Invitez vos amis et gagnez gros !
-                 </Button>
+                </div>
+                <Button color="warning" block className="mt-3">
+                  Invitez vos amis et gagnez gros !
+                </Button>
               </Card>
             </Col>
           </Row>
@@ -631,13 +632,13 @@ useEffect(() => {
       <Modal isOpen={withdrawModalOpen} toggle={() => setWithdrawModalOpen(false)}>
         <ModalHeader toggle={() => setWithdrawModalOpen(false)}>Demander un retrait</ModalHeader>
         <ModalBody>
-        <div className="text-center mb-4">
-  <p className="text-muted mb-0">Solde disponible</p>
-  <h4>{compactInteger(earnings.total)} XOF</h4>
-</div>
+          <div className="text-center mb-4">
+            <p className="text-muted mb-0">Solde disponible</p>
+            <h4>{compactInteger(earnings.total)} XOF</h4>
+          </div>
           <FormGroup>
             <Label for="withdrawAmount">Montant à retirer</Label>
-            <Input id="withdrawAmount" type="number" placeholder="Ex: 200" value={withdrawAmount} onChange={(e) => setWithdrawAmount(e.target.value)} max={earnings.total} min="1"/>
+            <Input id="withdrawAmount" type="number" placeholder="Ex: 200" value={withdrawAmount} onChange={(e) => setWithdrawAmount(e.target.value)} max={earnings.total} min="1" />
           </FormGroup>
           <FormGroup>
             <Label>Opérateur mobile money</Label>

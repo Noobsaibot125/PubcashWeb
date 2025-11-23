@@ -1,114 +1,127 @@
-// src/views/Index.js
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from "react";
 import {
-  Card, CardBody, Container, Row, Col, Badge,
-  Modal, ModalHeader, ModalBody, ListGroup, ListGroupItem, CardHeader, Button,
-  ButtonGroup
-} from 'reactstrap';
-import ClientHeader from "components/Headers/ClientHeader.js";
-import api from 'services/api';
-import { Line } from "react-chartjs-2";
-
-// Import correct de Chart.js
-import { 
-  Chart, 
-  CategoryScale, 
-  LinearScale, 
-  PointElement, 
-  LineElement, 
-  Title, 
-  Tooltip, 
-  Legend, 
-  Filler 
+  Button,
+  Card,
+  CardHeader,
+  CardBody,
+  NavItem,
+  NavLink,
+  Nav,
+  Progress,
+  Table,
+  Container,
+  Row,
+  Col,
+  Badge,
+  Modal,
+  ModalHeader,
+  ModalBody,
+  ListGroup,
+  ListGroupItem
+} from "reactstrap";
+import { Line, Bar } from "react-chartjs-2";
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+  Filler
 } from 'chart.js';
-import { getMediaUrl } from 'utils/mediaUrl';
+import ClientHeader from "components/Headers/ClientHeader.js";
+import api, { getMediaUrl } from 'services/api';
 
-// Enregistrement des composants Chart.js
-Chart.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler);
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+  Filler
+);
 
-// --- STYLES CSS PERSONNALISÉS ---
+// --- CONSTANTES & STYLES ---
+const CHART_COLORS = {
+  orange: '#f36c21',
+  orangeLight: 'rgba(243, 108, 33, 0.2)',
+  white: '#ffffff',
+  whiteLight: 'rgba(255, 255, 255, 0.2)',
+  grid: 'rgba(255, 255, 255, 0.1)',
+  text: '#ffffff'
+};
+
 const CUSTOM_STYLES = {
+  statCard: {
+    background: 'linear-gradient(145deg, #2d3748, #1a202c)',
+    border: '1px solid rgba(255,255,255,0.05)',
+    borderRadius: '16px',
+    boxShadow: '0 4px 20px rgba(0,0,0,0.2)'
+  },
   chartContainer: {
-    background: 'linear-gradient(135deg,rgb(0, 0, 0) 0%,rgb(23, 22, 22) 50%,rgb(22, 20, 20) 100%)',
-    border: '1px solid rgba(243, 108, 33, 0.3)',
-    borderRadius: '12px',
-    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
-    overflow: 'hidden'
+    background: 'linear-gradient(145deg, #1a202c, #2d3748)',
+    border: 'none',
+    borderRadius: '16px',
+    boxShadow: '0 10px 30px rgba(0,0,0,0.3)'
   },
   chartHeader: {
-    background: 'linear-gradient(90deg, rgba(243, 108, 33, 0.1) 0%, transparent 100%)',
-    borderBottom: '1px solid rgba(243, 108, 33, 0.2)',
+    background: 'transparent',
+    borderBottom: '1px solid rgba(255,255,255,0.05)',
     padding: '1.5rem'
   },
   chartTitle: {
-    color: '#f36c21',
-    fontWeight: '700',
-    fontSize: '1.5rem',
-    textShadow: '0 2px 4px rgba(0,0,0,0.3)',
-    margin: 0
+    color: '#ffffff',
+    fontSize: '1.1rem',
+    fontWeight: '600',
+    letterSpacing: '0.5px',
+    marginBottom: '0.25rem'
   },
   chartSubtitle: {
-    color: 'rgb(243, 108, 33);',
-    fontSize: '0.9rem',
-    margin: '0.25rem 0 0 0'
+    color: 'rgba(255,255,255,0.6)',
+    fontSize: '0.875rem'
   },
   buttonGroup: {
-    background: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: '8px',
+    background: 'rgba(255,255,255,0.05)',
+    borderRadius: '12px',
     padding: '4px',
-    border: '1px solid rgba(255, 255, 255, 0.1)'
+    display: 'inline-flex'
   },
   filterButton: {
-    borderRadius: '6px',
     border: 'none',
-    fontWeight: '600',
+    borderRadius: '8px',
+    padding: '6px 16px',
+    fontSize: '0.875rem',
+    fontWeight: '500',
     transition: 'all 0.3s ease',
-    margin: '0 2px',
-    minWidth: '80px'
+    margin: '0 2px'
   },
   activeFilterButton: {
-    background: 'linear-gradient(45deg, #f36c21, #ff8c42)',
+    background: CHART_COLORS.orange,
     color: 'white',
-    boxShadow: '0 4px 15px rgba(243, 108, 33, 0.4)'
+    boxShadow: '0 2px 10px rgba(243, 108, 33, 0.3)'
   },
   inactiveFilterButton: {
-    background: 'rgba(255, 255, 255, 0.1)',
-    color: 'rgba(255, 255, 255, 0.7)'
+    background: 'transparent',
+    color: 'rgba(255,255,255,0.7)'
   },
-  statCard: {
-    background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%)',
-    border: '1px solid rgba(255, 255, 255, 0.1)',
-    borderRadius: '12px',
-    backdropFilter: 'blur(10px)',
-    transition: 'all 0.3s ease'
-  },
-  // MODIFIÉ: Style des cartes de promotion pour un fond blanc
   promotionCard: {
-    background: '#FFFFFF', // Fond blanc
-    border: '1px solid #E2E8F0', // Bordure grise claire
+    transition: 'transform 0.3s ease, box-shadow 0.3s ease',
+    cursor: 'pointer',
+    overflow: 'hidden',
     borderRadius: '12px',
-    transition: 'all 0.3s ease',
-    cursor: 'pointer'
+    background: '#ffffff', // Fond blanc pour les cartes de promotion
+    border: 'none'
   },
   promotionCardHover: {
     transform: 'translateY(-5px)',
-    boxShadow: '0 12px 40px rgba(0, 0, 0, 0.1)',
-    borderColor: 'rgba(243, 108, 33, 0.3)'
+    boxShadow: '0 15px 30px rgba(0,0,0,0.1)'
   }
-};
-
-// --- Couleurs personnalisées pour le graphique ---
-const CHART_COLORS = {
-  orange: '#f36c21',
-  orangeLight: 'rgba(243, 108, 33, 0.1)',
-  orangeMedium: 'rgba(243, 108, 33, 0.3)',
-  orangeDark: 'rgba(243, 108, 33, 0.7)',
-  white: '#ffffff',
-  whiteLight: 'rgba(255, 255, 255, 0.1)',
-  whiteMedium: 'rgba(255, 255, 255, 0.3)',
-  grid: 'rgba(255, 255, 255, 0.05)',
-  text: '#ffffff',
-  background: 'transparent'
 };
 
 // --- Petit composant ImageWithPlaceholder ---
@@ -208,10 +221,10 @@ const PromotionCard = React.memo(({ promotion, onClick }) => {
             {promotion.titre || "Titre de la promotion"}
           </h5>
           <div style={{ marginBottom: '0.75rem' }}>
-            <Badge 
-              pill 
-              className="mr-2" 
-              style={{ 
+            <Badge
+              pill
+              className="mr-2"
+              style={{
                 background: 'linear-gradient(45deg, #f36c21, #ff8c42)',
                 color: "white",
                 border: 'none',
@@ -221,9 +234,9 @@ const PromotionCard = React.memo(({ promotion, onClick }) => {
               {promotion.nom_pack}
             </Badge>
 
-            <Badge 
-              pill 
-              style={{ 
+            <Badge
+              pill
+              style={{
                 background: promotion.statut === 'en_cours' ? 'linear-gradient(45deg, #48bb78, #68d391)' : 'linear-gradient(45deg, #a0aec0, #cbd5e0)',
                 color: "white",
                 border: 'none',
@@ -283,18 +296,18 @@ const Index = () => {
     try {
       const response = await api.get('/client/detailed-stats');
       const data = response.data;
-      
+
       if (data.monthlyStats) { // Modifié pour s'exécuter même si les stats sont vides
         // Préparer les données pour l'année civile en cours
         const currentYear = new Date().getFullYear();
         const monthlyData = [];
-        
+
         // Créer un tableau pour les 12 mois de l'année en cours (Janvier à Décembre)
         for (let month = 1; month <= 12; month++) {
-          const existingData = data.monthlyStats.find(stat => 
+          const existingData = data.monthlyStats.find(stat =>
             stat.annee === currentYear && stat.mois === month
           );
-          
+
           monthlyData.push({
             annee: currentYear,
             mois: month,
@@ -305,10 +318,10 @@ const Index = () => {
             nombre_promotions: existingData?.nombre_promotions || 0
           });
         }
-      
+
         // L'année est maintenant toujours la même, on peut l'afficher de manière plus concise
         const labels = monthlyData.map(item => `${item.nom_mois}`); // On retire l'année du label mensuel
-        
+
         // Données pour chaque métrique
         const vuesData = monthlyData.map(item => item.total_vues);
         const likesData = monthlyData.map(item => item.total_likes);
@@ -440,7 +453,7 @@ const Index = () => {
         cornerRadius: 8,
         usePointStyle: true,
         callbacks: {
-          label: function(context) {
+          label: function (context) {
             let label = context.dataset.label || '';
             if (label) {
               label += ': ';
@@ -479,7 +492,7 @@ const Index = () => {
         },
         ticks: {
           color: CHART_COLORS.text,
-          callback: function(value) {
+          callback: function (value) {
             return new Intl.NumberFormat('fr-FR').format(value);
           },
           font: {
@@ -502,7 +515,7 @@ const Index = () => {
   // Fonction pour filtrer les datasets affichés
   const filterDatasets = (chartType) => {
     if (!chartData) return chartData;
-    
+
     const filteredData = {
       ...chartData,
       datasets: chartData.datasets.map(dataset => ({
@@ -510,7 +523,7 @@ const Index = () => {
         hidden: chartType === 'tous' ? false : dataset.label.toLowerCase() !== chartType
       }))
     };
-    
+
     return filteredData;
   };
 
@@ -521,11 +534,11 @@ const Index = () => {
     const placeholders = new Array(4).fill(0);
     return placeholders.map((_, i) => (
       <Col xl="3" lg="4" md="6" className="mb-4" key={`ph-${i}`}>
-        <Card style={{ 
+        <Card style={{
           background: '#FFFFFF',
           border: '1px solid #E2E8F0',
           borderRadius: '12px',
-          minHeight: 320 
+          minHeight: 320
         }}>
           <div style={{ width: '100%', height: 180, background: '#E2E8F0' }} />
           <CardBody>
@@ -561,7 +574,7 @@ const Index = () => {
               )}
             </div>
             <div className="col-auto">
-              <div className="icon icon-shape text-white rounded-circle shadow" style={{ 
+              <div className="icon icon-shape text-white rounded-circle shadow" style={{
                 background: `linear-gradient(45deg, ${color}, ${color}99)`,
                 width: '60px',
                 height: '60px',
@@ -582,7 +595,7 @@ const Index = () => {
     <>
       <ClientHeader />
       <Container className="mt--7" fluid>
-        
+
         {/* Section du Graphique d'Activité Détailée */}
         <Row className="mb-4">
           <Col>
@@ -651,9 +664,9 @@ const Index = () => {
                   </div>
                 ) : chartData ? (
                   <div className="chart" style={{ height: '400px', position: 'relative' }}>
-                    <Line 
-                      data={filterDatasets(activeChart)} 
-                      options={customChartOptions} 
+                    <Line
+                      data={filterDatasets(activeChart)}
+                      options={customChartOptions}
                     />
                   </div>
                 ) : (
@@ -681,7 +694,7 @@ const Index = () => {
               onClick={() => setFilter('toutes_mes_promotions')}
               className="mr-2"
               size="sm"
-              style={{ 
+              style={{
                 backgroundColor: filter === 'toutes_mes_promotions' ? CHART_COLORS.orange : '#6c757d',
                 borderColor: filter === 'toutes_mes_promotions' ? CHART_COLORS.orange : '#6c757d'
               }}
@@ -693,7 +706,7 @@ const Index = () => {
               onClick={() => setFilter('ma_commune')}
               className="mr-2"
               size="sm"
-              style={{ 
+              style={{
                 backgroundColor: filter === 'ma_commune' ? CHART_COLORS.orange : '#6c757d',
                 borderColor: filter === 'ma_commune' ? CHART_COLORS.orange : '#6c757d'
               }}
@@ -704,7 +717,7 @@ const Index = () => {
               color={filter === 'toutes_communes' ? 'primary' : 'secondary'}
               onClick={() => setFilter('toutes_communes')}
               size="sm"
-              style={{ 
+              style={{
                 backgroundColor: filter === 'toutes_communes' ? CHART_COLORS.orange : '#6c757d',
                 borderColor: filter === 'toutes_communes' ? CHART_COLORS.orange : '#6c757d'
               }}
@@ -766,9 +779,9 @@ const Index = () => {
               <Col md="8">
                 <div className="player-wrapper mb-3 mb-md-0" style={{ borderRadius: '0.375rem', overflow: 'hidden', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
                   <div className="player-wrapper mb-3 mb-md-0" style={{ minHeight: 200 }}>
-                    <video 
-                      controls 
-                      width="100%" 
+                    <video
+                      controls
+                      width="100%"
                       height="100%"
                       key={selectedPromo.url_video}
                       style={{ backgroundColor: 'black', borderRadius: '0.375rem' }}
@@ -779,14 +792,14 @@ const Index = () => {
                     </video>
                   </div>
                 </div>
-                
+
                 <Card className="mt-3 shadow-sm">
                   <CardBody>
                     <h6 className="text-uppercase text-muted mb-3">Informations de la campagne</h6>
                     <Row>
                       <Col sm="6">
                         <p className="mb-1"><strong>Pack:</strong> {selectedPromo.nom_pack}</p>
-                        <p className="mb-1"><strong>Statut:</strong> 
+                        <p className="mb-1"><strong>Statut:</strong>
                           <Badge color={selectedPromo.statut === 'en_cours' ? 'success' : 'secondary'} className="ml-2">
                             {selectedPromo.statut?.replace('_', ' ') || 'Inconnu'}
                           </Badge>
@@ -800,10 +813,10 @@ const Index = () => {
                   </CardBody>
                 </Card>
               </Col>
-              
+
               <Col md="4">
                 <h5 className="mb-3 font-weight-bold text-dark">Statistiques détaillées</h5>
-                
+
                 <ListGroup flush>
                   <ListGroupItem className="px-0 py-3 d-flex justify-content-between align-items-center">
                     <div className="d-flex align-items-center">
@@ -814,7 +827,7 @@ const Index = () => {
                     </div>
                     <Badge color="info" pill className="px-3 py-2">{selectedPromo.vues ?? 0}</Badge>
                   </ListGroupItem>
-                  
+
                   <ListGroupItem className="px-0 py-3 d-flex justify-content-between align-items-center">
                     <div className="d-flex align-items-center">
                       <div className="icon icon-shape icon-sm text-primary bg-neutral-primary rounded-circle mr-3">
@@ -824,7 +837,7 @@ const Index = () => {
                     </div>
                     <Badge color="primary" pill className="px-3 py-2">{selectedPromo.likes ?? 0}</Badge>
                   </ListGroupItem>
-                  
+
                   <ListGroupItem className="px-0 py-3 d-flex justify-content-between align-items-center">
                     <div className="d-flex align-items-center">
                       <div className="icon icon-shape icon-sm text-success bg-neutral-success rounded-circle mr-3">
@@ -834,7 +847,7 @@ const Index = () => {
                     </div>
                     <Badge color="success" pill className="px-3 py-2">{selectedPromo.partages ?? 0}</Badge>
                   </ListGroupItem>
-                  
+
                   <ListGroupItem className="px-0 py-3 d-flex justify-content-between align-items-center">
                     <div className="d-flex align-items-center">
                       <div className="icon icon-shape icon-sm text-warning bg-neutral-warning rounded-circle mr-3">
@@ -855,7 +868,7 @@ const Index = () => {
                       <span className="font-weight-bold">Taux d'engagement</span>
                     </div>
                     <Badge color="danger" pill className="px-3 py-2">
-                      {selectedPromo.vues ? 
+                      {selectedPromo.vues ?
                         Math.round(((selectedPromo.likes + selectedPromo.partages) / selectedPromo.vues) * 100) : 0
                       }%
                     </Badge>
@@ -871,9 +884,9 @@ const Index = () => {
                       </div>
                     </div>
                     <p className="mt-2 mb-0 small">
-                      {selectedPromo.vues > 50 ? 'Excellente performance' : 
-                       selectedPromo.vues > 10 ? 'Performance moyenne' : 
-                       'Démarrage lent'}
+                      {selectedPromo.vues > 50 ? 'Excellente performance' :
+                        selectedPromo.vues > 10 ? 'Performance moyenne' :
+                          'Démarrage lent'}
                     </p>
                   </CardBody>
                 </Card>

@@ -40,7 +40,7 @@ const Admin = (props) => {
     return routes.map((prop, key) => {
       if (prop.layout === "/admin") {
         return (
-          <Route path={prop.path} element={prop.component} key={key} exact />
+          <Route path={prop.path.replace(/^\//, "")} element={prop.component} key={key} exact />
         );
       } else {
         return null;

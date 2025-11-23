@@ -1,11 +1,11 @@
 // src/views/auth/Login.js
 import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
-// Importez votre instance Axios personnalisée
-import api from '../../services/api'; // Ajustez le chemin si nécessaire
-import { jwtDecode } from 'jwt-decode'; // Pour décoder l'accessToken après connexion
-
+import api from '../../services/api';
+import { jwtDecode } from 'jwt-decode';
 import FacebookLoginButton from 'components/FacebookLoginButton';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import {
   Button,
   Card,
@@ -24,7 +24,7 @@ const Login = () => {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     document.body.classList.add('hide-navbar');
@@ -33,28 +33,39 @@ const Login = () => {
     };
   }, []);
 
+  const toastOptions = {
+    position: "top-center",
+    autoClose: 5000,
+    hideProgressBar: false,
+    closeOnClick: true,
+    pauseOnHover: true,
+    draggable: true,
+    progress: undefined,
+    theme: "colored",
+    style: { fontSize: '16px', fontWeight: 'bold' }
+  };
+
   const handleLogin = async (e) => {
     e.preventDefault();
-    setError("");
+
+    if (!email.trim() || !password.trim()) {
+      toast.error("Email et mot de passe requis.", toastOptions);
+      return;
+    }
+
+    setLoading(true);
 
     try {
-      // Utilisez votre instance 'api' au lieu de 'fetch' directement
       const response = await api.post('/auth/login', { email, password });
 
-      const { accessToken, refreshToken, role, user } = response.data;
-      
-      // Stocker les tokens. accessToken est le token principal pour les requêtes API.
+      const { accessToken, refreshToken, role } = response.data;
+
       localStorage.setItem('accessToken', accessToken);
       localStorage.setItem('refreshToken', refreshToken);
-      
-      // Stockez les infos utilisateur si nécessaire, mais le rôle est déjà dans l'accessToken.
-      // Vous pouvez décoder l'accessToken si vous avez besoin des infos du payload
-      const decodedToken = jwtDecode(accessToken);
-      localStorage.setItem('userRole', decodedToken.role); // Stockez le rôle pour une récupération facile
-      // Optionnel : stocker plus d'infos si nécessaire
-      // localStorage.setItem('userId', decodedToken.id); 
 
-      // Rediriger en fonction du rôle
+      const decodedToken = jwtDecode(accessToken);
+      localStorage.setItem('userRole', decodedToken.role);
+
       if (role === 'superadmin') navigate("/super-admin/dashboard", { replace: true });
       else if (role === 'admin') navigate("/admin/dashboard", { replace: true });
       else if (role === 'client') navigate("/client/index", { replace: true });
@@ -62,14 +73,16 @@ const Login = () => {
       else throw new Error("Rôle utilisateur non reconnu.");
 
     } catch (err) {
-      // Gérer les erreurs d'Axios (err.response.data.message)
-      const errorMessage = err.response?.data?.message || err.message || "Une erreur est survenue.";
-      setError(errorMessage);
+      const errorMessage = err.response?.data?.message || "Email ou mot de passe incorrect.";
+      toast.error(errorMessage, toastOptions);
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <>
+      <ToastContainer />
       <Col lg="5" md="7">
         <Card className="bg-secondary shadow border-0">
           <CardBody className="px-lg-5 py-lg-5">
@@ -82,7 +95,14 @@ const Login = () => {
                   <InputGroupAddon addonType="prepend">
                     <InputGroupText><i className="ni ni-email-83" /></InputGroupText>
                   </InputGroupAddon>
-                  <Input placeholder="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required/>
+                  <Input
+                    placeholder="Email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    disabled={loading}
+                  // required removed to use toast validation
+                  />
                 </InputGroup>
               </FormGroup>
               <FormGroup>
@@ -90,14 +110,21 @@ const Login = () => {
                   <InputGroupAddon addonType="prepend">
                     <InputGroupText><i className="ni ni-lock-circle-open" /></InputGroupText>
                   </InputGroupAddon>
-                  <Input placeholder="Mot de passe" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required/>
+                  <Input
+                    placeholder="Mot de passe"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    disabled={loading}
+                  // required removed to use toast validation
+                  />
                 </InputGroup>
               </FormGroup>
-              {error && (
-                <div className="text-center text-muted my-4"><small className="text-danger">{error}</small></div>
-              )}
+
               <div className="text-center">
-                <Button className="my-4 btn-pubcash-primary" type="submit">Se connecter</Button>
+                <Button className="my-4 btn-pubcash-primary" type="submit" disabled={loading}>
+                  {loading ? 'Connexion...' : 'Se connecter'}
+                </Button>
               </div>
               <div className="text-center mb-2">
                 <FacebookLoginButton />
@@ -105,7 +132,7 @@ const Login = () => {
             </Form>
             <Row className="mt-3">
               <Col className="text-right" xs="12">
-              <Link to="/auth/register" className="link-pubcash-secondary"><small>Créer un nouveau compte</small></Link>
+                <Link to="/auth/register" className="link-pubcash-secondary"><small>Créer un nouveau compte</small></Link>
               </Col>
             </Row>
           </CardBody>

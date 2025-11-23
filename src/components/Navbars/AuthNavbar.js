@@ -5,12 +5,12 @@ import {
   UncontrolledCollapse,
   NavbarBrand,
   Navbar,
-  NavItem,
-  NavLink,
-  Nav,
   Container,
   Row,
   Col,
+  Nav,
+  NavItem,
+  NavLink
 } from "reactstrap";
 
 const AdminNavbar = () => {

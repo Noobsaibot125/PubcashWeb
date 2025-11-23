@@ -1,12 +1,11 @@
-// src/views/AjouterCommunes.js
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
-  Container, Row, Col, Card, CardHeader, CardBody, Form, FormGroup, Label, Input, Button, Spinner,
-  Modal, ModalHeader, ModalBody, Toast, ToastHeader, ToastBody, Badge, Collapse, ListGroup, ListGroupItem
-} from "reactstrap";
+  Button, Card, CardHeader, CardBody, FormGroup, Form, Input, Container, Row, Col, Spinner, Label, Toast, ToastHeader, ToastBody, Collapse, ListGroup, ListGroupItem, Modal, ModalHeader, ModalBody
+} from 'reactstrap';
 import { FaCity, FaMapMarkedAlt, FaPlusCircle, FaListUl } from 'react-icons/fa';
-import api from '../../services/api';
+import api from 'services/api';
 
+// --- Toast Component ---
 const TopToast = ({ visible, setVisible, title, message, color = 'success' }) => {
   useEffect(() => {
     if (!visible) return;

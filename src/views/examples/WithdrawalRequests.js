@@ -1,4 +1,4 @@
-import React, { useState, useEffect,useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Card, CardHeader, CardBody, Table, Button, Badge,
   Row, Col, FormGroup, Input, Spinner
@@ -11,7 +11,7 @@ const WithdrawalRequests = () => {
   const [filter, setFilter] = useState('en_attente');
   const [processing, setProcessing] = useState({});
 
-  const navigate = useNavigate(); // Changé history en navigate
+  // const navigate = useNavigate(); // Changé history en navigate
 
   const fetchRequests = useCallback(async (currentFilter) => {
     setLoading(true);
@@ -34,7 +34,7 @@ const WithdrawalRequests = () => {
     setProcessing(prev => ({ ...prev, [requestId]: true }));
     try {
       await api.put(`/admin/withdrawal-requests/${requestId}`, { status });
-      
+
       // 2. CORRECTION : On supprime l'appel à la fonction qui n'existe pas.
       // await fetchWithdrawHistory(); // <-- LIGNE SUPPRIMÉE
 
@@ -73,102 +73,102 @@ const WithdrawalRequests = () => {
 
   return (
     <div className="header bg-gradient-primary pb-8 pt-5 pt-md-8">
-    <div className="content">
-      <Row>
-        <Col md="12">
-          <Card>
-            <CardHeader>
-              <h4 className="title">Demandes de retrait</h4>
-              <p className="category">Gestion des demandes de retrait des utilisateurs</p>
-            </CardHeader>
-            <CardBody>
-              <Row>
-                <Col md="4">
-                  <FormGroup>
-                    <Input
-                      type="select"
-                      value={filter}
-                      onChange={(e) => setFilter(e.target.value)}
-                    >
-                      <option value="en_attente">En attente</option>
-                      <option value="traite">Traitée</option>
-                      <option value="rejete">Rejetée</option>
-                      <option value="">Toutes</option>
-                    </Input>
-                  </FormGroup>
-                </Col>
-              </Row>
+      <div className="content">
+        <Row>
+          <Col md="12">
+            <Card>
+              <CardHeader>
+                <h4 className="title">Demandes de retrait</h4>
+                <p className="category">Gestion des demandes de retrait des utilisateurs</p>
+              </CardHeader>
+              <CardBody>
+                <Row>
+                  <Col md="4">
+                    <FormGroup>
+                      <Input
+                        type="select"
+                        value={filter}
+                        onChange={(e) => setFilter(e.target.value)}
+                      >
+                        <option value="en_attente">En attente</option>
+                        <option value="traite">Traitée</option>
+                        <option value="rejete">Rejetée</option>
+                        <option value="">Toutes</option>
+                      </Input>
+                    </FormGroup>
+                  </Col>
+                </Row>
 
-              {loading ? (
-                <div className="text-center py-5">
-                  <Spinner color="primary" />
-                </div>  
-              ) : requests.length === 0 ? (
-                <div className="text-center py-5">
-                  <p>Aucune demande de retrait</p>
-                </div>
-              ) : (
-                <Table responsive>
-                  <thead className="text-primary">
-                    <tr>
-                      <th>ID</th>
-                      <th>Utilisateur</th>
-                      <th>Opérateur</th>
-                      <th>Montant (FCFA)</th>
-                      <th>Date demande</th>
-                      <th>Statut</th>
-                      <th>Traité par</th>
-                      <th>Date traitement</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {requests.map(request => (
-                      <tr key={request.id}>
-                        <td>{request.id}</td>
-                        <td>
-                          <div>{request.utilisateur}</div>
-                          <small className="text-muted">{request.email}</small>
-                          <div>{request.telephone}</div>
-                        </td>
-                        <td>{request.operateur_mobile || '-'}</td> {/* NOUVELLE CELLULE */}
-                        <td>{parseFloat(request.montant).toFixed(2)}</td>
-                        <td>{formatDate(request.date_demande)}</td>
-                        <td>{getStatusBadge(request.statut)}</td>
-                        <td>{request.admin_processor || '-'}</td> {/* NOUVELLE CELLULE */}
-                        <td>{formatDate(request.date_traitement)}</td>
-                        <td>
-                          {request.statut === 'en_attente' && (
-                            <div className="btn-group">
-                              <Button
-                                color="success"
-                                size="sm"
-                                onClick={() => handleProcess(request.id, 'traite')}
-                                disabled={processing[request.id]}
-                              >
-                                {processing[request.id] ? <Spinner size="sm" /> : 'Valider'}
-                              </Button>
-                              <Button
-                                color="danger"
-                                size="sm"
-                                onClick={() => handleProcess(request.id, 'rejete')}
-                                disabled={processing[request.id]}
-                              >
-                                {processing[request.id] ? <Spinner size="sm" /> : 'Rejeter'}
-                              </Button>
-                            </div>
-                          )}
-                        </td>
+                {loading ? (
+                  <div className="text-center py-5">
+                    <Spinner color="primary" />
+                  </div>
+                ) : requests.length === 0 ? (
+                  <div className="text-center py-5">
+                    <p>Aucune demande de retrait</p>
+                  </div>
+                ) : (
+                  <Table responsive>
+                    <thead className="text-primary">
+                      <tr>
+                        <th>ID</th>
+                        <th>Utilisateur</th>
+                        <th>Opérateur</th>
+                        <th>Montant (FCFA)</th>
+                        <th>Date demande</th>
+                        <th>Statut</th>
+                        <th>Traité par</th>
+                        <th>Date traitement</th>
+                        <th>Actions</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </Table>
-              )}
-            </CardBody>
-          </Card>
-        </Col>
-      </Row>
-    </div>
+                    </thead>
+                    <tbody>
+                      {requests.map(request => (
+                        <tr key={request.id}>
+                          <td>{request.id}</td>
+                          <td>
+                            <div>{request.utilisateur}</div>
+                            <small className="text-muted">{request.email}</small>
+                            <div>{request.telephone}</div>
+                          </td>
+                          <td>{request.operateur_mobile || '-'}</td> {/* NOUVELLE CELLULE */}
+                          <td>{parseFloat(request.montant).toFixed(2)}</td>
+                          <td>{formatDate(request.date_demande)}</td>
+                          <td>{getStatusBadge(request.statut)}</td>
+                          <td>{request.admin_processor || '-'}</td> {/* NOUVELLE CELLULE */}
+                          <td>{formatDate(request.date_traitement)}</td>
+                          <td>
+                            {request.statut === 'en_attente' && (
+                              <div className="btn-group">
+                                <Button
+                                  color="success"
+                                  size="sm"
+                                  onClick={() => handleProcess(request.id, 'traite')}
+                                  disabled={processing[request.id]}
+                                >
+                                  {processing[request.id] ? <Spinner size="sm" /> : 'Valider'}
+                                </Button>
+                                <Button
+                                  color="danger"
+                                  size="sm"
+                                  onClick={() => handleProcess(request.id, 'rejete')}
+                                  disabled={processing[request.id]}
+                                >
+                                  {processing[request.id] ? <Spinner size="sm" /> : 'Rejeter'}
+                                </Button>
+                              </div>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </Table>
+                )}
+              </CardBody>
+            </Card>
+          </Col>
+        </Row>
+      </div>
     </div>
   );
 };
