@@ -84,7 +84,7 @@ const LoginClient = () => {
         <Card className="bg-secondary shadow border-0">
           <CardBody className="px-lg-5 py-lg-5">
             <div className="text-center text-muted mb-4">
-              <small className='MM'>Connexion Promoteur (lol)</small>
+              <small className='MM'>Connexion Promoteur (Client)</small>
             </div>
             <Form role="form" onSubmit={handleLogin}>
               <FormGroup className="mb-3">
