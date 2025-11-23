@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import api from '../../services/api';
-import { jwtDecode } from 'jwt-decode'; 
+import { jwtDecode } from 'jwt-decode';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import {
@@ -15,7 +15,7 @@ const LoginClient = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  
+
   // --- NOUVEAU : État pour l'œil ---
   const [showPassword, setShowPassword] = useState(false);
 
@@ -56,12 +56,12 @@ const LoginClient = () => {
       // API endpoint pour CLIENT
       const response = await api.post('/auth/client/login', { email, password });
       const { accessToken, refreshToken } = response.data;
-      
+
       localStorage.setItem('accessToken', accessToken);
       localStorage.setItem('refreshToken', refreshToken);
-      
+
       const decodedToken = jwtDecode(accessToken);
-      localStorage.setItem('userRole', decodedToken.role); 
+      localStorage.setItem('userRole', decodedToken.role);
 
       // Redirection vers CLIENT
       navigate("/client/index", { replace: true });
@@ -71,7 +71,7 @@ const LoginClient = () => {
       // Note : Si tu veux garder la logique "Compte non vérifié", tu peux ajouter un if ici.
       // Pour l'instant, je standardise comme demandé :
       toast.error('Email ou mot de passe incorrect.', toastOptions);
-      
+
     } finally {
       setLoading(false);
     }
@@ -84,35 +84,35 @@ const LoginClient = () => {
         <Card className="bg-secondary shadow border-0">
           <CardBody className="px-lg-5 py-lg-5">
             <div className="text-center text-muted mb-4">
-              <small className='MM'>Connexion Promoteur (Client)</small>
+              <small className='MM'>Connexion Promoteur (lol)</small>
             </div>
             <Form role="form" onSubmit={handleLogin}>
               <FormGroup className="mb-3">
                 <InputGroup className="input-group-alternative">
                   <InputGroupAddon addonType="prepend"><InputGroupText><i className="ni ni-email-83" /></InputGroupText></InputGroupAddon>
-                  <Input 
-                    placeholder="Email" 
-                    type="email" 
-                    value={email} 
-                    onChange={(e) => setEmail(e.target.value)} 
+                  <Input
+                    placeholder="Email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
                     disabled={loading}
-                    // "required" retiré pour laisser le Toast gérer l'alerte
+                  // "required" retiré pour laisser le Toast gérer l'alerte
                   />
                 </InputGroup>
               </FormGroup>
               <FormGroup>
                 <InputGroup className="input-group-alternative">
                   <InputGroupAddon addonType="prepend"><InputGroupText><i className="ni ni-lock-circle-open" /></InputGroupText></InputGroupAddon>
-                  
+
                   {/* --- MODIFIÉ : Gestion Show/Hide Password --- */}
-                  <Input 
-                    placeholder="Mot de passe" 
-                    type={showPassword ? "text" : "password"} 
-                    value={password} 
-                    onChange={(e) => setPassword(e.target.value)} 
+                  <Input
+                    placeholder="Mot de passe"
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
                     disabled={loading}
                   />
-                  
+
                   <InputGroupAddon addonType="append">
                     <InputGroupText onClick={togglePasswordVisibility} style={{ cursor: 'pointer' }}>
                       <i className={showPassword ? "fa fa-eye-slash" : "fa fa-eye"} />
@@ -121,13 +121,13 @@ const LoginClient = () => {
 
                 </InputGroup>
               </FormGroup>
-             
+
               <div className="text-center">
-                <Button 
-                  className="my-4 btn-pubcash-primary" 
+                <Button
+                  className="my-4 btn-pubcash-primary"
                   type="submit"
                   disabled={loading}
-                  style={{width: '100%'}}
+                  style={{ width: '100%' }}
                 >
                   {loading ? 'Connexion...' : 'Se connecter'}
                 </Button>
