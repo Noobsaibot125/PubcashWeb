@@ -26,8 +26,8 @@ import { getMediaUrl } from 'utils/mediaUrl';
 // CSS Import
 import 'assets/css/Landing.css';
 
-// Logo fallback
-const logoFallback = `${process.env.PUBLIC_URL}/img/brand/pub cash.png`;
+// CORRECTION 1 : Renommez votre fichier en 'pub_cash.png' dans le dossier public !
+const logoFallback = `${process.env.PUBLIC_URL}/img/brand/pub_cash.png`;
 
 // --- 3D COMPONENTS ---
 const AnimatedSphere = () => {
@@ -83,7 +83,6 @@ const FloatingGraph = ({ position }) => {
     </group>
   )
 }
-
 
 const BackgroundScene = () => {
   return (
@@ -155,7 +154,6 @@ const FeatureSection = ({ title, description, features, align = "left", icon3d, 
               viewport={{ once: true, amount: 0.3 }}
               className="feature-visual"
             >
-              {/* Placeholder for 3D or Image */}
               <div className="visual-placeholder">
                 {imagePath ? (
                   <img src={getMediaUrl(imagePath)} alt={title} className="img-fluid rounded shadow" />
@@ -189,7 +187,6 @@ const FeatureSection = ({ title, description, features, align = "left", icon3d, 
   );
 };
 
-
 // --- MAIN COMPONENT ---
 const Landing = () => {
   const navigate = useNavigate();
@@ -197,7 +194,6 @@ const Landing = () => {
   const [loadingInfo, setLoadingInfo] = useState(true);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
 
-  // Auth Check Logic
   useEffect(() => {
     const accessToken = localStorage.getItem('accessToken');
     const userRole = localStorage.getItem('userRole');
@@ -226,7 +222,6 @@ const Landing = () => {
     }
     setIsCheckingAuth(false);
 
-    // Fetch Info
     const fetchInfo = async () => {
       setLoadingInfo(true);
       try {
@@ -261,37 +256,57 @@ const Landing = () => {
   }
 
   return (
-    <div className="landing-page-modern">
-      {/* Fixed Background: Video or 3D */}
-      <div className="landing-3d-bg">
-        {info?.hero_video_path ? (
+    <div className="landing-page-modern" style={{ position: 'relative', isolation: 'isolate' }}> 
+      
+      {/* CORRECTION 2: Gestion du Loading State pour le fond */}
+      <div className="landing-3d-bg" style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        width: '100%',
+        height: '100%',
+        zIndex: 0,
+        pointerEvents: 'none',
+        backgroundColor: '#000' // Fond noir pour éviter flash blanc
+      }}>
+        {loadingInfo ? (
+            // Affiche rien (fond noir) tant qu'on ne sait pas si on a une vidéo
+            null 
+        ) : info?.hero_video_path ? (
           <video
             className="landing-video-bg"
             autoPlay
             loop
             muted
             playsInline
+            // Affiche l'image preview si dispo en attendant que la vidéo démarre
+            poster={info?.image_preview_url || ""}
             style={{
-              position: "absolute",
-              top: 0,
-              left: 0,
               width: "100%",
               height: "100%",
               objectFit: "cover",
-              zIndex: -1
             }}
           >
             <source src={getMediaUrl(info.hero_video_path)} type="video/mp4" />
-            Votre navigateur ne supporte pas la lecture de vidéos.
           </video>
         ) : (
           <BackgroundScene />
         )}
       </div>
 
-      <div className="landing-overlay" />
+      <div className="landing-overlay" style={{
+          position: 'fixed',
+          top: 0, 
+          left: 0,
+          width: '100%',
+          height: '100%',
+          zIndex: 1
+      }} />
 
-      <div className="landing-scroll-container">
+      <div className="landing-scroll-container" style={{ 
+          position: 'relative', 
+          zIndex: 10 
+      }}>
         {/* HERO SECTION */}
         <section className="landing-hero">
           <Container className="landing-container">
@@ -304,11 +319,20 @@ const Landing = () => {
                   transition={{ duration: 0.8 }}
                   className="mb-4"
                 >
+                  {/* CORRECTION 3 : Anti-boucle infinie sur l'image */}
                   <img
                     src={getLogoSource()}
                     alt="PubCash Logo"
                     className="landing-logo-modern"
-                    onError={(e) => { e.target.src = logoFallback; }}
+                    onError={(e) => { 
+                        if (e.target.src.includes(logoFallback)) {
+                             // Si ça échoue encore, on arrête
+                             e.target.style.display = 'none';
+                        } else {
+                             // Premier échec, on tente le fallback
+                             e.target.src = logoFallback; 
+                        }
+                    }}
                   />
                 </motion.div>
 
@@ -362,7 +386,7 @@ const Landing = () => {
           </Container>
         </section>
 
-        {/* ECOSYSTEM SECTION */}
+        {/* Le reste des sections reste identique... */}
         <section className="landing-section ecosystem-section">
           <Container>
             <Row className="justify-content-center text-center">
@@ -383,7 +407,6 @@ const Landing = () => {
           </Container>
         </section>
 
-        {/* ADVERTISERS SECTION */}
         <FeatureSection
           title={info?.advertisers_title || "Pour les Annonceurs"}
           description={info?.advertisers_description || "Maximisez votre impact avec des campagnes ciblées et des statistiques détaillées."}
@@ -398,7 +421,6 @@ const Landing = () => {
           ]}
         />
 
-        {/* USERS SECTION */}
         <FeatureSection
           title={info?.users_title || "Pour les Utilisateurs"}
           description={info?.users_description || "Transformez votre temps libre en gains réels. Regardez, interagissez, gagnez."}
@@ -413,7 +435,6 @@ const Landing = () => {
           ]}
         />
 
-        {/* TESTIMONIAL & FOOTER */}
         <section className="landing-footer-section">
           <Container>
             <Row className="justify-content-center">
