@@ -64,13 +64,22 @@ const AdminNavbar = (props) => {
     } catch (error) {
       console.error("Erreur lors de la déconnexion côté serveur, nettoyage côté client quand même.", error);
     } finally {
+      // Déterminer la page de login en fonction du rôle AVANT de nettoyer
+      const userRole = localStorage.getItem('userRole');
+      let loginUrl = '/auth/login-client';
+      if (userRole === 'superadmin' || userRole === 'admin') {
+        loginUrl = '/auth/login-admin';
+      } else if (userRole === 'utilisateur') {
+        loginUrl = '/auth/login-user';
+      }
+
       // Nettoyer TOUTES les clés de session du stockage local
       localStorage.removeItem('accessToken');
       localStorage.removeItem('refreshToken');
       localStorage.removeItem('userRole');
 
       // La redirection via window.location.href est plus robuste pour forcer un reset complet de l'état
-      window.location.href = '/auth/login';
+      window.location.href = loginUrl;
     }
   };
 

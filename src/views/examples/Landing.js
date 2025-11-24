@@ -360,7 +360,7 @@ const Landing = () => {
                   transition={{ duration: 0.8, delay: 0.6 }}
                   className="landing-ctas-modern mt-5"
                 >
-                  <Link to="/auth/login">
+                  <Link to="/auth/login-client">
                     <Button className="btn-modern-primary btn-lg mx-2">
                       Se connecter
                     </Button>

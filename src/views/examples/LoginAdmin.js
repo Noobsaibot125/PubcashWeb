@@ -27,6 +27,11 @@ const LoginAdmin = () => {
   // --- NOUVEAU : État pour l'œil ---
   const [showPassword, setShowPassword] = useState(false);
 
+  // --- NOUVEAU : État pour le code d'accès ---
+  const [accessCode, setAccessCode] = useState("");
+  const [isAccessGranted, setIsAccessGranted] = useState(false);
+  const [showAccessCode, setShowAccessCode] = useState(false);
+
   useEffect(() => {
     document.body.classList.add('hide-navbar');
     return () => document.body.classList.remove('hide-navbar');
@@ -34,6 +39,10 @@ const LoginAdmin = () => {
 
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword);
+  };
+
+  const toggleAccessCodeVisibility = () => {
+    setShowAccessCode(!showAccessCode);
   };
 
   // --- Configuration du Popup Stylisé ---
@@ -47,6 +56,17 @@ const LoginAdmin = () => {
     progress: undefined,
     theme: "colored",
     style: { fontSize: '16px', fontWeight: 'bold' }
+  };
+
+  const handleAccessCodeSubmit = (e) => {
+    e.preventDefault();
+    // CODE SECRET HARDCODÉ (À changer si besoin)
+    if (accessCode === "*.ADMIN@2025KKStechnologies2022@#.*") {
+      setIsAccessGranted(true);
+      toast.success("Accès autorisé.", toastOptions);
+    } else {
+      toast.error("Code d'accès incorrect.", toastOptions);
+    }
   };
 
   const handleLogin = async (e) => {
@@ -82,6 +102,45 @@ const LoginAdmin = () => {
       setLoading(false);
     }
   };
+
+  if (!isAccessGranted) {
+    return (
+      <>
+        <ToastContainer />
+        <Col lg="5" md="7">
+          <Card className="bg-secondary shadow border-0">
+            <CardBody className="px-lg-5 py-lg-5">
+              <div className="text-center text-muted mb-4">
+                <small className='MM'>Sécurité Admin</small>
+                <p className="text-muted mt-2"><small>Veuillez entrer le code d'accès pour continuer.</small></p>
+              </div>
+              <Form role="form" onSubmit={handleAccessCodeSubmit}>
+                <FormGroup className="mb-3">
+                  <InputGroup className="input-group-alternative">
+                    <InputGroupAddon addonType="prepend"><InputGroupText><i className="ni ni-key-25" /></InputGroupText></InputGroupAddon>
+                    <Input
+                      placeholder="Code d'accès"
+                      type={showAccessCode ? "text" : "password"}
+                      value={accessCode}
+                      onChange={(e) => setAccessCode(e.target.value)}
+                    />
+                    <InputGroupAddon addonType="append">
+                      <InputGroupText onClick={toggleAccessCodeVisibility} style={{ cursor: 'pointer' }}>
+                        <i className={showAccessCode ? "fa fa-eye-slash" : "fa fa-eye"} />
+                      </InputGroupText>
+                    </InputGroupAddon>
+                  </InputGroup>
+                </FormGroup>
+                <div className="text-center">
+                  <Button className="my-4 btn-pubcash-primary" type="submit">Valider</Button>
+                </div>
+              </Form>
+            </CardBody>
+          </Card>
+        </Col>
+      </>
+    );
+  }
 
   return (
     <>

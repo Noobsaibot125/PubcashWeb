@@ -92,7 +92,7 @@ const Auth = (props) => {
           <Row className="justify-content-center">
             <Routes>
               {getRoutes(routes)}
-              <Route path="*" element={<Navigate to="/auth/login-client" replace />} />
+              <Route index element={<Navigate to="/auth/login-client" replace />} />
             </Routes>
           </Row>
         </Container>

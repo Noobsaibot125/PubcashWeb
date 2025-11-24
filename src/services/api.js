@@ -17,8 +17,8 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  // Ajouter un timeout
-  timeout: 10000,
+  // Augmenter le timeout pour les uploads (5 minutes)
+  timeout: 300000,
 });
 
 // Ajouter des logs pour le débogage
@@ -73,14 +73,29 @@ api.interceptors.response.use(
 
     // Cas 401 - Token expiré ou invalide
     if (error.response && error.response.status === 401 && !originalConfig._retry) {
+      // IMPORTANT : Ne pas rediriger si l'erreur vient d'une tentative de connexion (login)
+      if (originalConfig.url && originalConfig.url.includes('/login')) {
+        return Promise.reject(error);
+      }
+
       originalConfig._retry = true;
 
       try {
         const refreshToken = localStorage.getItem('refreshToken');
+
+        // Déterminer la page de login en fonction du rôle
+        const userRole = localStorage.getItem('userRole');
+        let loginUrl = '/auth/login-client';
+        if (userRole === 'superadmin' || userRole === 'admin') {
+          loginUrl = '/auth/login-admin';
+        } else if (userRole === 'utilisateur') {
+          loginUrl = '/auth/login-user';
+        }
+
         if (!refreshToken) {
           // Pas de refresh token -> déconnexion
           localStorage.clear();
-          window.location.href = '/auth/login';
+          window.location.href = loginUrl;
           return Promise.reject(new Error('No refresh token'));
         }
 
@@ -94,7 +109,7 @@ api.interceptors.response.use(
         if (!newAccessToken) {
           // Refresh non valide
           localStorage.clear();
-          window.location.href = '/auth/login';
+          window.location.href = loginUrl;
           return Promise.reject(new Error('Refresh failed'));
         }
 
@@ -109,7 +124,17 @@ api.interceptors.response.use(
       } catch (refreshErr) {
         console.error('Refresh token failed:', refreshErr);
         localStorage.clear();
-        window.location.href = '/auth/login';
+
+        // Redirection basée sur le rôle (même logique)
+        const userRole = localStorage.getItem('userRole');
+        let loginUrl = '/auth/login-client';
+        if (userRole === 'superadmin' || userRole === 'admin') {
+          loginUrl = '/auth/login-admin';
+        } else if (userRole === 'utilisateur') {
+          loginUrl = '/auth/login-user';
+        }
+        window.location.href = loginUrl;
+
         return Promise.reject(refreshErr);
       }
     }

@@ -21,6 +21,7 @@ const CreerPromotion = () => {
     const [success, setSuccess] = useState('');
     const [loading, setLoading] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [showSuccessModal, setShowSuccessModal] = useState(false);
     const fileInputRef = useRef(null);
     const [profile, setProfile] = useState({ solde_recharge: 0 });
     const [videoFile, setVideoFile] = useState(null);
@@ -141,7 +142,8 @@ const CreerPromotion = () => {
             const response = await api.post('/client/promotions', submissionData);
 
             const data = response.data;
-            setSuccess(data.message);
+            // setSuccess(data.message); // On n'utilise plus le message texte simple
+            setShowSuccessModal(true); // On affiche le popup
             setProfile(prev => ({ ...prev, solde_recharge: data.newBalance }));
             // Réinitialiser le formulaire
             setFormData({ titre: '', description: '', budget: '', tranche_age: 'tous', ciblage_commune: 'toutes' });
@@ -352,6 +354,25 @@ const CreerPromotion = () => {
                     </Button>{' '}
                     <Button color="secondary" onClick={() => setIsModalOpen(false)}>Annuler</Button>
                 </ModalFooter>
+            </Modal>
+
+            {/* Modal de Succès */}
+            <Modal isOpen={showSuccessModal} toggle={() => setShowSuccessModal(false)} centered>
+                <ModalHeader toggle={() => setShowSuccessModal(false)} className="text-success">
+                    <span style={{ fontWeight: 'bold' }}>Félicitations !</span>
+                </ModalHeader>
+                <ModalBody>
+                    <div className="text-center">
+                        <i className="ni ni-check-bold ni-3x text-success mb-3"></i>
+                        <h4 className="text-success">Promotion créée avec succès !</h4>
+                        <p style={{ color: 'black' }}>
+                            Votre promotion a été enregistrée et est maintenant active.
+                        </p>
+                        <Button color="success" onClick={() => setShowSuccessModal(false)}>
+                            Continuer
+                        </Button>
+                    </div>
+                </ModalBody>
             </Modal>
         </>
     );
