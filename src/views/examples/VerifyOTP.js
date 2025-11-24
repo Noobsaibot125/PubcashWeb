@@ -29,7 +29,7 @@ const VerifyOTP = () => {
     // --- MODIFICATION : Fonctions pour gérer la fermeture des popups ---
     const handleCloseSuccessModal = () => {
         setShowSuccessModal(false);
-        navigate('/auth/login');
+        navigate('/auth/login-client');
     };
 
     const handleCloseErrorModal = () => {

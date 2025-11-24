@@ -14,17 +14,20 @@ const Register = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
 
+  const [accountType, setAccountType] = useState('particulier'); // 'particulier' ou 'entreprise'
   const [formData, setFormData] = useState({
     nom: "",
     prenom: "",
     nom_utilisateur: "",
+    nom_entreprise: "", // Nouveau champ
+    rccm: "",           // Nouveau champ
     email: "",
     telephone: "",
     mot_de_passe: "",
     confirmer_mot_de_passe: "",
     ville_id: "",
     commune: "",
-    genre: "", // <-- AJOUTER LE GENRE
+    genre: "",
   });
 
   const [villes, setVilles] = useState([]);
@@ -101,19 +104,38 @@ const Register = () => {
     if (!formData.ville_id) return setError("Veuillez sélectionner une ville.");
     if (!formData.commune) return setError("Veuillez sélectionner une commune.");
 
+    // Validation spécifique
+    if (accountType === 'particulier') {
+      if (!formData.nom || !formData.prenom || !formData.nom_utilisateur) {
+        return setError("Veuillez remplir tous les champs obligatoires (Nom, Prénom, Nom d'utilisateur).");
+      }
+    } else {
+      if (!formData.nom_entreprise || !formData.rccm) {
+        return setError("Veuillez remplir le nom de l'entreprise et le RCCM.");
+      }
+    }
+
     setLoading(true);
     try {
       const payload = {
-        nom: formData.nom,
-        prenom: formData.prenom,
-        nom_utilisateur: formData.nom_utilisateur,
+        type_compte: accountType,
+        // Champs communs
         email: formData.email,
         telephone: formData.telephone,
         mot_de_passe: formData.mot_de_passe,
         commune: formData.commune,
-        ville_id: formData.ville_id, // envoyé au backend si utile
-        genre: formData.genre // <-- AJOUTER LE GENRE AU PAYLOAD
+        ville_id: formData.ville_id,
+
+        // Champs conditionnels
+        nom: accountType === 'particulier' ? formData.nom : null,
+        prenom: accountType === 'particulier' ? formData.prenom : null,
+        nom_utilisateur: accountType === 'particulier' ? formData.nom_utilisateur : null,
+        genre: accountType === 'particulier' ? formData.genre : null,
+
+        nom_entreprise: accountType === 'entreprise' ? formData.nom_entreprise : null,
+        rccm: accountType === 'entreprise' ? formData.rccm : null,
       };
+
       const res = await api.post('/auth/client/register', payload);
       console.log('Inscription réussie:', res.data);
       setShowSuccessModal(true);
@@ -135,35 +157,88 @@ const Register = () => {
             </div>
 
             <Form role="form" onSubmit={handleRegister}>
-              {/* Prénom */}
-              <FormGroup>
-                <InputGroup className="input-group-alternative mb-3">
-                  <InputGroupAddon addonType="prepend">
-                    <InputGroupText><i className="ni ni-single-02" /></InputGroupText>
-                  </InputGroupAddon>
-                  <Input placeholder="Prénom" type="text" name="prenom" value={formData.prenom} onChange={handleChange} required />
-                </InputGroup>
-              </FormGroup>
 
-              {/* Nom */}
-              <FormGroup>
-                <InputGroup className="input-group-alternative mb-3">
-                  <InputGroupAddon addonType="prepend">
-                    <InputGroupText><i className="ni ni-single-02" /></InputGroupText>
-                  </InputGroupAddon>
-                  <Input placeholder="Nom" type="text" name="nom" value={formData.nom} onChange={handleChange} required />
-                </InputGroup>
-              </FormGroup>
+              {/* Toggle Particulier / Entreprise */}
+              <div className="text-center mb-4">
+                <div className="btn-group btn-group-toggle" data-toggle="buttons">
+                  <Button
+                    color={accountType === 'particulier' ? "primary" : "secondary"}
+                    onClick={() => setAccountType('particulier')}
+                    size="sm"
+                    active={accountType === 'particulier'}
+                  >
+                    Particulier
+                  </Button>
+                  <Button
+                    color={accountType === 'entreprise' ? "primary" : "secondary"}
+                    onClick={() => setAccountType('entreprise')}
+                    size="sm"
+                    active={accountType === 'entreprise'}
+                  >
+                    Entreprise / Société
+                  </Button>
+                </div>
+              </div>
 
-              {/* Nom utilisateur */}
-              <FormGroup>
-                <InputGroup className="input-group-alternative mb-3">
-                  <InputGroupAddon addonType="prepend">
-                    <InputGroupText><i className="ni ni-circle-08" /></InputGroupText>
-                  </InputGroupAddon>
-                  <Input placeholder="Nom d'utilisateur" type="text" name="nom_utilisateur" value={formData.nom_utilisateur} onChange={handleChange} required />
-                </InputGroup>
-              </FormGroup>
+              {/* Champs pour Particulier */}
+              {accountType === 'particulier' && (
+                <>
+                  {/* Prénom */}
+                  <FormGroup>
+                    <InputGroup className="input-group-alternative mb-3">
+                      <InputGroupAddon addonType="prepend">
+                        <InputGroupText><i className="ni ni-single-02" /></InputGroupText>
+                      </InputGroupAddon>
+                      <Input placeholder="Prénom" type="text" name="prenom" value={formData.prenom} onChange={handleChange} required />
+                    </InputGroup>
+                  </FormGroup>
+
+                  {/* Nom */}
+                  <FormGroup>
+                    <InputGroup className="input-group-alternative mb-3">
+                      <InputGroupAddon addonType="prepend">
+                        <InputGroupText><i className="ni ni-single-02" /></InputGroupText>
+                      </InputGroupAddon>
+                      <Input placeholder="Nom" type="text" name="nom" value={formData.nom} onChange={handleChange} required />
+                    </InputGroup>
+                  </FormGroup>
+
+                  {/* Nom utilisateur */}
+                  <FormGroup>
+                    <InputGroup className="input-group-alternative mb-3">
+                      <InputGroupAddon addonType="prepend">
+                        <InputGroupText><i className="ni ni-circle-08" /></InputGroupText>
+                      </InputGroupAddon>
+                      <Input placeholder="Nom d'utilisateur" type="text" name="nom_utilisateur" value={formData.nom_utilisateur} onChange={handleChange} required />
+                    </InputGroup>
+                  </FormGroup>
+                </>
+              )}
+
+              {/* Champs pour Entreprise */}
+              {accountType === 'entreprise' && (
+                <>
+                  {/* Nom de l'entreprise */}
+                  <FormGroup>
+                    <InputGroup className="input-group-alternative mb-3">
+                      <InputGroupAddon addonType="prepend">
+                        <InputGroupText><i className="ni ni-building" /></InputGroupText>
+                      </InputGroupAddon>
+                      <Input placeholder="Nom de l'entreprise / Société" type="text" name="nom_entreprise" value={formData.nom_entreprise} onChange={handleChange} required />
+                    </InputGroup>
+                  </FormGroup>
+
+                  {/* RCCM */}
+                  <FormGroup>
+                    <InputGroup className="input-group-alternative mb-3">
+                      <InputGroupAddon addonType="prepend">
+                        <InputGroupText><i className="ni ni-briefcase-24" /></InputGroupText>
+                      </InputGroupAddon>
+                      <Input placeholder="Numéro RCCM" type="text" name="rccm" value={formData.rccm} onChange={handleChange} required />
+                    </InputGroup>
+                  </FormGroup>
+                </>
+              )}
 
               {/* Email */}
               <FormGroup>
@@ -184,19 +259,22 @@ const Register = () => {
                   <Input placeholder="Téléphone" type="tel" name="telephone" value={formData.telephone} onChange={handleChange} required />
                 </InputGroup>
               </FormGroup>
-                {/* genre */}
-              <FormGroup>
-                <InputGroup className="input-group-alternative mb-3">
-                  <InputGroupAddon addonType="prepend">
-                    <InputGroupText><i className="ni ni-badge" /></InputGroupText>
-                  </InputGroupAddon>
-                  <Input type="select" name="genre" value={formData.genre} onChange={handleChange}>
-                    <option value="">Sélectionner votre genre (Optionnel)</option>
-                    <option value="Homme">Homme</option>
-                    <option value="Femme">Femme</option>
-                  </Input>
-                </InputGroup>
-              </FormGroup>
+              {/* genre - Optionnel pour entreprise ? On le laisse pour l'instant ou on le cache si entreprise */}
+              {accountType === 'particulier' && (
+                <FormGroup>
+                  <InputGroup className="input-group-alternative mb-3">
+                    <InputGroupAddon addonType="prepend">
+                      <InputGroupText><i className="ni ni-badge" /></InputGroupText>
+                    </InputGroupAddon>
+                    <Input type="select" name="genre" value={formData.genre} onChange={handleChange}>
+                      <option value="">Sélectionner votre genre (Optionnel)</option>
+                      <option value="Homme">Homme</option>
+                      <option value="Femme">Femme</option>
+                    </Input>
+                  </InputGroup>
+                </FormGroup>
+              )}
+
               {/* Mot de passe */}
               <FormGroup>
                 <InputGroup className="input-group-alternative">
