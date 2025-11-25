@@ -18,12 +18,15 @@ const HistoriqueDesVideos = () => {
 
   const fetchHistory = useCallback(async () => {
     setLoading(true);
+    setError(null); // Clear previous errors
     try {
       const response = await api.get('/promotions/utilisateur/historique-videos');
       setHistory(response.data || []);
     } catch (err) {
-      console.error(err);
-      setError("Impossible de charger l'historique.");
+      console.error("Erreur lors du chargement de l'historique:", err);
+      // More specific error handling could be added here based on err.response.status
+      // For example, if (err.response && err.response.status === 401) navigate('/auth/login');
+      setError("Impossible de charger l'historique. Veuillez réessayer plus tard.");
     } finally {
       setLoading(false);
     }
@@ -47,11 +50,11 @@ const HistoriqueDesVideos = () => {
     setSending(prev => ({ ...prev, [promoId]: true }));
     try {
       await api.post(`/promotions/${promoId}/comment`, { commentaire: texte });
-      await fetchHistory();
+      await fetchHistory(); // Refresh history to show new comment
       setCommentText(prev => ({ ...prev, [promoId]: '' }));
     } catch (err) {
-      console.error(err);
-      setError(err.response?.data?.message || 'Erreur envoi commentaire');
+      console.error("Erreur lors de l'envoi du commentaire:", err);
+      setError(err.response?.data?.message || 'Erreur lors de l\'envoi du commentaire. Veuillez réessayer.');
     } finally {
       setSending(prev => ({ ...prev, [promoId]: false }));
     }
@@ -77,6 +80,7 @@ const HistoriqueDesVideos = () => {
       navigate('/auth/login');
     } catch (error) {
       console.error('Erreur handleLogout:', error);
+      // Even if logout API fails, clear local storage and redirect
       localStorage.clear();
       navigate('/auth/login');
     }
@@ -95,6 +99,9 @@ const HistoriqueDesVideos = () => {
           <div className="text-center py-5">
             <i className="fas fa-history fa-3x mb-3 text-muted" />
             <p>Aucune vidéo dans votre historique</p>
+            <Button color="primary" onClick={fetchHistory} className="mt-3">
+              Recharger l'historique
+            </Button>
           </div>
         )}
 
@@ -110,6 +117,7 @@ const HistoriqueDesVideos = () => {
                     style={{ maxHeight: 300, backgroundColor: '#000' }}
                   >
                     <source src={p.url_video} type="video/mp4" />
+                    Votre navigateur ne supporte pas la balise vidéo.
                   </video>
                 </div>
 
