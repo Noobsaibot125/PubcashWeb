@@ -25,7 +25,7 @@ const UserView = () => {
   const [commentSending, setCommentSending] = useState({});
   const [commentSuccess, setCommentSuccess] = useState({});
   const [commentError, setCommentError] = useState({});
-  const [filter, setFilter] = useState('ma_commune');
+  const [filter, setFilter] = useState('toutes');
   const [activeVideoId, setActiveVideoId] = useState(null);
   const [playbackStarted, setPlaybackStarted] = useState({});
   const [videoPlaying, setVideoPlaying] = useState({});
@@ -435,12 +435,12 @@ const UserView = () => {
         socketRef.current = null;
       }
       localStorage.clear();
-      navigate('/auth/login');
+      navigate('/auth/login-user');
     } catch (error) {
       console.error('Erreur handleLogout:', error);
       localStorage.clear();
       if (socketRef.current) { try { socketRef.current.disconnect(); } catch (e) { } socketRef.current = null; }
-      navigate('/auth/login');
+      navigate('/auth/login-user');
     }
   };
 

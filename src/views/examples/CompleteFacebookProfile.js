@@ -142,7 +142,7 @@ const CompleteFacebookProfile = () => {
                     <option value="">Sélectionnez une ville</option>
                     {villes.map((v) => (
                       <option key={v.id} value={v.id}>
-                        {v.nom_ville}
+                        {v.nom}
                       </option>
                     ))}
                   </Input>
@@ -159,8 +159,8 @@ const CompleteFacebookProfile = () => {
                   >
                     <option value="">Sélectionnez une commune</option>
                     {communes.map((c) => (
-                      <option key={c.id} value={c.nom_commune}>
-                        {c.nom_commune}
+                      <option key={c.id} value={c.nom}>
+                        {c.nom}
                       </option>
                     ))}
                   </Input>

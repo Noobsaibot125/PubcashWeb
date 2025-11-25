@@ -1,12 +1,11 @@
-// src/services/api.js
 import axios from 'axios';
 
 // Correction : Utiliser une URL absolue en production
 const getBaseUrl = () => {
   if (process.env.NODE_ENV === 'production') {
-    return process.env.REACT_APP_API_URL || 'https://votre-domaine.com/api';
+    return process.env.REACT_APP_API_URL || 'https://pub-cash.com/api';
   } else {
-    return process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
+    return process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
   }
 };
 

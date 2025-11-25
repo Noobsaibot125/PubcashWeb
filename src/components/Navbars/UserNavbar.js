@@ -10,7 +10,7 @@ import {
 } from 'reactstrap';
 import { NavLink as RRNavLink } from 'react-router-dom';
 
-const UserNavbar = ({ handleLogout, showFilters = false, filter, setFilter,theme, toggleTheme }) => {
+const UserNavbar = ({ handleLogout, showFilters = false, filter, setFilter, theme, toggleTheme }) => {
   return (
     <Navbar color="white" light expand="md" className="main-navbar fixed-top shadow-sm">
       <Container fluid>
@@ -46,12 +46,12 @@ const UserNavbar = ({ handleLogout, showFilters = false, filter, setFilter,theme
                 className="filter-btn"
                 size="sm"
               >
-                Toutes les communes
+                Toutes les vidéos
               </Button>
             </>
           )}
-           {/* NOUVEAU : Bouton pour changer le thème */}
-           <Button
+          {/* NOUVEAU : Bouton pour changer le thème */}
+          <Button
             color="light"
             onClick={toggleTheme}
             className="btn-icon btn-sm rounded-circle ml-4"
