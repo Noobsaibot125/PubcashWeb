@@ -134,8 +134,13 @@ const LoginClient = () => {
               </div>
             </Form>
 
-            <div className="text-center mt-3">
-              <Link to="/auth/forgot-password" className="text-muted">
+           <div className="text-center mt-3">
+              {/* AJOUT DE LA PROP 'state' ICI */}
+              <Link 
+                to="/auth/forgot-password" 
+                state={{ from: "/auth/login-client" }} 
+                className="text-muted"
+              >
                 <small>Mot de passe oublié ?</small>
               </Link>
             </div>

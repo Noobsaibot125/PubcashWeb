@@ -1,6 +1,6 @@
 // views/examples/ForgotPassword.js
 import { useState, useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useLocation } from "react-router-dom";
 import api from '../../services/api'; 
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -20,6 +20,8 @@ import {
 
 const ForgotPassword = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const returnPath = location.state?.from || "/auth/login-client";
   // États
   const [step, setStep] = useState(1); // 1: email, 2: code, 3: new password
   const [email, setEmail] = useState("");
@@ -105,7 +107,7 @@ const ForgotPassword = () => {
       
       // Redirection après 2 secondes
       setTimeout(() => {
-        navigate('/auth/login-client'); 
+        navigate(returnPath); 
       }, 2000);
     } catch (err) {
       const errorMessage = err.response?.data?.message || "Erreur lors de la réinitialisation.";
@@ -229,7 +231,7 @@ const ForgotPassword = () => {
                     />
                     <InputGroupAddon addonType="append">
                       <InputGroupText onClick={toggleNewPasswordVisibility} style={{ cursor: 'pointer' }}>
-                         <i className={showNewPassword ? "fa fa-eye-slash" : "fa fa-eye"} />
+                        <i className={showNewPassword ? "fa fa-eye-slash" : "fa fa-eye"} />
                       </InputGroupText>
                     </InputGroupAddon>
                   </InputGroup>
@@ -265,9 +267,10 @@ const ForgotPassword = () => {
               </Form>
             )}
 
-            <Row className="mt-3">
+           <Row className="mt-3">
               <Col xs="12" className="text-center">
-                <Link to="/auth/login-client" className="text-muted">
+                
+                <Link to={returnPath} className="text-muted">
                   <small>Retour à la connexion</small>
                 </Link>
               </Col>
