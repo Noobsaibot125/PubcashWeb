@@ -16,39 +16,39 @@ import Landing from "views/examples/Landing.js";
 import { AuthProvider } from "./contexts/AuthContext";
 import { WebSocketProvider } from "./contexts/WebSocketContext";
 
+import PublicPromotion from "views/PublicPromotion";
+
 const root = ReactDOM.createRoot(document.getElementById("root"));
-
-// Définition du composant AppContent (évite l'erreur "AppContent is not defined")
-const AppContent = () => (
-  <BrowserRouter>
-    <Routes>
-      {/* Page d'accueil publique */}
-      <Route path="/" element={<Landing />} />
-
-      {/* Layouts pour chaque rôle */}
-      <Route path="/super-admin/*" element={<AdminLayout />} />
-      <Route path="/admin/*" element={<AdminLayout />} />
-      <Route path="/client/*" element={<ClientLayout />} />
-      <Route path="/auth/*" element={<AuthLayout />} />
-      
-      {/* Utilisateurs */}
-      <Route path="/user/*" element={<UserLayout />} />
-
-      {/* Route spécifique en dehors des layouts principaux */}
-      <Route path="/auth/complete-profile" element={<CompleteFacebookProfile />} />
-
-      {/* Redirection par défaut */}
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
-  </BrowserRouter>
-);
 
 // Un seul render — providers autour de AppContent
 root.render(
   <GoogleOAuthProvider clientId={process.env.REACT_APP_GOOGLE_CLIENT_ID}>
     <AuthProvider>
       <WebSocketProvider>
-        <AppContent />
+        <BrowserRouter>
+          <Routes>
+            {/* Page d'accueil publique */}
+            <Route path="/" element={<Landing />} />
+
+            {/* Layouts pour chaque rôle */}
+            <Route path="/super-admin/*" element={<AdminLayout />} />
+            <Route path="/admin/*" element={<AdminLayout />} />
+            <Route path="/client/*" element={<ClientLayout />} />
+            <Route path="/auth/*" element={<AuthLayout />} />
+
+            {/* Route publique pour les promotions */}
+            <Route path="/promo/:id" element={<PublicPromotion />} />
+
+            {/* Utilisateurs */}
+            <Route path="/user/*" element={<UserLayout />} />
+
+            {/* Route spécifique en dehors des layouts principaux */}
+            <Route path="/auth/complete-profile" element={<CompleteFacebookProfile />} />
+
+            {/* Redirection par défaut */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </BrowserRouter>
       </WebSocketProvider>
     </AuthProvider>
   </GoogleOAuthProvider>

@@ -12,11 +12,16 @@ import QuizModal from 'components/Modals/QuizModal.js';
 import { getMediaUrl } from 'utils/mediaUrl';
 import '../assets/css/UserView.css';
 import '../assets/css/UserViewDark.css';
+import { useAuth } from 'contexts/AuthContext';
 
-// Alias Input as SelectInput for compatibility if needed, or just replace usage
+// Alias Input as SelectInput for compatibility
 const SelectInput = Input;
 
 const UserView = () => {
+  const { user } = useAuth(); 
+  // CORRECTION 1 : On initialise userFullProfile
+  const [userFullProfile, setUserFullProfile] = useState(user); 
+
   // STATES
   const [promotions, setPromotions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -78,6 +83,22 @@ const UserView = () => {
     return String(Number(value ?? 0).toFixed(0)).replace(/[^0-9]/g, '');
   };
 
+  // --- CORRECTION 2 : AJOUT DE LA FONCTION POUR RÉCUPÉRER LE PROFIL COMPLET ---
+  const fetchUserProfile = useCallback(async () => {
+    try {
+        const res = await api.get('/user/profile');
+        if (res.data) {
+            setUserFullProfile(res.data);
+            // On met à jour le localStorage pour que les infos soient persistantes
+            const storedUser = JSON.parse(localStorage.getItem('userInfo') || '{}');
+            const updatedUser = { ...storedUser, ...res.data };
+            localStorage.setItem('userInfo', JSON.stringify(updatedUser));
+        }
+    } catch (err) {
+        console.error("Erreur chargement profil user:", err);
+    }
+  }, []);
+
   const fetchPromotions = useCallback(async (currentFilter) => {
     setLoading(true);
     try {
@@ -130,9 +151,11 @@ const UserView = () => {
     document.body.classList.add(`${theme}-mode`);
   }, [theme]);
 
+  // --- CORRECTION 3 : APPEL DE fetchUserProfile DANS LE USEEFFECT ---
   useEffect(() => {
+    fetchUserProfile(); // <--- CRUCIAL POUR LE CODE PARRAINAGE
     fetchPromotions(filter);
-  }, [filter, fetchPromotions]);
+  }, [filter, fetchPromotions, fetchUserProfile]);
 
   const fetchEarnings = useCallback(async () => {
     try {
@@ -192,9 +215,8 @@ const UserView = () => {
 
       setWithdrawSuccess("Votre demande de retrait a été envoyée avec succès !");
       setWithdrawAmount('');
-      setWithdrawModalOpen(false); // On ferme le modal après succès
+      setWithdrawModalOpen(false);
 
-      // Rafraichir les données
       await fetchEarnings();
       await fetchWithdrawHistory();
 
@@ -254,20 +276,32 @@ const UserView = () => {
       setInteractionState(prev => ({ ...prev, [promoId]: { ...prev[promoId], [type === 'like' ? 'liked' : 'shared']: true } }));
 
       if (type === 'partage') {
-       setShareModalOpen(false); 
+        setShareModalOpen(false);
 
-       // On cherche la promo actuelle dans la liste chargée
-       const promo = promotions.find(p => p.id === promoId);
+        const promo = promotions.find(p => p.id === promoId);
 
-       // CORRECTION : Grâce à la modif SQL, 'game_id' existe maintenant dans l'objet promo
-       if (promo && promo.game_id) {
-             console.log("Quiz détecté, ouverture du modal...", promo); // Debug
-             setCurrentQuiz(promo); 
-             setQuizModalOpen(true);
-             return; 
-       }
+        // --- CORRECTION 4 : STRUCTURE DES DONNÉES DU QUIZ ---
+        // On reconstruit l'objet 'game' pour éviter l'erreur "game is undefined"
+        if (promo && promo.game_id) {
+          const gameData = {
+              ...promo,
+              game: {
+                  id: promo.game_id,
+                  type: promo.game_type,
+                  question: promo.question,
+                  reponses: promo.reponses,
+                  bonne_reponse: promo.bonne_reponse,
+                  duree_limite: 30, // Valeur par défaut si manquante
+                  points_recompense: promo.points_recompense
+              }
+          };
+          console.log("Quiz détecté et structuré :", gameData);
+          setCurrentQuiz(gameData);
+          setQuizModalOpen(true);
+          return;
+        }
+        // ----------------------------------------------------
 
-       // Si pas de quiz, on reload
         await fetchPromotions(filter);
         setTimeout(() => window.location.reload(), 500);
         return;
@@ -369,7 +403,6 @@ const UserView = () => {
     try {
       await api.post(`/promotions/${id}/comment`, { commentaire: commentText[id] });
       setCommentText(prev => ({ ...prev, [id]: '' }));
-      // Feedback success?
     } catch (err) {
       console.error("Erreur commentaire:", err);
     } finally {
@@ -621,6 +654,8 @@ const UserView = () => {
           toggle={() => setShareModalOpen(false)}
           promotion={promoToShare}
           onShare={() => handleInteraction(promoToShare.id, 'partage')}
+          // CORRECTION 5 : On passe le profil complet (qui contient le code)
+          user={userFullProfile} 
         />
       )}
 

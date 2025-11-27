@@ -1,28 +1,27 @@
 // src/components/Share/ShareModal.js
-
 import React from 'react';
 import { Modal, ModalHeader, ModalBody, Row, Col } from 'reactstrap';
 import {
-  FacebookShareButton,
-  WhatsappShareButton,
-  TwitterShareButton,
-  TelegramShareButton,
-  FacebookIcon,
-  WhatsappIcon,
-  TwitterIcon,
-  TelegramIcon,
+  FacebookShareButton, WhatsappShareButton, TwitterShareButton, TelegramShareButton,
+  FacebookIcon, WhatsappIcon, TwitterIcon, TelegramIcon,
 } from 'react-share';
 
-const ShareModal = ({ isOpen, toggle, promotion, onShare }) => {
-  // Le lien à partager. Il pourrait pointer vers une page publique de la promo si elle existe,
-  // sinon on peut utiliser l'URL du site.
-  const shareUrl = `https://www.pub-cash.com/promo/${promotion.id}`; // Exemple d'URL
-  const title = `Découvrez cette promotion incroyable : ${promotion.titre}`;
+const ShareModal = ({ isOpen, toggle, promotion, onShare, user }) => {
+  const baseUrl = window.location.origin;
+
+  // VERIFICATION : On s'assure que user existe et a un code
+  const userCode = user && user.code_parrainage ? user.code_parrainage : '';
+  
+  // CONSTRUCTION DE L'URL : Si le code existe, on ajoute ?ref=CODE
+  const refParam = userCode ? `?ref=${userCode}` : '';
+  
+  // URL FINALE : ex: https://pub-cash.com/promo/12?ref=TOTO1234
+  const shareUrl = `${baseUrl}/promo/${promotion.id}${refParam}`;
+
+  const title = `Regarde ça et gagne de l'argent ! : ${promotion.titre}`;
 
   const handleShare = () => {
-    // Appelle la fonction onShare passée en props pour enregistrer l'interaction
-    onShare();
-    // Ferme la modale
+    if (onShare) onShare();
     toggle();
   };
 
@@ -31,6 +30,9 @@ const ShareModal = ({ isOpen, toggle, promotion, onShare }) => {
       <ModalHeader toggle={toggle}>Partager la promotion</ModalHeader>
       <ModalBody className="text-center">
         <p>Partagez cette promotion avec vos amis !</p>
+        <p className="small text-muted mb-3">
+            {userCode ? "Votre code de parrainage sera inclus automatiquement." : "Aucun code parrainage détecté."}
+        </p>
         <Row className="justify-content-center py-3">
           <Col xs="3">
             <FacebookShareButton url={shareUrl} quote={title} onShareWindowClose={handleShare}>
