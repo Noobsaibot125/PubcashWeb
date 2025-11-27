@@ -82,9 +82,12 @@ const PublicPromotion = () => {
     }
 
     // CORRECTION : Utiliser getMediaUrl comme dans UserView.js
-    const videoUrl = getMediaUrl(promotion.url_video);
-    const thumbnailUrl = getMediaUrl(promotion.thumbnail_url);
-
+    const videoUrl = promotion.url_video.startsWith('http') ? promotion.url_video : getMediaUrl(promotion.url_video);
+    const thumbnailUrl = promotion.thumbnail_url && promotion.thumbnail_url.startsWith('http') ? promotion.thumbnail_url : getMediaUrl(promotion.thumbnail_url);
+const isVideo = (promotion.type_media === 'video') || 
+                    (promotion.url_video && promotion.url_video.toLowerCase().endsWith('.mp4')) ||
+                    (promotion.url_video && promotion.url_video.toLowerCase().endsWith('.mov')) ||
+                    (promotion.url_video && promotion.url_video.toLowerCase().endsWith('.webm'));
     return (
         <div
             className="min-vh-100 d-flex align-items-center py-5"
@@ -145,12 +148,15 @@ const PublicPromotion = () => {
                             background: 'rgba(255, 255, 255, 0.95)'
                         }}>
                             <CardBody className="p-0">
-                                {/* Video/Image Section */}
+                              {/* Video/Image Section */}
                                 <div className="position-relative" style={{
                                     backgroundColor: '#000',
-                                    minHeight: '400px'
+                                    minHeight: '400px',
+                                    display: 'flex',       // Centrer le contenu
+                                    alignItems: 'center',  // Centrer verticalement
+                                    justifyContent: 'center' // Centrer horizontalement
                                 }}>
-                                    {promotion.type_media === 'video' ? (
+                                    {isVideo ? (
                                         <video
                                             src={videoUrl}
                                             controls
@@ -160,7 +166,7 @@ const PublicPromotion = () => {
                                             style={{
                                                 width: '100%',
                                                 maxHeight: '600px',
-                                                objectFit: 'contain',
+                                                objectFit: 'contain', // Important pour ne pas déformer la vidéo
                                                 display: 'block'
                                             }}
                                             poster={thumbnailUrl}
@@ -169,7 +175,7 @@ const PublicPromotion = () => {
                                         </video>
                                     ) : (
                                         <img
-                                            src={videoUrl || thumbnailUrl}
+                                            src={videoUrl || thumbnailUrl} // Fallback si c'est une image
                                             alt={promotion.titre}
                                             className="img-fluid"
                                             style={{
@@ -182,6 +188,8 @@ const PublicPromotion = () => {
                                     )}
 
                                     {/* Gradient overlay at bottom */}
+
+                                    
                                     <div style={{
                                         position: 'absolute',
                                         bottom: 0,
