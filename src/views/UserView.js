@@ -8,12 +8,14 @@ import { io } from "socket.io-client";
 import api from 'services/api';
 import UserNavbar from 'components/Navbars/UserNavbar.js';
 import ShareModal from 'components/Share/ShareModal.js';
+import QuizModal from 'components/Modals/QuizModal.js';
 import { getMediaUrl } from 'utils/mediaUrl';
 import '../assets/css/UserView.css';
 import '../assets/css/UserViewDark.css';
 
 // Alias Input as SelectInput for compatibility if needed, or just replace usage
 const SelectInput = Input;
+
 const UserView = () => {
   // STATES
   const [promotions, setPromotions] = useState([]);
@@ -23,8 +25,6 @@ const UserView = () => {
   const [interactionState, setInteractionState] = useState({});
   const [videoEnded, setVideoEnded] = useState({});
   const [commentSending, setCommentSending] = useState({});
-  const [commentSuccess, setCommentSuccess] = useState({});
-  const [commentError, setCommentError] = useState({});
   const [filter, setFilter] = useState('toutes');
   const [activeVideoId, setActiveVideoId] = useState(null);
   const [playbackStarted, setPlaybackStarted] = useState({});
@@ -40,10 +40,15 @@ const UserView = () => {
   const [operator, setOperator] = useState('orange');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [withdrawHistory, setWithdrawHistory] = useState([]);
-  const [showHistory, setShowHistory] = useState(true);
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [promoToShare, setPromoToShare] = useState(null);
   const [withdrawAmount, setWithdrawAmount] = useState('');
+
+  // Nouveaux états pour les jeux/points
+  const [points, setPoints] = useState(0);
+  const [quizModalOpen, setQuizModalOpen] = useState(false);
+  const [currentQuiz, setCurrentQuiz] = useState(null);
+
   const navigate = useNavigate();
   const videoRefs = useRef({});
   const lastTime = useRef({});
@@ -51,6 +56,7 @@ const UserView = () => {
   const videoEndedRef = useRef({});
   const socketRef = useRef(null);
   const [theme, setTheme] = useState(localStorage.getItem('theme') || 'light');
+
   // UTILS
   const openShareModal = (promo) => {
     setPromoToShare(promo);
@@ -62,18 +68,16 @@ const UserView = () => {
     videoEndedRef.current = videoEnded;
   }, [playbackStarted, videoEnded]);
 
-  // helper: calcule (valeur/divideBy).toFixed(decimals) puis garde uniquement les chiffres
   const compactValue = (value, divideBy = 1000, decimals = 4) => {
     const num = Number(value ?? 0);
-    const formatted = (num / divideBy).toFixed(decimals); // ex: "11.0868"
-    return String(formatted).replace(/[^0-9]/g, ''); // ex: "110868"
+    const formatted = (num / divideBy).toFixed(decimals);
+    return String(formatted).replace(/[^0-9]/g, '');
   };
 
-
-  // helper pour valeurs déjà en XOF (arrondi) -> garde uniquement les chiffres
   const compactInteger = (value) => {
     return String(Number(value ?? 0).toFixed(0)).replace(/[^0-9]/g, '');
   };
+
   const fetchPromotions = useCallback(async (currentFilter) => {
     setLoading(true);
     try {
@@ -105,19 +109,27 @@ const UserView = () => {
       setLoading(false);
     }
   }, []);
-  // 3. AJOUTEZ UNE FONCTION POUR CHANGER LE THÈME
+
+  const fetchPoints = useCallback(async () => {
+    try {
+      const res = await api.get('/games/points');
+      setPoints(res.data.points || 0);
+    } catch (err) {
+      console.error('Erreur fetchPoints:', err);
+    }
+  }, []);
+
   const toggleTheme = () => {
     const newTheme = theme === 'light' ? 'dark' : 'light';
     setTheme(newTheme);
-    localStorage.setItem('theme', newTheme); // On sauvegarde le choix
+    localStorage.setItem('theme', newTheme);
   };
 
-  // 4. UTILISEZ useEffect POUR APPLIQUER LA CLASSE AU BODY
   useEffect(() => {
-    // On nettoie les classes précédentes et on ajoute la nouvelle
     document.body.classList.remove('light-mode', 'dark-mode');
     document.body.classList.add(`${theme}-mode`);
-  }, [theme]); // Cet effet se déclenche chaque fois que `theme` change
+  }, [theme]);
+
   useEffect(() => {
     fetchPromotions(filter);
   }, [filter, fetchPromotions]);
@@ -142,23 +154,28 @@ const UserView = () => {
 
   useEffect(() => {
     fetchEarnings();
+    fetchPoints();
     fetchWithdrawHistory();
     const interval = setInterval(fetchWithdrawHistory, 30000);
     return () => clearInterval(interval);
-  }, [fetchEarnings, fetchWithdrawHistory]);
+  }, [fetchEarnings, fetchWithdrawHistory, fetchPoints]);
 
   const handleWithdraw = async () => {
     const amountToWithdraw = Number(withdrawAmount);
     if (!amountToWithdraw || amountToWithdraw <= 0) {
-      setWithdrawError('Veuillez entrer un montant valide.');
+      setWithdrawError("Veuillez entrer un montant valide.");
       return;
     }
-    if (amountToWithdraw > earnings.total) {
-      setWithdrawError('Le montant ne peut pas dépasser vos gains totaux.');
+    if (amountToWithdraw < 200) {
+      setWithdrawError("Le montant minimum est de 200 XOF.");
       return;
     }
-    if (!operator || !phoneNumber) {
-      setWithdrawError('Veuillez sélectionner un opérateur et entrer votre numéro');
+    if (amountToWithdraw > Number(earnings.total)) {
+      setWithdrawError("Solde insuffisant.");
+      return;
+    }
+    if (!phoneNumber || !/^\d{10}$/.test(phoneNumber.replace(/\D/g, ''))) {
+      setWithdrawError("Numéro de téléphone invalide (10 chiffres requis).");
       return;
     }
 
@@ -167,25 +184,20 @@ const UserView = () => {
     setWithdrawSuccess(false);
 
     try {
-      // La requête va maintenant prendre quelques secondes car elle appelle CinetPay
-      const response = await api.post('/promotions/utilisateur/retrait', {
+      await api.post('/promotions/utilisateur/retrait', {
         amount: amountToWithdraw,
         operator,
         phoneNumber
       });
 
-      // Si on arrive ici, c'est que le code 200 a été renvoyé (Succès)
-      setWithdrawSuccess(response.data.message || 'Retrait effectué avec succès !');
+      setWithdrawSuccess("Votre demande de retrait a été envoyée avec succès !");
+      setWithdrawAmount('');
+      setWithdrawModalOpen(false); // On ferme le modal après succès
 
-      // Mise à jour immédiate des données
+      // Rafraichir les données
       await fetchEarnings();
       await fetchWithdrawHistory();
 
-      // On ferme la modal et on reset
-      setWithdrawModalOpen(false);
-      setWithdrawAmount('');
-
-      // Notification Toast ou simple message
       setTimeout(() => setWithdrawSuccess(false), 8000);
 
     } catch (err) {
@@ -194,7 +206,6 @@ const UserView = () => {
 
       setWithdrawError(errorMessage + errorDetails);
 
-      // Même en cas d'erreur (remboursement), on rafraichit pour montrer que le solde est revenu
       await fetchEarnings();
       await fetchWithdrawHistory();
 
@@ -203,24 +214,21 @@ const UserView = () => {
       setWithdrawing(false);
     }
   };
-  // ===== FIXED swap function =====
+
   const swapToPromo = (promoId) => {
     const idx = promotions.findIndex(p => p.id === promoId);
-    if (idx <= 0) return; // already main or not found
+    if (idx <= 0) return;
 
-    // Make a copy and swap first element with the clicked recommended
     const newPromos = promotions.slice();
     const tmp = newPromos[0];
     newPromos[0] = newPromos[idx];
     newPromos[idx] = tmp;
 
-    // update promotions (this will change mainVideo)
     setPromotions(newPromos);
 
     const oldMainId = tmp.id;
     const newMainId = promoId;
 
-    // reset states for both involved videos (no autoplay)
     setVideoEnded(prev => ({ ...prev, [oldMainId]: false, [newMainId]: false }));
     setPlaybackStarted(prev => ({ ...prev, [oldMainId]: false, [newMainId]: false }));
     setVideoPlaying(prev => ({ ...prev, [oldMainId]: false, [newMainId]: false }));
@@ -228,23 +236,17 @@ const UserView = () => {
 
     setActiveVideoId(null);
 
-    // After DOM update, ensure the new <video> is reset (pause, reset time, load)
-    // we use a short timeout to wait React -> DOM
     setTimeout(() => {
       const v = videoRefs.current[newMainId];
       if (v) {
         try {
           v.pause();
           v.currentTime = 0;
-          // If the <video> element was reused by the browser, load will force it to re-evaluate sources/poster
           if (typeof v.load === 'function') v.load();
-        } catch (e) {
-          // ignore
-        }
+        } catch (e) { }
       }
     }, 120);
   };
-  // ===== end swap fix =====
 
   const handleInteraction = async (promoId, type) => {
     try {
@@ -252,7 +254,20 @@ const UserView = () => {
       setInteractionState(prev => ({ ...prev, [promoId]: { ...prev[promoId], [type === 'like' ? 'liked' : 'shared']: true } }));
 
       if (type === 'partage') {
-        setShareModalOpen(false);
+       setShareModalOpen(false); 
+
+       // On cherche la promo actuelle dans la liste chargée
+       const promo = promotions.find(p => p.id === promoId);
+
+       // CORRECTION : Grâce à la modif SQL, 'game_id' existe maintenant dans l'objet promo
+       if (promo && promo.game_id) {
+             console.log("Quiz détecté, ouverture du modal...", promo); // Debug
+             setCurrentQuiz(promo); 
+             setQuizModalOpen(true);
+             return; 
+       }
+
+       // Si pas de quiz, on reload
         await fetchPromotions(filter);
         setTimeout(() => window.location.reload(), 500);
         return;
@@ -273,7 +288,7 @@ const UserView = () => {
       ? 'http://localhost:5000'
       : 'https://pub-cash.com';
 
-    const socket = io(socketUrl); // CORRECTION ICI
+    const socket = io(socketUrl);
     socketRef.current = socket;
     socket.on('connect', () => {
       socket.emit('user_online', userInfo.id);
@@ -287,143 +302,87 @@ const UserView = () => {
     return () => {
       try {
         if (socketRef.current) {
-          socketRef.current.emit('leave-user-room', userInfo.id);
           socketRef.current.disconnect();
-          socketRef.current = null;
         }
-      } catch (e) {
-        console.warn('Erreur lors du cleanup socket:', e);
-      }
+      } catch (e) { }
     };
-  }, [fetchPromotions]);
-
-  const handleCommentSubmit = async (e, promoId) => {
-    e.preventDefault();
-    const commentaire = commentText[promoId];
-    if (!commentaire || commentaire.trim() === '') return;
-    setCommentSending(prev => ({ ...prev, [promoId]: true }));
-    setCommentError(prev => ({ ...prev, [promoId]: null }));
-    try {
-      await api.post(`/promotions/${promoId}/comment`, { commentaire });
-      setCommentText(prev => ({ ...prev, [promoId]: '' }));
-      setCommentSuccess(prev => ({ ...prev, [promoId]: true }));
-      setTimeout(() => setCommentSuccess(prev => ({ ...prev, [promoId]: false })), 3000);
-    } catch (error) {
-      const errorMessage = error.response?.data?.message || 'Erreur lors de l\'envoi';
-      console.error("Erreur lors de l'envoi du commentaire:", error);
-      setCommentError(prev => ({ ...prev, [promoId]: errorMessage }));
-      setTimeout(() => setCommentError(prev => ({ ...prev, [promoId]: null })), 4000);
-    } finally {
-      setCommentSending(prev => ({ ...prev, [promoId]: false }));
-    }
-  };
-
-  const handleCommentChange = (promoId, text) => {
-    setCommentText(prev => ({ ...prev, [promoId]: text }));
-  };
-
-  // VIDEO CONTROL LOGIC
-  const onVideoPlay = (promoId) => {
-    setActiveVideoId(promoId);
-    setPlaybackStarted(prev => ({ ...prev, [promoId]: true }));
-    setVideoPlaying(prev => ({ ...prev, [promoId]: true }));
-
-    setTimeout(() => {
-      const v = videoRefs.current[promoId];
-      if (v) {
-        try {
-          v.controls = false;
-          v.style.pointerEvents = 'none';
-        } catch (e) { }
-      }
-    }, 800);
-  };
-
-  const startPlayback = (promoId) => {
-    const v = videoRefs.current[promoId];
-    if (v) {
-      v.play().catch(() => { });
-      setVideoPlaying(prev => ({ ...prev, [promoId]: true }));
-      onVideoPlay(promoId);
-    }
-  };
-
-  const toggleMute = (promoId) => {
-    const v = videoRefs.current[promoId];
-    if (v) {
-      const newMuted = !(videoMuted[promoId] ?? true);
-      v.muted = newMuted;
-      setVideoMuted(prev => ({ ...prev, [promoId]: newMuted }));
-    } else {
-      setVideoMuted(prev => ({ ...prev, [promoId]: !(videoMuted[promoId] ?? true) }));
-    }
-  };
-
-  const onVideoPause = (e, promoId) => {
-    const ended = videoEndedRef.current[promoId];
-    const started = playbackStartedRef.current[promoId];
-    if (!ended && started) {
-      setTimeout(() => {
-        const v = videoRefs.current[promoId];
-        if (v && v.paused && !videoEndedRef.current[promoId]) {
-          v.play().catch(() => { });
-        }
-      }, 50);
-    } else {
-      setActiveVideoId(null);
-    }
-  };
-
-  const onTimeUpdate = (promoId, e) => {
-    lastTime.current[promoId] = e.target.currentTime;
-    setVideoProgress(prev => ({ ...prev, [promoId]: e.target.currentTime }));
-  };
-
-  const onSeeking = (e, promoId) => {
-    const ended = videoEndedRef.current[promoId];
-    const started = playbackStartedRef.current[promoId];
-    if (!ended && started) {
-      const v = videoRefs.current[promoId];
-      if (v) {
-        v.currentTime = Math.max(0, lastTime.current[promoId] || 0);
-      }
-    }
-  };
-
-  const onEnded = (promoId) => {
-    setVideoEnded(prev => ({ ...prev, [promoId]: true }));
-    setVideoPlaying(prev => ({ ...prev, [promoId]: false }));
-    setActiveVideoId(null);
-  };
-
-  useEffect(() => {
-    const handler = (e) => {
-      const active = document.activeElement;
-      if (active && active.tagName === 'VIDEO') {
-        if ([32, 37, 39].includes(e.keyCode)) {
-          e.preventDefault();
-        }
-      }
-    };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
   }, []);
 
-  const handleMouseEnter = (promoId) => {
-    const v = videoRefs.current[promoId];
-    if (v && !videoEnded[promoId] && videoPlaying[promoId]) {
-      v.play().catch(() => { });
+  const onVideoPlay = (id) => {
+    setVideoPlaying(prev => ({ ...prev, [id]: true }));
+    setPlaybackStarted(prev => ({ ...prev, [id]: true }));
+  };
+
+  const onVideoPause = (e, id) => {
+    if (!e.target.seeking) {
+      setVideoPlaying(prev => ({ ...prev, [id]: false }));
     }
   };
 
-  const handleLogout = async () => {
+  const onEnded = (id) => {
+    setVideoPlaying(prev => ({ ...prev, [id]: false }));
+    setVideoEnded(prev => ({ ...prev, [id]: true }));
+  };
+
+  const onTimeUpdate = (id, e) => {
+    const currentTime = e.target.currentTime;
+    setVideoProgress(prev => ({ ...prev, [id]: currentTime }));
+
+    if (currentTime - (lastTime.current[id] || 0) > 1) {
+      e.target.currentTime = lastTime.current[id] || 0;
+    } else {
+      lastTime.current[id] = currentTime;
+    }
+  };
+
+  const onSeeking = (e, id) => {
+    const currentTime = e.target.currentTime;
+    if (currentTime > (lastTime.current[id] || 0)) {
+      e.target.currentTime = lastTime.current[id] || 0;
+    }
+  };
+
+  const startPlayback = (id) => {
+    const video = videoRefs.current[id];
+    if (video) {
+      video.play().catch(err => console.error("Erreur lecture:", err));
+      setPlaybackStarted(prev => ({ ...prev, [id]: true }));
+    }
+  };
+
+  const toggleMute = (id) => {
+    const video = videoRefs.current[id];
+    if (video) {
+      video.muted = !video.muted;
+      setVideoMuted(prev => ({ ...prev, [id]: video.muted }));
+    }
+  };
+
+  const handleCommentChange = (id, val) => {
+    setCommentText(prev => ({ ...prev, [id]: val }));
+  };
+
+  const handleCommentSubmit = async (e, id) => {
+    e.preventDefault();
+    if (!commentText[id]) return;
+    setCommentSending(prev => ({ ...prev, [id]: true }));
     try {
-      const refreshToken = localStorage.getItem('refreshToken');
-      if (refreshToken) {
-        try {
-          await api.post('/auth/logout', { token: refreshToken });
-        } catch (err) {
-          console.warn('API logout failed (continuing):', err?.response?.data || err.message || err);
+      await api.post(`/promotions/${id}/comment`, { commentaire: commentText[id] });
+      setCommentText(prev => ({ ...prev, [id]: '' }));
+      // Feedback success?
+    } catch (err) {
+      console.error("Erreur commentaire:", err);
+    } finally {
+      setCommentSending(prev => ({ ...prev, [id]: false }));
+    }
+  };
+
+  const handleLogout = () => {
+    try {
+      if (videoRefs.current) {
+        for (const key in videoRefs.current) {
+          const v = videoRefs.current[key];
+          if (v) { v.pause(); v.src = ""; }
         }
       }
       const userInfo = JSON.parse(localStorage.getItem('userInfo'));
@@ -444,7 +403,6 @@ const UserView = () => {
     }
   };
 
-  // MAIN / RECOMMENDED split
   const mainVideo = promotions.length > 0 ? promotions[0] : null;
   const recommendedVideos = promotions.slice(1);
 
@@ -457,18 +415,16 @@ const UserView = () => {
         setFilter={setFilter}
         theme={theme}
         toggleTheme={toggleTheme}
+        points={points}
       />
       <Container fluid className="user-view-container">
         {loading && <div className="text-center w-100"><Spinner color="primary" style={{ width: '3rem', height: '3rem' }} /></div>}
         {error && <Alert color="danger" className="text-center w-100">{error}</Alert>}
 
-        {/* CHANGEMENT MAJEUR : La structure commence ici */}
         {!loading && !error && (
           <Row>
-            {/* Colonne de gauche : Contenu principal (Vidéo ou message si vide) */}
             <Col lg="8" className="main-content-col">
               {mainVideo ? (
-                // Si une vidéo existe, on affiche le lecteur et les recommandations
                 <>
                   <div className="video-player-main mb-3" style={{ position: 'relative' }}>
                     <video
@@ -575,7 +531,6 @@ const UserView = () => {
                   </div>
                 </>
               ) : (
-                // S'il n'y a PAS de vidéo, on affiche le message
                 <div className="text-center mt-5">
                   <Card className="shadow-lg bg-secondary text-center p-5">
                     <h4>C'est tout pour le moment !</h4>
@@ -585,7 +540,6 @@ const UserView = () => {
               )}
             </Col>
 
-            {/* Colonne de droite : Gains et Historique (toujours visible) */}
             <Col lg="4" className="right-sidebar-col">
               <Card className="p-3 shadow-sm mb-4">
                 <p className="text-muted mb-1">Mes Gains Actuels</p>
@@ -594,7 +548,6 @@ const UserView = () => {
                   <span className="h4 font-weight-normal"> XOF</span>
                 </h1>
                 <div className="progress-info my-2">
-                  {/* Exemple : si ton palier est 5.0000 (visuellement) -> on le compacte de la même façon */}
                   <small>Prochain Palier : {compactValue(5, 1, 4)} XOF</small>
                 </div>
                 <Button color="primary" block onClick={() => setWithdrawModalOpen(true)} disabled={Number(earnings.total || 0) <= 0}>
@@ -628,7 +581,6 @@ const UserView = () => {
         )}
       </Container>
 
-      {/* WITHDRAW MODAL */}
       <Modal isOpen={withdrawModalOpen} toggle={() => setWithdrawModalOpen(false)}>
         <ModalHeader toggle={() => setWithdrawModalOpen(false)}>Demander un retrait</ModalHeader>
         <ModalBody>
@@ -663,7 +615,6 @@ const UserView = () => {
         </ModalFooter>
       </Modal>
 
-      {/* SHARE MODAL */}
       {promoToShare && (
         <ShareModal
           isOpen={shareModalOpen}
@@ -673,7 +624,17 @@ const UserView = () => {
         />
       )}
 
-
+      <QuizModal
+        isOpen={quizModalOpen}
+        toggle={() => {
+          setQuizModalOpen(false);
+          window.location.reload();
+        }}
+        quiz={currentQuiz}
+        onSuccess={(points) => {
+          setPoints(prev => prev + points);
+        }}
+      />
     </>
   );
 };

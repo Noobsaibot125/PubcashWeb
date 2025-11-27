@@ -1,9 +1,9 @@
-// src/views/examples/UserProfile.js  (remplace le fichier entier par ceci)
+// src/views/examples/UserProfile.js
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Button, Card, CardHeader, CardBody, FormGroup, Form, Input, Container, Row, Col,
-  Modal, ModalHeader, ModalBody, ModalFooter, Spinner, Label
+  Modal, ModalHeader, ModalBody, ModalFooter, Spinner, Label, UncontrolledTooltip
 } from 'reactstrap';
 import DynamicUserHeader from "components/Headers/DynamicUserHeader.js";
 import api from '../services/api';
@@ -13,15 +13,17 @@ import UserNavbar from 'components/Navbars/UserNavbar.js';
 const UserProfile = () => {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  
+  // États pour les modales
+  const [isModalOpen, setIsModalOpen] = useState(false); // Modale édition profil
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false); // Modale partage (NOUVEAU)
+  const [isPasswordConfirmModalOpen, setIsPasswordConfirmModalOpen] = useState(false); // Modale confirmation mdp
+
   const [editData, setEditData] = useState({});
   const [passwordData, setPasswordData] = useState({ currentPassword: '', newPassword: '' });
   const [updateError, setUpdateError] = useState('');
   const [updateSuccess, setUpdateSuccess] = useState('');
   const [isUpdating, setIsUpdating] = useState(false);
-
-  // confirmation modal state
-  const [isPasswordConfirmModalOpen, setIsPasswordConfirmModalOpen] = useState(false);
   const [confirmPassword, setConfirmPassword] = useState('');
 
   const profileImageRef = useRef(null);
@@ -44,15 +46,6 @@ const UserProfile = () => {
       setEditData(profileData);
     } catch (err) {
       console.error("Erreur lors de la récupération du profil", err);
-      if (err.response) {
-        if (err.response.status === 401 || err.response.status === 403) {
-          setUpdateError("Accès refusé. Veuillez vous reconnecter.");
-        } else {
-          setUpdateError(err.response.data.message || "Impossible de charger les informations du profil.");
-        }
-      } else {
-        setUpdateError("Erreur de connexion au serveur. Vérifiez que le backend est en cours d'exécution.");
-      }
     } finally {
       setLoading(false);
     }
@@ -67,6 +60,11 @@ const UserProfile = () => {
     setPasswordData({ currentPassword: '', newPassword: '' });
     setConfirmPassword('');
     if (profile) setEditData(profile);
+  };
+
+  // --- NOUVEAU : Toggle pour la modale de partage ---
+  const toggleShareModal = () => {
+    setIsShareModalOpen(!isShareModalOpen);
   };
 
   const handleInputChange = (e) => setEditData({ ...editData, [e.target.name]: e.target.value });
@@ -87,47 +85,35 @@ const UserProfile = () => {
     }
   };
 
-  // NOTE: on n'utilise plus le onSubmit du form pour lancer l'update.
-  // Quand l'utilisateur clique "Enregistrer", on ouvre la modale de confirmation.
   const handleTriggerSave = (e) => {
     e.preventDefault();
     setUpdateError('');
     setIsPasswordConfirmModalOpen(true);
   };
 
-  // Cette fonction effectue la mise à jour réelle: elle reçoit confirmPassword (string)
   const handleUpdateProfile = async (password) => {
     setUpdateError('');
     setUpdateSuccess('');
     setIsUpdating(true);
 
     try {
-      // Construire le payload: inclure currentPassword pour vérification côté serveur
       const updatePayload = {
         ...editData,
         currentPassword: password,
         newPassword: passwordData.newPassword || null
       };
 
-      // Appel backend
       await api.put('/user/profile', updatePayload);
 
-      // Upload images si présents
       const profileImageFile = profileImageRef.current?.files[0];
       const backgroundImageFile = backgroundImageRef.current?.files[0];
 
-      if (profileImageFile) {
-        await uploadImage(profileImageFile, '/user/upload-profile-image');
-      }
-      if (backgroundImageFile) {
-        await uploadImage(backgroundImageFile, '/user/upload-background-image');
-      }
+      if (profileImageFile) await uploadImage(profileImageFile, '/user/upload-profile-image');
+      if (backgroundImageFile) await uploadImage(backgroundImageFile, '/user/upload-background-image');
 
-      // Succès
       setUpdateSuccess("Vos informations de profil ont bien été mises à jour ✅");
       await fetchProfile();
 
-      // fermer les modales après un délai court pour laisser voir le message
       setTimeout(() => {
         setIsPasswordConfirmModalOpen(false);
         setIsModalOpen(false);
@@ -137,7 +123,6 @@ const UserProfile = () => {
       }, 1700);
 
     } catch (err) {
-      // afficher le message d'erreur dans la modale de confirmation
       const message = err.response?.data?.message || "Une erreur est survenue lors de la mise à jour.";
       setUpdateError(message);
     } finally {
@@ -145,7 +130,6 @@ const UserProfile = () => {
     }
   };
 
-  // logout helper
   const handleLogout = async () => {
     try {
       const refreshToken = localStorage.getItem('refreshToken');
@@ -153,9 +137,62 @@ const UserProfile = () => {
       localStorage.clear();
       navigate('/auth/login');
     } catch (error) {
-      console.error('Erreur handleLogout:', error);
       localStorage.clear();
       navigate('/auth/login');
+    }
+  };
+
+  // --- LOGIQUE DE PARTAGE VIA RESEAUX SOCIAUX ---
+ const shareToNetwork = async (network) => {
+    if (!profile.code_parrainage) return;
+
+    // 1. L'URL doit être PROPRE (juste le lien, pas de texte avant)
+    const cleanUrl = `${window.location.origin}/auth/register-user?ref=${profile.code_parrainage}`;
+    
+    // 2. Le texte d'accroche
+    const message = `Rejoins PubCash et gagne de l'argent en regardant des vidéos ! Inscris-toi avec mon code : ${profile.code_parrainage}`;
+    
+    // 3. On combine pour WhatsApp (Texte + Saut de ligne + Lien)
+    // Le \n\n permet de bien séparer le lien pour qu'il soit cliquable
+    const whatsappText = `${message}\n\nLien de l'application : ${cleanUrl}`;
+
+    let targetUrl = '';
+
+    switch (network) {
+      case 'whatsapp':
+        targetUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(whatsappText)}`;
+        window.open(targetUrl, '_blank');
+        break;
+      
+      case 'facebook':
+        // Facebook prend uniquement l'URL propre
+        targetUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(cleanUrl)}`;
+        window.open(targetUrl, '_blank');
+        break;
+
+      case 'telegram':
+        targetUrl = `https://t.me/share/url?url=${encodeURIComponent(cleanUrl)}&text=${encodeURIComponent(message)}`;
+        window.open(targetUrl, '_blank');
+        break;
+
+      case 'instagram':
+      case 'tiktok':
+      case 'copy':
+        try {
+          // Pour le presse-papier, on met tout le texte
+          await navigator.clipboard.writeText(`${message}\n\nLien : ${cleanUrl}`);
+          alert(`Lien copié ! Vous pouvez maintenant le coller sur ${network === 'copy' ? 'vos réseaux' : network}.`);
+          
+          if (network === 'instagram') window.open('https://www.instagram.com/', '_blank');
+          if (network === 'tiktok') window.open('https://www.tiktok.com/', '_blank');
+          
+        } catch (err) {
+          console.error("Erreur copie", err);
+        }
+        break;
+
+      default:
+        break;
     }
   };
 
@@ -185,6 +222,10 @@ const UserProfile = () => {
                   <h3>{profile.nom_utilisateur}</h3>
                   <div className="h5 font-weight-300">
                     <i className="ni location_pin mr-2" />{profile.commune_choisie || 'Non renseignée'}
+                  </div>
+                  <div className="h5 mt-4">
+                    <i className="ni ni-trophy text-warning mr-2" />
+                    Points Bonus : {profile.points || 0} pts
                   </div>
                 </div>
               </CardBody>
@@ -223,11 +264,159 @@ const UserProfile = () => {
                 </Form>
               </CardBody>
             </Card>
+
+            {/* Section Parrainage */}
+            <Card className="bg-gradient-secondary shadow mt-4 border-0">
+              <CardHeader className="bg-transparent border-0">
+                <Row className="align-items-center">
+                  <Col xs="8"><h3 className="mb-0 text-primary"><i className="ni ni-spaceship mr-2"></i>Mon Espace Parrainage</h3></Col>
+                </Row>
+              </CardHeader>
+              <CardBody>
+                <div className="text-center mb-4">
+                  <h4 className="text-muted">Partagez votre code et gagnez !</h4>
+                  <div className="p-3 my-3 bg-white rounded shadow-sm d-inline-block">
+                    <h2 className="display-4 text-primary font-weight-bold mb-0" style={{ letterSpacing: '2px' }}>
+                        {profile.code_parrainage || '...'}
+                    </h2>
+                  </div>
+                  <p className="small text-muted mb-4">
+                      Invitez un ami : vous recevez <strong>30 Crédits</strong>.<br/>
+                      Si votre filleul partage une vidéo Diamant, vous gagnez <strong>5 Points</strong> !
+                  </p>
+                  
+                  <div className="d-flex justify-content-center">
+                      {/* BOUTON MODIFIÉ ICI : Ouvre la modale toggleShareModal */}
+                      <Button color="success" size="lg" className="mr-3" onClick={toggleShareModal}>
+                        <i className="ni ni-send mr-2"></i>Inviter des amis
+                      </Button>
+                      
+                      <Button 
+                        color="secondary" 
+                        outline 
+                        size="lg" 
+                        onClick={() => shareToNetwork('copy')}
+                      >
+                        <i className="ni ni-single-copy-04"></i>
+                      </Button>
+                  </div>
+                </div>
+                
+                <hr className="my-4" />
+                <h6 className="heading-small text-muted mb-4">
+                    <i className="ni ni-circle-08 mr-2"></i>Mes Filleuls ({profile.referrals ? profile.referrals.length : 0})
+                </h6>
+                {profile.referrals && profile.referrals.length > 0 ? (
+                  <div className="table-responsive">
+                    <table className="table align-items-center table-flush table-hover">
+                      <thead className="thead-light">
+                        <tr>
+                          <th scope="col">Utilisateur</th>
+                          <th scope="col">Date d'inscription</th>
+                          <th scope="col">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {profile.referrals.map((ref, index) => (
+                          <tr key={index}>
+                            <td className="font-weight-bold">{ref.nom_utilisateur}</td>
+                            <td>{new Date(ref.date_inscription).toLocaleDateString()}</td>
+                            <td><span className="badge badge-dot"><i className="bg-success"></i> Actif</span></td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="alert alert-secondary text-center" role="alert">
+                    <span className="alert-inner--icon"><i className="ni ni-notification-70"></i></span>
+                    <span className="alert-inner--text ml-2">Vous n'avez pas encore de filleuls. Commencez à inviter !</span>
+                  </div>
+                )}
+              </CardBody>
+            </Card>
           </Col>
         </Row>
       </Container>
 
-      {/* Modal d'édition */}
+      {/* --- NOUVELLE MODALE DE PARTAGE --- */}
+      <Modal isOpen={isShareModalOpen} toggle={toggleShareModal} size="sm" centered>
+        <ModalHeader toggle={toggleShareModal} className="bg-secondary">
+            Inviter via...
+        </ModalHeader>
+        <ModalBody className="p-4 bg-secondary">
+            <Row className="justify-content-center">
+                <Col xs="6" className="mb-3 text-center">
+                    <Button 
+                        className="btn-icon rounded-circle mb-2" 
+                        style={{ backgroundColor: '#25D366', color: 'white', width: '60px', height: '60px' }}
+                        onClick={() => shareToNetwork('whatsapp')}
+                    >
+                        <i className="fab fa-whatsapp fa-2x"></i>
+                    </Button>
+                    <div className="small font-weight-bold">WhatsApp</div>
+                </Col>
+                
+                <Col xs="6" className="mb-3 text-center">
+                    <Button 
+                        className="btn-icon rounded-circle mb-2" 
+                        style={{ backgroundColor: '#1877F2', color: 'white', width: '60px', height: '60px' }}
+                        onClick={() => shareToNetwork('facebook')}
+                    >
+                        <i className="fab fa-facebook-f fa-2x"></i>
+                    </Button>
+                    <div className="small font-weight-bold">Facebook</div>
+                </Col>
+
+                <Col xs="6" className="mb-3 text-center">
+                    <Button 
+                        className="btn-icon rounded-circle mb-2" 
+                        style={{ backgroundColor: '#0088cc', color: 'white', width: '60px', height: '60px' }}
+                        onClick={() => shareToNetwork('telegram')}
+                    >
+                        <i className="fab fa-telegram-plane fa-2x"></i>
+                    </Button>
+                    <div className="small font-weight-bold">Telegram</div>
+                </Col>
+
+                <Col xs="6" className="mb-3 text-center">
+                    <Button 
+                        className="btn-icon rounded-circle mb-2" 
+                        style={{ background: 'linear-gradient(45deg, #f09433 0%,#e6683c 25%,#dc2743 50%,#cc2366 75%,#bc1888 100%)', color: 'white', width: '60px', height: '60px' }}
+                        onClick={() => shareToNetwork('instagram')}
+                    >
+                        <i className="fab fa-instagram fa-2x"></i>
+                    </Button>
+                    <div className="small font-weight-bold">Instagram</div>
+                </Col>
+
+                 <Col xs="6" className="mb-3 text-center">
+                    <Button 
+                        className="btn-icon rounded-circle mb-2" 
+                        style={{ backgroundColor: '#000000', color: 'white', width: '60px', height: '60px' }}
+                        onClick={() => shareToNetwork('tiktok')}
+                    >
+                        <i className="fab fa-tiktok fa-2x"></i>
+                    </Button>
+                    <div className="small font-weight-bold">TikTok</div>
+                </Col>
+
+                <Col xs="6" className="mb-3 text-center">
+                    <Button 
+                        className="btn-icon rounded-circle mb-2" 
+                        color="secondary"
+                        style={{ border: '2px solid #ddd', width: '60px', height: '60px' }}
+                        onClick={() => shareToNetwork('copy')}
+                    >
+                        <i className="ni ni-single-copy-04 fa-2x text-muted"></i>
+                    </Button>
+                    <div className="small font-weight-bold">Copier</div>
+                </Col>
+            </Row>
+        </ModalBody>
+      </Modal>
+
+      {/* --- MODALE EDIT PROFIL (Inchangée) --- */}
       <Modal isOpen={isModalOpen} toggle={toggleModal} size="lg">
         <ModalHeader toggle={toggleModal}>Modifier mon profil</ModalHeader>
         <Form onSubmit={(e) => e.preventDefault()}>
@@ -243,29 +432,15 @@ const UserProfile = () => {
                 <Col lg="6"><FormGroup><Label>Numéro de téléphone</Label><Input type="tel" name="contact" value={editData.contact || ''} onChange={handleInputChange} placeholder="Ex: 0701020304" required /></FormGroup></Col>
               </Row>
             </div>
-
-            <hr className="my-4" />
+             <hr className="my-4" />
             <h6 className="heading-small text-muted mb-4">Changer les Images</h6>
-            <div className="pl-lg-4">
+             <div className="pl-lg-4">
               <Row>
-                <Col md="6">
-                  <FormGroup>
-                    <Label>Image de profil</Label>
-                    <Input type="file" accept="image/*" innerRef={profileImageRef} />
-                    <small className="text-muted">Format recommandé: JPG/PNG, 500x500px</small>
-                  </FormGroup>
-                </Col>
-                <Col md="6">
-                  <FormGroup>
-                    <Label>Image de fond</Label>
-                    <Input type="file" accept="image/*" innerRef={backgroundImageRef} />
-                    <small className="text-muted">Format recommandé: JPG/PNG, 1200x400px</small>
-                  </FormGroup>
-                </Col>
+                <Col md="6"><FormGroup><Label>Image de profil</Label><Input type="file" accept="image/*" innerRef={profileImageRef} /></FormGroup></Col>
+                <Col md="6"><FormGroup><Label>Image de fond</Label><Input type="file" accept="image/*" innerRef={backgroundImageRef} /></FormGroup></Col>
               </Row>
             </div>
-
-            <hr className="my-4" />
+             <hr className="my-4" />
             <h6 className="heading-small text-muted mb-4">Changer de Mot de Passe</h6>
             <div className="pl-lg-4">
               <Row>
@@ -273,13 +448,10 @@ const UserProfile = () => {
                 <Col lg="6"><FormGroup><Label>Nouveau mot de passe</Label><Input type="password" name="newPassword" value={passwordData.newPassword} onChange={handlePasswordChange} autoComplete="new-password" /></FormGroup></Col>
               </Row>
             </div>
-
             {updateError && <div className="text-danger text-center mt-3"><small>{updateError}</small></div>}
             {updateSuccess && <div className="text-success text-center mt-3"><small>{updateSuccess}</small></div>}
           </ModalBody>
-
           <ModalFooter>
-            {/* n'utilise plus type="submit" pour empêcher update involontaire */}
             <Button color="primary" onClick={handleTriggerSave} disabled={isUpdating}>
               {isUpdating ? <><Spinner size="sm" /> Enregistrement...</> : "Enregistrer"}
             </Button>
@@ -288,18 +460,12 @@ const UserProfile = () => {
         </Form>
       </Modal>
 
-      {/* Modale de confirmation du mot de passe */}
+      {/* --- MODALE CONFIRMATION PASSWORD (Inchangée) --- */}
       <Modal isOpen={isPasswordConfirmModalOpen} toggle={() => setIsPasswordConfirmModalOpen(false)}>
-        <ModalHeader toggle={() => setIsPasswordConfirmModalOpen(false)}>Confirmation requise</ModalHeader>
+         <ModalHeader toggle={() => setIsPasswordConfirmModalOpen(false)}>Confirmation requise</ModalHeader>
         <ModalBody>
           <p>Veuillez entrer votre mot de passe pour confirmer les modifications :</p>
-          <Input
-            type="password"
-            placeholder="Mot de passe"
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-            autoFocus
-          />
+          <Input type="password" placeholder="Mot de passe" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} autoFocus />
           {updateError && <div className="text-danger mt-2"><small>{updateError}</small></div>}
         </ModalBody>
         <ModalFooter>

@@ -39,6 +39,8 @@ import UserView from "views/UserView.js";
 import UserProfile from "views/UserProfile.js";
 import ForgotPassword from "views/examples/ForgotPassword.js";
 import Choice from "views/examples/Choice.js";
+import GameHub from "views/Games/GameHub.js";
+import GameManagement from "views/admin/GameManagement.js";
 var routes = [
   {
     path: "/index",
@@ -48,7 +50,7 @@ var routes = [
     layout: "/client", // IMPORTANT : Le layout est maintenant /client
     role: "client",
   },
-   {
+  {
     path: "/creer-promotion",
     name: "Créer une Promotion",
     icon: "ni ni-send text-blue",
@@ -78,7 +80,7 @@ var routes = [
     layout: "/client",
     role: "client",
   },
-    {
+  {
     path: "/communes",
     name: "Ajouter une commune",
     icon: "ni ni-pin-3 text-orange",
@@ -103,7 +105,7 @@ var routes = [
     layout: "/client",
     role: "client",
   },
-  
+
   {
     path: "/user-profile",
     name: "Mon Profil",
@@ -122,25 +124,25 @@ var routes = [
     layout: "/admin",
     role: ["superadmin", "admin"],
   },
- // AJOUTEZ CES TROIS NOUVELLES ROUTES
- {
-  path: "/login-client",
-  name: "Login Client",
-  component: <LoginClient />,
-  layout: "/auth",
-},
-{
-  path: "/login-admin",
-  name: "Login Admin",
-  component: <LoginAdmin />,
-  layout: "/auth",
-},
-{
-  path: "/login-user",
-  name: "Login Utilisateur",
-  component: <LoginUser />,
-  layout: "/auth",
-},
+  // AJOUTEZ CES TROIS NOUVELLES ROUTES
+  {
+    path: "/login-client",
+    name: "Login Client",
+    component: <LoginClient />,
+    layout: "/auth",
+  },
+  {
+    path: "/login-admin",
+    name: "Login Admin",
+    component: <LoginAdmin />,
+    layout: "/auth",
+  },
+  {
+    path: "/login-user",
+    name: "Login Utilisateur",
+    component: <LoginUser />,
+    layout: "/auth",
+  },
   {
     path: "/choice",
     name: "User Choice",
@@ -166,62 +168,78 @@ var routes = [
     path: "/verify-otp",
     component: <VerifyOTP />,
     layout: "/auth",
-},
-{
-  path: "/ajout-admin",
-  name: "Gérer les Admins",
-  icon: "ni ni-badge text-info",
-  component: <AjoutAdmin />,
-  layout: "/admin",
-  role: "superadmin", // Reste une simple chaîne
-},
-{
-  path: "/register-user",
-  component: <RegisterUser />,
-  layout: "/auth",
-},
+  },
+  {
+    path: "/ajout-admin",
+    name: "Gérer les Admins",
+    icon: "ni ni-badge text-info",
+    component: <AjoutAdmin />,
+    layout: "/admin",
+    role: "superadmin", // Reste une simple chaîne
+  },
+  {
+    path: "/register-user",
+    component: <RegisterUser />,
+    layout: "/auth",
+  },
 
-{
-  path: "/landing-settings",
-  name: "Landing Page",
-  icon: "ni ni-planet text-info",
-  component: <AdminLandingSettings />,
-  layout: "/admin",
-  role: "superadmin",
-},
-// --- NOUVELLES ROUTES POUR L'UTILISATEUR ---
-{
-  path: "/dashboard",
-  name: "Accueil",
-  icon: "ni ni-tv-2 text-primary",
-  component: <UserView />,
-  layout: "/user",
-  role: "utilisateur",
- // hideNavbar: true, // <- ajoute ceci pour cacher la navbar sur cette route
-},
-{
-  path: "/historique-videos",
-  name: "Historique des vidéos",
-  icon: "ni ni-bullet-list-67 text-red",
-  component: <HistoriqueDesVideos />,
-  layout: "/user",
-  role: "utilisateur",
-},
-{
-  path: "/profil",
-  name: "Profil",
-  icon: "ni ni-single-02 text-yellow",
-  component: <UserProfile />,
-  layout: "/user",
-  role: "utilisateur",
-},
-// {
-//   path: "/historique",
-//   name: "Historique des vidéos",
-//   icon: "ni ni-archive-2 text-info",
-//   component: <HistoriqueDesVideos />,
-//   layout: "/client",
-//   role: "client",
-// },
+  {
+    path: "/landing-settings",
+    name: "Landing Page",
+    icon: "ni ni-planet text-info",
+    component: <AdminLandingSettings />,
+    layout: "/admin",
+    role: "superadmin",
+  },
+  // --- NOUVELLES ROUTES POUR L'UTILISATEUR ---
+  {
+    path: "/dashboard",
+    name: "Accueil",
+    icon: "ni ni-tv-2 text-primary",
+    component: <UserView />,
+    layout: "/user",
+    role: "utilisateur",
+    // hideNavbar: true, // <- ajoute ceci pour cacher la navbar sur cette route
+  },
+  {
+    path: "/historique-videos",
+    name: "Historique des vidéos",
+    icon: "ni ni-bullet-list-67 text-red",
+    component: <HistoriqueDesVideos />,
+    layout: "/user",
+    role: "utilisateur",
+  },
+  {
+    path: "/profil",
+    name: "Profil",
+    icon: "ni ni-single-02 text-yellow",
+    component: <UserProfile />,
+    layout: "/user",
+    role: "utilisateur",
+  },
+  {
+    path: "/games",
+    name: "Jeux & Bonus",
+    icon: "ni ni-trophy text-success",
+    component: <GameHub />,
+    layout: "/user",
+    role: "utilisateur",
+  },
+  {
+    path: "/game-management",
+    name: "Gestion des Jeux",
+    icon: "ni ni-controller text-info",
+    component: <GameManagement />,
+    layout: "/admin",
+    role: ["superadmin", "admin"],
+  },
+  // {
+  //   path: "/historique",
+  //   name: "Historique des vidéos",
+  //   icon: "ni ni-archive-2 text-info",
+  //   component: <HistoriqueDesVideos />,
+  //   layout: "/client",
+  //   role: "client",
+  // },
 ];
 export default routes;

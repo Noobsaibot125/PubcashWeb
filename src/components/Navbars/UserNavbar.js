@@ -1,4 +1,3 @@
-// src/components/Navbars/UserNavbar.js
 import React from 'react';
 import {
   Container,
@@ -10,7 +9,7 @@ import {
 } from 'reactstrap';
 import { NavLink as RRNavLink } from 'react-router-dom';
 
-const UserNavbar = ({ handleLogout, showFilters = false, filter, setFilter, theme, toggleTheme }) => {
+const UserNavbar = ({ handleLogout, showFilters = false, filter, setFilter, theme, toggleTheme, points }) => {
   return (
     <Navbar color="white" light expand="md" className="main-navbar fixed-top shadow-sm">
       <Container fluid>
@@ -24,6 +23,10 @@ const UserNavbar = ({ handleLogout, showFilters = false, filter, setFilter, them
             </NavItem>
             <NavItem>
               <RSNavLink tag={RRNavLink} to="/user/profil">Profil</RSNavLink>
+            </NavItem>
+            {/* Lien vers le Hub de Jeux */}
+            <NavItem>
+              <RSNavLink tag={RRNavLink} to="/user/games">Jeux & Bonus</RSNavLink>
             </NavItem>
           </Nav>
         </div>
@@ -50,11 +53,18 @@ const UserNavbar = ({ handleLogout, showFilters = false, filter, setFilter, them
               </Button>
             </>
           )}
-          {/* NOUVEAU : Bouton pour changer le thème */}
+
+          {/* Affichage des points */}
+          <div className="d-flex align-items-center mr-3 bg-light rounded-pill px-3 py-1 border ml-3">
+            <i className="fas fa-coins text-warning mr-2"></i>
+            <span className="font-weight-bold text-dark">{points !== undefined ? points : 0} pts</span>
+          </div>
+
+          {/* Bouton pour changer le thème */}
           <Button
             color="light"
             onClick={toggleTheme}
-            className="btn-icon btn-sm rounded-circle ml-4"
+            className="btn-icon btn-sm rounded-circle ml-2"
           >
             <i className={`fas ${theme === 'light' ? 'fa-moon' : 'fa-sun'}`} />
           </Button>

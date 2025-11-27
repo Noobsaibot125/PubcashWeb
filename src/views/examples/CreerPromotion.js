@@ -7,10 +7,12 @@ import {
 } from 'reactstrap';
 import ClientHeader from "components/Headers/ClientHeader.js";
 import api from '../../services/api';
+
 // On définit les coûts des packs pour les calculs de vues potentielles
 const PACK_REMUNERATIONS = { 'Agent': 50, 'Gold': 75, 'Diamant': 100 };
 
 const CreerPromotion = () => {
+    // --- ETATS INITIAUX (Ta version) ---
     const [formData, setFormData] = useState({
         titre: '', description: '', budget: '',
         tranche_age: 'tous', ciblage_commune: 'toutes'
@@ -26,11 +28,20 @@ const CreerPromotion = () => {
     const [profile, setProfile] = useState({ solde_recharge: 0 });
     const [videoFile, setVideoFile] = useState(null);
 
+    // --- NOUVEAUX ETATS (Pour le Quiz et le Wizard) ---
+    const [step, setStep] = useState(1); // 1 = Promo, 2 = Quiz
+    const [includeQuiz, setIncludeQuiz] = useState(false); // Est-ce qu'on ajoute le quiz ?
+    const [quizData, setQuizData] = useState({
+        question: '',
+        mauvaiseReponse1: '',
+        mauvaiseReponse2: '',
+        bonneReponse: ''
+    });
 
+    // --- EFFETS ET API (Ta version) ---
     useEffect(() => {
         const fetchProfile = async () => {
             try {
-                // 2. On corrige l'appel pour utiliser 'api.get'
                 const response = await api.get('/client/profile');
                 setProfile(response.data);
             } catch (err) {
@@ -40,7 +51,6 @@ const CreerPromotion = () => {
         fetchProfile();
     }, []);
 
-    // 3. On corrige la fonction d'upload pour utiliser 'api.post'
     const uploadVideoToServer = async (file) => {
         const form = new FormData();
         form.append('video', file);
@@ -50,14 +60,20 @@ const CreerPromotion = () => {
                 'Content-Type': 'multipart/form-data',
             },
         });
-        return res.data; // Axios renvoie les données directement dans .data
+        return res.data; 
     };
 
+    // --- CALCULS (Ta version) ---
     const budgetPourCampagne = useMemo(() => (parseFloat(formData.budget) > 0 ? (parseFloat(formData.budget) * 0.85).toFixed(2) : '0.00'), [formData.budget]);
     const vuesPotentielles = useMemo(() => (parseFloat(budgetPourCampagne) > 0 && PACK_REMUNERATIONS[pack] > 0 ? Math.floor(parseFloat(budgetPourCampagne) / PACK_REMUNERATIONS[pack]) : 0), [budgetPourCampagne, pack]);
     const nouveauSolde = useMemo(() => (parseFloat(formData.budget) > 0 && parseFloat(profile.solde_recharge) >= parseFloat(formData.budget) ? (parseFloat(profile.solde_recharge) - parseFloat(formData.budget)).toFixed(2) : parseFloat(profile.solde_recharge).toFixed(2)), [formData.budget, profile.solde_recharge]);
 
+    // --- HANDLERS (Ta version + Quiz) ---
     const handleChange = (e) => setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
+    
+    // Nouveau handler pour le quiz
+    const handleQuizChange = (e) => setQuizData(prev => ({ ...prev, [e.target.name]: e.target.value }));
+
     const handleFileChange = (event) => {
         const file = event.target.files[0];
         if (!file) return;
@@ -101,16 +117,36 @@ const CreerPromotion = () => {
     };
     const clearVideoFile = () => { setVideoFile(null); setDuree(''); setPack(''); };
 
-    const handleConfirmSubmit = (e) => {
+    // --- NAVIGATION ET VALIDATION ---
+
+    // 1. Validation de l'étape 1 (Modifié pour aller à l'étape 2 au lieu d'ouvrir le modal direct)
+    const handleStep1Submit = (e) => {
         e.preventDefault();
         setError('');
         if (!videoFile) return setError('Veuillez importer une vidéo.');
         if (!pack || !duree) return setError('Durée de la vidéo non déterminée. Vérifiez le fichier.');
         if (parseFloat(formData.budget) > parseFloat(profile.solde_recharge)) return setError('Solde insuffisant.');
+        
+        // Tout est bon, on passe à l'étape Quiz
+        setStep(2);
+    };
+
+    // 2. Validation de l'étape 2 et ouverture du Modal
+    const handleFinalPreSubmit = (withQuiz) => {
+        setIncludeQuiz(withQuiz);
+        setError('');
+
+        if (withQuiz) {
+            if (!quizData.question || !quizData.bonneReponse || !quizData.mauvaiseReponse1 || !quizData.mauvaiseReponse2) {
+                setError("Veuillez remplir tous les champs du quiz pour continuer.");
+                return;
+            }
+        }
+        // Si tout est ok (ou si on ignore le quiz), on ouvre ta modale de confirmation
         setIsModalOpen(true);
     };
 
-    // 4. On corrige la fonction de soumission pour utiliser 'api.post'
+    // 3. Soumission Finale au Backend
     const submitPromotion = async () => {
         setIsModalOpen(false);
         setLoading(true);
@@ -119,11 +155,10 @@ const CreerPromotion = () => {
             let videoFilename = null;
             let thumbFilename = null;
 
+            // 1. Upload Vidéo
             if (videoFile) {
                 const uploadResult = await uploadVideoToServer(videoFile);
                 videoFilename = uploadResult.videoFilename;
-                // --- CORRECTION ICI ---
-                // On lit la bonne clé 'thumbFilename' renvoyée par le backend.
                 thumbFilename = uploadResult.thumbFilename || null;
             }
 
@@ -132,22 +167,47 @@ const CreerPromotion = () => {
                 titre: cleanValue(formData.titre),
                 description: cleanValue(formData.description),
                 url_video: cleanValue(videoFilename),
-                thumbnail_url: cleanValue(thumbFilename), // Maintenant, cette valeur sera correcte !
+                thumbnail_url: cleanValue(thumbFilename),
                 budget: parseFloat(formData.budget),
                 duree_secondes: parseInt(duree, 10),
                 tranche_age: cleanValue(formData.tranche_age),
                 ciblage_commune: cleanValue(formData.ciblage_commune)
             };
 
+            // 2. Création de la promotion
             const response = await api.post('/client/promotions', submissionData);
-
             const data = response.data;
-            // setSuccess(data.message); // On n'utilise plus le message texte simple
-            setShowSuccessModal(true); // On affiche le popup
+           const promoId = data.promotionId;
+
+            // 3. Création du Quiz (Si demandé)
+            if (includeQuiz && promoId) {
+                const reponsesPossibles = JSON.stringify([
+                    quizData.bonneReponse, 
+                    quizData.mauvaiseReponse1, 
+                    quizData.mauvaiseReponse2
+                ]);
+
+                await api.post('/games/create', {
+                    type: 'quiz',
+                    titre: `Quiz: ${formData.titre}`,
+                    question: quizData.question,
+                    reponses: reponsesPossibles,
+                    bonne_reponse: quizData.bonneReponse,
+                    points_recompense: 5,
+                    promotion_id: promoId,
+                    statut: 'actif'
+                });
+            }
+
+            // Fin succès
+            setShowSuccessModal(true);
             setProfile(prev => ({ ...prev, solde_recharge: data.newBalance }));
-            // Réinitialiser le formulaire
+            
+            // Réinitialiser tout
             setFormData({ titre: '', description: '', budget: '', tranche_age: 'tous', ciblage_commune: 'toutes' });
+            setQuizData({ question: '', bonneReponse: '', mauvaiseReponse1: '', mauvaiseReponse2: '' });
             clearVideoFile();
+            setStep(1); // Retour à l'étape 1
 
         } catch (err) {
             const errorMessage = err.response?.data?.message || 'Une erreur est survenue.';
@@ -164,166 +224,254 @@ const CreerPromotion = () => {
                 <Row className="justify-content-center">
                     <Col xl="10">
                         <Card className="shadow">
-                            <CardHeader><h3 className="mb-0">Créer une nouvelle promotion</h3></CardHeader>
+                            <CardHeader>
+                                <div className="d-flex justify-content-between align-items-center">
+                                    <h3 className="mb-0">
+                                        {step === 1 ? "Créer une nouvelle promotion" : "Ajouter un Quiz (Optionnel)"}
+                                    </h3>
+                                    {step === 2 && (
+                                        <Button size="sm" color="secondary" onClick={() => setStep(1)}>
+                                            <i className="ni ni-bold-left"></i> Retour
+                                        </Button>
+                                    )}
+                                </div>
+                            </CardHeader>
                             <CardBody>
-                                <Form onSubmit={handleConfirmSubmit}>
-                                    <h6 className="heading-small text-muted mb-4">Informations sur la publicité</h6>
-                                    <Row>
-                                        <Col lg="8">
-                                            <FormGroup>
-                                                <Label for="titre">Titre</Label>
-                                                <Input
-                                                    type="text"
-                                                    name="titre"
-                                                    id="titre"
-                                                    placeholder="Ex: Super promo sur les T-shirts"
-                                                    value={formData.titre}
-                                                    onChange={handleChange}
-                                                    required
-                                                />
-                                            </FormGroup>
-                                            <FormGroup>
-                                                <Label for="description">Description</Label>
-                                                <Input
-                                                    type="textarea"
-                                                    name="description"
-                                                    id="description"
-                                                    rows="3"
-                                                    placeholder="Une courte description de votre produit ou service."
-                                                    value={formData.description}
-                                                    onChange={handleChange}
-                                                />
-                                            </FormGroup>
+                                {error && <div className="text-danger my-3 text-center alert alert-danger"><small>{error}</small></div>}
+                                {success && <div className="text-success my-3 text-center"><small>{success}</small></div>}
 
-                                            {/* Nouveaux champs ajoutés */}
-                                            <Row>
-                                                <Col md="6">
-                                                    <FormGroup>
-                                                        <Label for="tranche_age">Tranche d'âge ciblée</Label>
-                                                        <Input
-                                                            type="select"
-                                                            name="tranche_age"
-                                                            id="tranche_age"
-                                                            value={formData.tranche_age}
-                                                            onChange={handleChange}
-                                                            required
-                                                        >
-                                                            <option value="tous">Tout le monde</option>
-                                                            <option value="12-17">Adolescents (12-17 ans)</option>
-                                                            <option value="18+">Adultes (18 ans et plus)</option>
-                                                        </Input>
-                                                    </FormGroup>
-                                                </Col>
-                                                <Col md="6">
-                                                    <FormGroup>
-                                                        <Label for="ciblage_commune">Ciblage par commune</Label>
-                                                        <Input
-                                                            type="select"
-                                                            name="ciblage_commune"
-                                                            id="ciblage_commune"
-                                                            value={formData.ciblage_commune}
-                                                            onChange={handleChange}
-                                                            required
-                                                        >
-                                                            <option value="toutes">Toutes les communes</option>
-                                                            <option value="ma_commune">
-                                                                {`Ma commune seulement ${profile.commune ? `(${profile.commune})` : ''}`}
-                                                            </option>
-                                                        </Input>
-                                                    </FormGroup>
-                                                </Col>
-                                            </Row>
-                                        </Col>
-                                        <Col lg="4" className="d-flex flex-column align-items-center justify-content-center border-left-lg mt-4 mt-lg-0">
-                                            <input
-                                                type="file"
-                                                ref={fileInputRef}
-                                                onChange={handleFileChange}
-                                                style={{ display: 'none' }}
-                                                accept="video/*"
-                                            />
-                                            {!videoFile ? (
-                                                <Button
-                                                    color="secondary"
-                                                    outline
-                                                    onClick={triggerFileSelect}
-                                                    className="btn-icon-clipboard"
-                                                    style={{ width: '150px', height: '150px', borderRadius: '50%', borderStyle: 'dashed' }}
-                                                >
-                                                    <div>
-                                                        <i className="ni ni-fat-add" style={{ fontSize: '3rem' }} />
-                                                        <span className="d-block mt-2">Importer Vidéo</span>
+                                {/* ==================== ÉTAPE 1 : TA VERSION ORIGINALE ==================== */}
+                                <div style={{ display: step === 1 ? 'block' : 'none' }}>
+                                    <Form onSubmit={handleStep1Submit}>
+                                        <h6 className="heading-small text-muted mb-4">Informations sur la publicité</h6>
+                                        <Row>
+                                            <Col lg="8">
+                                                <FormGroup>
+                                                    <Label for="titre">Titre</Label>
+                                                    <Input
+                                                        type="text"
+                                                        name="titre"
+                                                        id="titre"
+                                                        placeholder="Ex: Super promo sur les T-shirts"
+                                                        value={formData.titre}
+                                                        onChange={handleChange}
+                                                        required
+                                                    />
+                                                </FormGroup>
+                                                <FormGroup>
+                                                    <Label for="description">Description</Label>
+                                                    <Input
+                                                        type="textarea"
+                                                        name="description"
+                                                        id="description"
+                                                        rows="3"
+                                                        placeholder="Une courte description de votre produit ou service."
+                                                        value={formData.description}
+                                                        onChange={handleChange}
+                                                    />
+                                                </FormGroup>
+
+                                                {/* Nouveaux champs ajoutés */}
+                                                <Row>
+                                                    <Col md="6">
+                                                        <FormGroup>
+                                                            <Label for="tranche_age">Tranche d'âge ciblée</Label>
+                                                            <Input
+                                                                type="select"
+                                                                name="tranche_age"
+                                                                id="tranche_age"
+                                                                value={formData.tranche_age}
+                                                                onChange={handleChange}
+                                                                required
+                                                            >
+                                                                <option value="tous">Tout le monde</option>
+                                                                <option value="12-17">Adolescents (12-17 ans)</option>
+                                                                <option value="18+">Adultes (18 ans et plus)</option>
+                                                            </Input>
+                                                        </FormGroup>
+                                                    </Col>
+                                                    <Col md="6">
+                                                        <FormGroup>
+                                                            <Label for="ciblage_commune">Ciblage par commune</Label>
+                                                            <Input
+                                                                type="select"
+                                                                name="ciblage_commune"
+                                                                id="ciblage_commune"
+                                                                value={formData.ciblage_commune}
+                                                                onChange={handleChange}
+                                                                required
+                                                            >
+                                                                <option value="toutes">Toutes les communes</option>
+                                                                <option value="ma_commune">
+                                                                    {`Ma commune seulement ${profile.commune ? `(${profile.commune})` : ''}`}
+                                                                </option>
+                                                            </Input>
+                                                        </FormGroup>
+                                                    </Col>
+                                                </Row>
+                                            </Col>
+                                            <Col lg="4" className="d-flex flex-column align-items-center justify-content-center border-left-lg mt-4 mt-lg-0">
+                                                <input
+                                                    type="file"
+                                                    ref={fileInputRef}
+                                                    onChange={handleFileChange}
+                                                    style={{ display: 'none' }}
+                                                    accept="video/*"
+                                                />
+                                                {!videoFile ? (
+                                                    <Button
+                                                        color="secondary"
+                                                        outline
+                                                        onClick={triggerFileSelect}
+                                                        className="btn-icon-clipboard"
+                                                        style={{ width: '150px', height: '150px', borderRadius: '50%', borderStyle: 'dashed' }}
+                                                    >
+                                                        <div>
+                                                            <i className="ni ni-fat-add" style={{ fontSize: '3rem' }} />
+                                                            <span className="d-block mt-2">Importer Vidéo</span>
+                                                        </div>
+                                                    </Button>
+                                                ) : (
+                                                    <div className="text-center p-3 border rounded">
+                                                        <i className="ni ni-tv-2 text-success" style={{ fontSize: '3rem' }} />
+                                                        <p className="mt-2 mb-2 text-sm font-weight-bold">{videoFile.name}</p>
+                                                        <Button color="danger" size="sm" outline onClick={clearVideoFile}>Changer</Button>
                                                     </div>
-                                                </Button>
-                                            ) : (
-                                                <div className="text-center p-3 border rounded">
-                                                    <i className="ni ni-tv-2 text-success" style={{ fontSize: '3rem' }} />
-                                                    <p className="mt-2 mb-2 text-sm font-weight-bold">{videoFile.name}</p>
-                                                    <Button color="danger" size="sm" outline onClick={clearVideoFile}>Changer</Button>
-                                                </div>
-                                            )}
-                                        </Col>
-                                    </Row>
-                                    <hr className="my-4" />
-                                    <h6 className="heading-small text-muted mb-4">Paramètres & Coûts</h6>
+                                                )}
+                                            </Col>
+                                        </Row>
+                                        <hr className="my-4" />
+                                        <h6 className="heading-small text-muted mb-4">Paramètres & Coûts</h6>
+                                        <Row>
+                                            <Col md="6">
+                                                <FormGroup>
+                                                    <Label>Durée (secondes)</Label>
+                                                    <Input type="number" value={duree} placeholder="Auto-détectée" disabled />
+                                                </FormGroup>
+                                            </Col>
+                                            <Col md="6">
+                                                <FormGroup>
+                                                    <Label>Pack associé</Label>
+                                                    <Input type="text" value={pack} placeholder="Auto-détecté" disabled />
+                                                </FormGroup>
+                                            </Col>
+                                        </Row>
+                                        <Row>
+                                            <Col md="6">
+                                                <FormGroup>
+                                                    <Label>Montant de la promotion</Label>
+                                                    <Input
+                                                        type="number"
+                                                        name="budget"
+                                                        placeholder="Ex: 10000"
+                                                        value={formData.budget}
+                                                        onChange={handleChange}
+                                                        required
+                                                    />
+                                                </FormGroup>
+                                            </Col>
+                                            <Col md="6">
+                                                <FormGroup>
+                                                    <Label>Budget réel pour les vues (après commission)</Label>
+                                                    <Input type="text" value={`${budgetPourCampagne} FCFA`} disabled />
+                                                </FormGroup>
+                                            </Col>
+                                        </Row>
+                                        <Row>
+                                            <Col>
+                                                <FormGroup>
+                                                    <Label>Nombre de vue potentielles</Label>
+                                                    <Input type="text" value={`~ ${vuesPotentielles} personnes`} disabled />
+                                                </FormGroup>
+                                            </Col>
+                                        </Row>
+                                        <hr className="my-4" />
+                                        
+                                        <div className="text-right">
+                                            {/* Changement ici: Le bouton passe à l'étape suivante au lieu de submit direct */}
+                                            <Button color="primary" type="submit" disabled={loading || !formData.budget}>
+                                                Suivant : Configurer le Quiz <i className="ni ni-bold-right ml-2"></i>
+                                            </Button>
+                                        </div>
+                                    </Form>
+                                </div>
+
+                                {/* ==================== ÉTAPE 2 : LE QUIZ (Nouveau) ==================== */}
+                                <div style={{ display: step === 2 ? 'block' : 'none' }}>
+                                    <div className="text-center mb-5">
+                                        <div className="icon icon-shape bg-gradient-primary text-white rounded-circle shadow mb-4">
+                                            <i className="ni ni-hat-3"></i>
+                                        </div>
+                                        <h4>Engagez votre audience avec un Quiz !</h4>
+                                        <p className="text-muted">Si l'utilisateur répond correctement après avoir partagé, il gagne 5 points bonus.</p>
+                                    </div>
+
+                                    <FormGroup>
+                                        <Label className="form-control-label">La Question</Label>
+                                        <Input 
+                                            type="text" 
+                                            placeholder="Ex: Quelle est la couleur du t-shirt dans la vidéo ?" 
+                                            name="question"
+                                            value={quizData.question}
+                                            onChange={handleQuizChange}
+                                        />
+                                    </FormGroup>
+
                                     <Row>
-                                        <Col md="6">
+                                        <Col md="4">
                                             <FormGroup>
-                                                <Label>Durée (secondes)</Label>
-                                                <Input type="number" value={duree} placeholder="Auto-détectée" disabled />
-                                            </FormGroup>
-                                        </Col>
-                                        <Col md="6">
-                                            <FormGroup>
-                                                <Label>Pack associé</Label>
-                                                <Input type="text" value={pack} placeholder="Auto-détecté" disabled />
-                                            </FormGroup>
-                                        </Col>
-                                    </Row>
-                                    <Row>
-                                        <Col md="6">
-                                            <FormGroup>
-                                                <Label>Montant de la promotion</Label>
-                                                <Input
-                                                    type="number"
-                                                    name="budget"
-                                                    placeholder="Ex: 10000"
-                                                    value={formData.budget}
-                                                    onChange={handleChange}
-                                                    required
+                                                <Label className="form-control-label text-success">Bonne Réponse</Label>
+                                                <Input 
+                                                    type="text" 
+                                                    placeholder="La réponse correcte" 
+                                                    name="bonneReponse"
+                                                    value={quizData.bonneReponse}
+                                                    onChange={handleQuizChange}
+                                                    valid={quizData.bonneReponse.length > 0}
                                                 />
                                             </FormGroup>
                                         </Col>
-                                        <Col md="6">
+                                        <Col md="4">
                                             <FormGroup>
-                                                <Label>Budget réel pour les vues (après commission)</Label>
-                                                <Input type="text" value={`${budgetPourCampagne} FCFA`} disabled />
+                                                <Label className="form-control-label text-danger">Mauvaise Réponse 1</Label>
+                                                <Input 
+                                                    type="text" 
+                                                    name="mauvaiseReponse1"
+                                                    value={quizData.mauvaiseReponse1}
+                                                    onChange={handleQuizChange}
+                                                />
+                                            </FormGroup>
+                                        </Col>
+                                        <Col md="4">
+                                            <FormGroup>
+                                                <Label className="form-control-label text-danger">Mauvaise Réponse 2</Label>
+                                                <Input 
+                                                    type="text" 
+                                                    name="mauvaiseReponse2"
+                                                    value={quizData.mauvaiseReponse2}
+                                                    onChange={handleQuizChange}
+                                                />
                                             </FormGroup>
                                         </Col>
                                     </Row>
-                                    <Row>
-                                        <Col>
-                                            <FormGroup>
-                                                <Label>Nombre de vue potentielles</Label>
-                                                <Input type="text" value={`~ ${vuesPotentielles} personnes`} disabled />
-                                            </FormGroup>
-                                        </Col>
-                                    </Row>
-                                    <hr className="my-4" />
-                                    {error && <div className="text-danger my-3 text-center"><small>{error}</small></div>}
-                                    {success && <div className="text-success my-3 text-center"><small>{success}</small></div>}
-                                    <div className="text-right">
-                                        <Button color="primary" type="submit" disabled={loading || !formData.budget}>
-                                            {loading ? <Spinner size="sm" /> : "Vérifier et Lancer"}
+
+                                    <div className="d-flex justify-content-between mt-5 pt-4 border-top">
+                                        <Button color="secondary" outline onClick={() => handleFinalPreSubmit(false)}>
+                                            Ignorer le Quiz et Lancer
+                                        </Button>
+                                        <Button color="success" onClick={() => handleFinalPreSubmit(true)}>
+                                            Valider le Quiz et Lancer
                                         </Button>
                                     </div>
-                                </Form>
+                                </div>
+
                             </CardBody>
                         </Card>
                     </Col>
                 </Row>
             </Container>
 
+            {/* --- TA MODALE DE CONFIRMATION ORIGINALE (Légèrement adaptée pour le Quiz) --- */}
             <Modal isOpen={isModalOpen} toggle={() => setIsModalOpen(false)}>
                 <ModalHeader toggle={() => setIsModalOpen(false)}>Confirmer la promotion</ModalHeader>
                 <ModalBody>
@@ -338,13 +486,18 @@ const CreerPromotion = () => {
                                 formData.tranche_age === '12-17' ? 'Adolescents (12-17 ans)' :
                                     'Adultes (18 ans et plus)'}
                         </b></li>
-                        {/* MODIFIÉ ICI: Le texte de confirmation est aussi dynamique */}
                         <li>Ciblage : <b>
                             {formData.ciblage_commune === 'toutes'
                                 ? 'Toutes les communes'
                                 : `Ma commune seulement ${profile.commune ? `(${profile.commune})` : ''}`
                             }
                         </b></li>
+                        {/* Ajout discret pour indiquer la présence du quiz */}
+                        {includeQuiz && (
+                            <li className="text-success mt-2">
+                                <i className="ni ni-check-bold mr-1"></i> <b>Quiz bonus inclus</b>
+                            </li>
+                        )}
                     </ul>
                     <p>Êtes-vous sûr de vouloir continuer ? Cette action est irréversible.</p>
                 </ModalBody>
@@ -356,7 +509,7 @@ const CreerPromotion = () => {
                 </ModalFooter>
             </Modal>
 
-            {/* Modal de Succès */}
+            {/* --- TA MODALE DE SUCCES ORIGINALE --- */}
             <Modal isOpen={showSuccessModal} toggle={() => setShowSuccessModal(false)} centered>
                 <ModalHeader toggle={() => setShowSuccessModal(false)} className="text-success">
                     <span style={{ fontWeight: 'bold' }}>Félicitations !</span>
@@ -364,7 +517,7 @@ const CreerPromotion = () => {
                 <ModalBody>
                     <div className="text-center">
                         <i className="ni ni-check-bold ni-3x text-success mb-3"></i>
-                        <h4 className="text-success">Promotion créée avec succès !</h4>
+                        <h4 className="text-success">Promotion {includeQuiz && "& Quiz"} créée avec succès !</h4>
                         <p style={{ color: 'black' }}>
                             Votre promotion a été enregistrée et est maintenant active.
                         </p>

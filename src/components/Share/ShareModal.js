@@ -16,7 +16,7 @@ import {
 const ShareModal = ({ isOpen, toggle, promotion, onShare }) => {
   // Le lien à partager. Il pourrait pointer vers une page publique de la promo si elle existe,
   // sinon on peut utiliser l'URL du site.
-  const shareUrl = `https://www.pubcash.com/promo/${promotion.id}`; // Exemple d'URL
+  const shareUrl = `https://www.pub-cash.com/promo/${promotion.id}`; // Exemple d'URL
   const title = `Découvrez cette promotion incroyable : ${promotion.titre}`;
 
   const handleShare = () => {

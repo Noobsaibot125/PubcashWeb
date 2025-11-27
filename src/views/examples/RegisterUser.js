@@ -1,7 +1,7 @@
 // src/views/examples/RegisterUser.js
 
 import { useState, useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useSearchParams } from "react-router-dom"; // <--- 1. AJOUT DE useSearchParams
 import {
   Button,
   Card,
@@ -27,6 +27,7 @@ import { jwtDecode } from 'jwt-decode';
 import './RegisterUser.css'; // Import du fichier CSS pour les styles
 const RegisterUser = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams(); // <--- 2. INITIALISATION DU HOOK
   const [formData, setFormData] = useState({
     nom_utilisateur: "",
     email: "",
@@ -36,9 +37,10 @@ const RegisterUser = () => {
     date_naissance: "",
     contact: "",
     genre: "",
+    code_parrainage: "", // <--- 3. AJOUT DU CHAMP DANS LE STATE
   });
 
-  const [confirmPassword, setConfirmPassword] = useState("");
+ const [confirmPassword, setConfirmPassword] = useState("");
   const [villes, setVilles] = useState([]);
   const [communes, setCommunes] = useState([]);
   const [loadingVilles, setLoadingVilles] = useState(true);
@@ -47,6 +49,16 @@ const RegisterUser = () => {
   const [loading, setLoading] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [fbSDKLoaded, setFbSDKLoaded] = useState(false);
+
+  // --- 4. NOUVEAU USEFFECT POUR RECUPERER LE CODE ---
+  useEffect(() => {
+    const refCode = searchParams.get('ref'); // Récupère ?ref=XYZ123
+    if (refCode) {
+      console.log("Code parrainage détecté:", refCode);
+      setFormData(prev => ({ ...prev, code_parrainage: refCode }));
+    }
+  }, [searchParams]);
+  // ---------------------------------------------------
 
   // Charger le SDK Facebook
   useEffect(() => {
@@ -151,10 +163,12 @@ const RegisterUser = () => {
     // En développement
     return process.env.REACT_APP_FB_APP_ID;
   };
-  const handleGoogleSuccess = async (tokenResponse) => {
+ const handleGoogleSuccess = async (tokenResponse) => {
     try {
+      // AJOUT : on envoie formData.code_parrainage
       const response = await api.post('/auth/google', { 
-        accessToken: tokenResponse.access_token 
+        accessToken: tokenResponse.access_token,
+        code_parrainage: formData.code_parrainage 
       });
       handleSocialLogin(response);
     } catch (err) {
@@ -191,8 +205,10 @@ const RegisterUser = () => {
   const handleFacebookResponse = async (response) => {
     if (response.authResponse && response.authResponse.accessToken) {
       try {
+        // AJOUT : on envoie formData.code_parrainage
         const resApi = await api.post('/auth/facebook', { 
-          accessToken: response.authResponse.accessToken 
+          accessToken: response.authResponse.accessToken,
+          code_parrainage: formData.code_parrainage
         });
         handleSocialLogin(resApi);
       } catch (err) {
@@ -204,7 +220,7 @@ const RegisterUser = () => {
     }
   };
 
-  // --- GESTION INSCRIPTION MANUELLE ---
+ // --- GESTION INSCRIPTION MANUELLE ---
   const handleRegister = async (e) => {
     e.preventDefault();
     setError(""); 
@@ -234,6 +250,7 @@ const RegisterUser = () => {
 
     setLoading(true);
     try {
+      // formData contient maintenant 'code_parrainage' grâce au useEffect
       await api.post("/auth/utilisateur/register", formData);
       setShowSuccessModal(true);
     } catch (err) {
@@ -382,7 +399,23 @@ const RegisterUser = () => {
                 </Input>
               </InputGroup>
             </FormGroup>
-
+ {/* --- 5. AJOUT DU CHAMP VISIBLE CODE PARRAINAGE (OPTIONNEL MAIS RECOMMANDÉ) --- */}
+            <FormGroup>
+              <InputGroup className="input-group-alternative mt-3">
+                <InputGroupAddon addonType="prepend">
+                  <InputGroupText><i className="ni ni-diamond" /></InputGroupText>
+                </InputGroupAddon>
+                <Input 
+                    type="text" 
+                    name="code_parrainage" 
+                    placeholder="Code Parrainage (Optionnel)" 
+                    value={formData.code_parrainage} 
+                    onChange={handleChange}
+                    // Tu peux le laisser éditable ou le désactiver si rempli par URL
+                  // readOnly={!!searchParams.get('ref')} 
+                />
+              </InputGroup>
+            </FormGroup>
             {error && (
               <div className="alert alert-danger text-center my-3 py-2">
                 <small>{error}</small>
