@@ -30,9 +30,22 @@ const ShareModal = ({ isOpen, toggle, promotion, onShare, user }) => {
       <ModalHeader toggle={toggle}>Partager la promotion</ModalHeader>
       <ModalBody className="text-center">
         <p>Partagez cette promotion avec vos amis !</p>
-        <p className="small text-muted mb-3">
-            {userCode ? "Votre code de parrainage sera inclus automatiquement." : "Aucun code parrainage détecté."}
-        </p>
+        
+        {/* --- AJOUT POUR AFFICHER LE CODE EN GRAND --- */}
+        {userCode ? (
+            <div className="my-4">
+                <p className="text-muted mb-1 small">Votre Code Parrainage est :</p>
+                <strong style={{ fontSize: '1.5rem', color: '#FF7F00' }}>
+                    {userCode}
+                </strong>
+            </div>
+        ) : (
+            <p className="small text-danger my-3">
+                Aucun code parrainage détecté. Assurez-vous d'être connecté.
+            </p>
+        )}
+        {/* ------------------------------------------- */}
+        
         <Row className="justify-content-center py-3">
           <Col xs="3">
             <FacebookShareButton url={shareUrl} quote={title} onShareWindowClose={handleShare}>
