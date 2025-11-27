@@ -1,3 +1,5 @@
+// src/components/PuzzleGame.js
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Button, Alert } from 'reactstrap';
 import api from 'services/api';
@@ -16,8 +18,7 @@ const PuzzleGame = ({ game, onFinish }) => {
     useEffect(() => {
         if (started) {
             const initialTiles = [...Array(9).keys()];
-            // Mélange simple mais solvable (pas toujours, mais pour un simple swap ça va)
-            // Pour un vrai taquin c'est complexe, mais ici c'est du swap libre, donc toujours solvable.
+            // Mélange simple
             const shuffled = [...initialTiles].sort(() => Math.random() - 0.5);
             setTiles(shuffled);
 
@@ -51,7 +52,7 @@ const PuzzleGame = ({ game, onFinish }) => {
     };
 
     const onDragOver = (e) => {
-        e.preventDefault(); // Nécessaire pour permettre le drop
+        e.preventDefault();
     };
 
     const onDrop = (e, dropIndex) => {
@@ -67,14 +68,12 @@ const PuzzleGame = ({ game, onFinish }) => {
         checkWin(newTiles);
     };
 
-    // Support tactile basique (click to swap)
     const [selectedTileIndex, setSelectedTileIndex] = useState(null);
     const handleTileClick = (index) => {
         if (gameOver) return;
         if (selectedTileIndex === null) {
             setSelectedTileIndex(index);
         } else {
-            // Swap
             const newTiles = [...tiles];
             const temp = newTiles[selectedTileIndex];
             newTiles[selectedTileIndex] = newTiles[index];
@@ -86,7 +85,6 @@ const PuzzleGame = ({ game, onFinish }) => {
     };
 
     const checkWin = async (currentTiles) => {
-        // Vérifie si chaque tuile est à sa place (0 à 0, 1 à 1...)
         const isSolved = currentTiles.every((val, index) => val === index);
         if (isSolved) {
             clearInterval(timerRef.current);
@@ -94,23 +92,27 @@ const PuzzleGame = ({ game, onFinish }) => {
         }
     };
 
- const submitGame = async () => {
-    try {
-        const res = await api.post('/games/puzzle/submit', { gameId: game.id });
-        // CORRECTION : Utiliser res.data.points (comme défini dans GameController.js)
-        handleGameOver(true, `Bravo ! Vous avez gagné ${res.data.points} points.`);
-    } catch (err) {
-        handleGameOver(false, err.response?.data?.message || "Erreur lors de la validation.");
-    }
-};
+    const submitGame = async () => {
+        try {
+            const res = await api.post('/games/puzzle/submit', { gameId: game.id });
+            handleGameOver(true, `Bravo ! Vous avez gagné ${res.data.points} points.`);
+        } catch (err) {
+            handleGameOver(false, err.response?.data?.message || "Erreur lors de la validation.");
+        }
+    };
 
+    // --- MODIFICATION ICI ---
     const handleGameOver = (win, msg) => {
         setGameOver(true);
         setMessage(msg);
+        
+        // Délai de 2 secondes (2000ms) avant de recharger la page
         setTimeout(() => {
-            if (onFinish) onFinish();
-        }, 4000);
+            if (onFinish) onFinish(); // Optionnel, selon si onFinish fait du nettoyage
+            window.location.reload(); // RECHARGEMENT AUTOMATIQUE
+        }, 2000);
     };
+    // ------------------------
 
     if (!started) {
         return (
@@ -142,7 +144,7 @@ const PuzzleGame = ({ game, onFinish }) => {
                 height: '300px',
                 border: '2px solid #333',
                 backgroundColor: '#eee',
-                touchAction: 'none' // Empêche le scroll sur mobile pendant le jeu
+                touchAction: 'none'
             }}>
                 {tiles.map((tileNumber, index) => (
                     <div

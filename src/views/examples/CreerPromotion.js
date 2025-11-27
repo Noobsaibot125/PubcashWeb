@@ -510,8 +510,8 @@ const CreerPromotion = () => {
             </Modal>
 
             {/* --- TA MODALE DE SUCCES ORIGINALE --- */}
-            <Modal isOpen={showSuccessModal} toggle={() => setShowSuccessModal(false)} centered>
-                <ModalHeader toggle={() => setShowSuccessModal(false)} className="text-success">
+            <Modal isOpen={showSuccessModal} toggle={() => window.location.reload()} centered>
+                <ModalHeader toggle={() => window.location.reload()} className="text-success">
                     <span style={{ fontWeight: 'bold' }}>Félicitations !</span>
                 </ModalHeader>
                 <ModalBody>
@@ -521,7 +521,8 @@ const CreerPromotion = () => {
                         <p style={{ color: 'black' }}>
                             Votre promotion a été enregistrée et est maintenant active.
                         </p>
-                        <Button color="success" onClick={() => setShowSuccessModal(false)}>
+                        {/* C'EST ICI QUE J'AI FAIT LA MODIFICATION : */}
+                        <Button color="success" onClick={() => window.location.reload()}>
                             Continuer
                         </Button>
                     </div>
