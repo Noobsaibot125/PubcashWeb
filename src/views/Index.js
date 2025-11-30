@@ -818,6 +818,36 @@ const Index = () => {
                 <h5 className="mb-3 font-weight-bold text-dark">Statistiques détaillées</h5>
 
                 <ListGroup flush>
+                  {/* --- NOUVEAU : CIBLAGE COMMUNE --- */}
+  <ListGroupItem className="px-0 py-3 d-flex justify-content-between align-items-center">
+    <div className="d-flex align-items-center">
+      {/* J'utilise un style inline pour le violet car bg-neutral-purple n'existe peut-être pas dans votre CSS */}
+      <div className="icon icon-shape icon-sm text-white rounded-circle mr-3" style={{ backgroundColor: '#9b59b6' }}>
+        <i className="fas fa-map-marker-alt" />
+      </div>
+      <span className="font-weight-bold">Zone Ciblée</span>
+    </div>
+    <Badge color="dark" pill className="px-3 py-2">
+      {selectedPromo.ciblage_commune === 'toutes' 
+        ? 'Toutes les communes' 
+        : selectedPromo.ciblage_commune}
+    </Badge>
+  </ListGroupItem>
+
+  {/* --- NOUVEAU : CIBLAGE AGE --- */}
+  <ListGroupItem className="px-0 py-3 d-flex justify-content-between align-items-center">
+    <div className="d-flex align-items-center">
+      <div className="icon icon-shape icon-sm text-white rounded-circle mr-3" style={{ backgroundColor: '#34495e' }}>
+        <i className="fas fa-users" />
+      </div>
+      <span className="font-weight-bold">Tranche d'âge</span>
+    </div>
+    <Badge color="secondary" pill className="px-3 py-2">
+      {selectedPromo.tranche_age === 'tous' 
+        ? 'Tout public' 
+        : `${selectedPromo.tranche_age} ans`}
+    </Badge>
+  </ListGroupItem>
                   <ListGroupItem className="px-0 py-3 d-flex justify-content-between align-items-center">
                     <div className="d-flex align-items-center">
                       <div className="icon icon-shape icon-sm text-info bg-neutral-info rounded-circle mr-3">
