@@ -53,76 +53,11 @@ const CHART_COLORS = {
   orangeLight: 'rgba(243, 108, 33, 0.2)',
   white: '#ffffff',
   whiteLight: 'rgba(255, 255, 255, 0.2)',
-  grid: 'rgba(255, 255, 255, 0.1)',
-  text: '#ffffff'
+  grid: 'rgba(0, 0, 0, 0.05)',
+  text: '#2d3748'
 };
 
-const CUSTOM_STYLES = {
-  statCard: {
-    background: 'linear-gradient(145deg, #2d3748, #1a202c)',
-    border: '1px solid rgba(255,255,255,0.05)',
-    borderRadius: '16px',
-    boxShadow: '0 4px 20px rgba(0,0,0,0.2)'
-  },
-  chartContainer: {
-    background: 'linear-gradient(145deg, #1a202c, #2d3748)',
-    border: 'none',
-    borderRadius: '16px',
-    boxShadow: '0 10px 30px rgba(0,0,0,0.3)'
-  },
-  chartHeader: {
-    background: 'transparent',
-    borderBottom: '1px solid rgba(255,255,255,0.05)',
-    padding: '1.5rem'
-  },
-  chartTitle: {
-    color: '#ffffff',
-    fontSize: '1.1rem',
-    fontWeight: '600',
-    letterSpacing: '0.5px',
-    marginBottom: '0.25rem'
-  },
-  chartSubtitle: {
-    color: 'rgba(255,255,255,0.6)',
-    fontSize: '0.875rem'
-  },
-  buttonGroup: {
-    background: 'rgba(255,255,255,0.05)',
-    borderRadius: '12px',
-    padding: '4px',
-    display: 'inline-flex'
-  },
-  filterButton: {
-    border: 'none',
-    borderRadius: '8px',
-    padding: '6px 16px',
-    fontSize: '0.875rem',
-    fontWeight: '500',
-    transition: 'all 0.3s ease',
-    margin: '0 2px'
-  },
-  activeFilterButton: {
-    background: CHART_COLORS.orange,
-    color: 'white',
-    boxShadow: '0 2px 10px rgba(243, 108, 33, 0.3)'
-  },
-  inactiveFilterButton: {
-    background: 'transparent',
-    color: 'rgba(255,255,255,0.7)'
-  },
-  promotionCard: {
-    transition: 'transform 0.3s ease, box-shadow 0.3s ease',
-    cursor: 'pointer',
-    overflow: 'hidden',
-    borderRadius: '12px',
-    background: '#ffffff', // Fond blanc pour les cartes de promotion
-    border: 'none'
-  },
-  promotionCardHover: {
-    transform: 'translateY(-5px)',
-    boxShadow: '0 15px 30px rgba(0,0,0,0.1)'
-  }
-};
+const CUSTOM_STYLES = {};
 
 // --- Petit composant ImageWithPlaceholder ---
 const LOCAL_FALLBACK = `${process.env.PUBLIC_URL}/img/placeholder-320x180.jpg`;
@@ -197,19 +132,11 @@ const PromotionCard = React.memo(({ promotion, onClick }) => {
     return "https://via.placeholder.com/320x180.png?text=PubCash+Vidéo";
   };
 
-  const cardStyle = {
-    ...CUSTOM_STYLES.promotionCard,
-    ...(isHovered && CUSTOM_STYLES.promotionCardHover)
-  };
-
   return (
     <Col xl="3" lg="4" md="6" className="mb-4">
       <Card
-        className="shadow-sm border-0" // Utilisation de shadow-sm pour un effet plus subtil
+        className="promo-card-custom"
         onClick={() => onClick(promotion)}
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
-        style={cardStyle}
       >
         <div className="card-image-container">
           <ImageWithPlaceholder src={getThumbnail()} alt={promotion.titre} height={180} />
@@ -557,32 +484,25 @@ const Index = () => {
   // Cartes de statistiques globales avec style personnalisé
   const StatCard = ({ title, value, icon, color, subtitle }) => (
     <Col lg="3" md="6" className="mb-4">
-      <Card style={CUSTOM_STYLES.statCard}>
-        <CardBody style={{ padding: '1.5rem' }}>
+      <Card className="stat-card-custom">
+        <CardBody className="p-4">
           <Row className="align-items-center">
             <div className="col">
-              <h5 className="card-title text-uppercase mb-1" style={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '0.8rem', fontWeight: '600' }}>
+              <h5 className="stat-card-title mb-1">
                 {title}
               </h5>
-              <span className="h2 font-weight-bold mb-0 d-block" style={{ color: CHART_COLORS.orange, fontSize: '2rem' }}>
+              <span className="stat-card-value mb-0 d-block">
                 {typeof value === 'number' ? value.toLocaleString('fr-FR') : value}
               </span>
               {subtitle && (
-                <span className="text-sm" style={{ color: 'rgba(255, 255, 255, 0.5)' }}>
+                <span className="text-sm text-muted">
                   {subtitle}
                 </span>
               )}
             </div>
             <div className="col-auto">
-              <div className="icon icon-shape text-white rounded-circle shadow" style={{
-                background: `linear-gradient(45deg, ${color}, ${color}99)`,
-                width: '60px',
-                height: '60px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}>
-                <i className={`${icon} fa-lg`} />
+              <div className="icon-shape-custom">
+                <i className={`${icon}`} />
               </div>
             </div>
           </Row>
@@ -599,54 +519,42 @@ const Index = () => {
         {/* Section du Graphique d'Activité Détailée */}
         <Row className="mb-4">
           <Col>
-            <Card style={CUSTOM_STYLES.chartContainer}>
-              <CardHeader style={CUSTOM_STYLES.chartHeader}>
+            <Card className="chart-container-custom">
+              <CardHeader className="chart-header-custom">
                 <Row className="align-items-center">
                   <Col>
-                    <h3 style={CUSTOM_STYLES.chartTitle}>Analytics Détaillées</h3>
-                    <p style={CUSTOM_STYLES.chartSubtitle}>
+                    <h3 className="chart-title-custom">Analytics Détaillées</h3>
+                    <p className="chart-subtitle-custom">
                       Performance complète de vos campagnes publicitaires sur 12 mois
                     </p>
                   </Col>
                   <Col className="text-right">
-                    <div style={CUSTOM_STYLES.buttonGroup}>
+                    <div>
                       <Button
                         size="sm"
                         onClick={() => setActiveChart('tous')}
-                        style={{
-                          ...CUSTOM_STYLES.filterButton,
-                          ...(activeChart === 'tous' ? CUSTOM_STYLES.activeFilterButton : CUSTOM_STYLES.inactiveFilterButton)
-                        }}
+                        className={`btn-filter-custom ${activeChart === 'tous' ? 'active' : ''}`}
                       >
                         Tous
                       </Button>
                       <Button
                         size="sm"
                         onClick={() => setActiveChart('vues')}
-                        style={{
-                          ...CUSTOM_STYLES.filterButton,
-                          ...(activeChart === 'vues' ? CUSTOM_STYLES.activeFilterButton : CUSTOM_STYLES.inactiveFilterButton)
-                        }}
+                        className={`btn-filter-custom ${activeChart === 'vues' ? 'active' : ''}`}
                       >
                         Vues
                       </Button>
                       <Button
                         size="sm"
                         onClick={() => setActiveChart('likes')}
-                        style={{
-                          ...CUSTOM_STYLES.filterButton,
-                          ...(activeChart === 'likes' ? CUSTOM_STYLES.activeFilterButton : CUSTOM_STYLES.inactiveFilterButton)
-                        }}
+                        className={`btn-filter-custom ${activeChart === 'likes' ? 'active' : ''}`}
                       >
                         Likes
                       </Button>
                       <Button
                         size="sm"
                         onClick={() => setActiveChart('partages')}
-                        style={{
-                          ...CUSTOM_STYLES.filterButton,
-                          ...(activeChart === 'partages' ? CUSTOM_STYLES.activeFilterButton : CUSTOM_STYLES.inactiveFilterButton)
-                        }}
+                        className={`btn-filter-custom ${activeChart === 'partages' ? 'active' : ''}`}
                       >
                         Partages
                       </Button>
@@ -685,8 +593,8 @@ const Index = () => {
         {/* Section Filtres et Promotions */}
         <Row className="align-items-center mb-4">
           <Col>
-            <h2 className="mb-0" style={{ color: "White" }}>Mes Promotions</h2>
-            <p className="text-light mb-0">Gérez et suivez vos campagnes publicitaires</p>
+            <h2 className="mb-0 text-dark">Mes Promotions</h2>
+            <p className="text-muted mb-0">Gérez et suivez vos campagnes publicitaires</p>
           </Col>
           <Col className="text-right d-flex justify-content-end">
             <Button
