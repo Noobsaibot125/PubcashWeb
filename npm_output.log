@@ -1,0 +1,5 @@
+npm warn Unknown project config "auto-install-peers". This will stop working in the next major version of npm.
+npm warn Unknown project config "strict-peer-dependencies". This will stop working in the next major version of npm.
+
+> argon-dashboard-react@1.2.4 start
+> react-scripts start
