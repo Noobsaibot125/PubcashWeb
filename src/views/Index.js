@@ -19,7 +19,7 @@ import {
   ListGroup,
   ListGroupItem
 } from "reactstrap";
-import { Line, Bar } from "react-chartjs-2";
+import { Line, Doughnut } from "react-chartjs-2";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -27,6 +27,7 @@ import {
   PointElement,
   LineElement,
   BarElement,
+  ArcElement,
   Title,
   Tooltip,
   Legend,
@@ -41,6 +42,7 @@ ChartJS.register(
   PointElement,
   LineElement,
   BarElement,
+  ArcElement,
   Title,
   Tooltip,
   Legend,
@@ -53,76 +55,11 @@ const CHART_COLORS = {
   orangeLight: 'rgba(243, 108, 33, 0.2)',
   white: '#ffffff',
   whiteLight: 'rgba(255, 255, 255, 0.2)',
-  grid: 'rgba(255, 255, 255, 0.1)',
-  text: '#ffffff'
+  grid: 'rgba(0, 0, 0, 0.05)',
+  text: '#2d3748'
 };
 
-const CUSTOM_STYLES = {
-  statCard: {
-    background: 'linear-gradient(145deg, #2d3748, #1a202c)',
-    border: '1px solid rgba(255,255,255,0.05)',
-    borderRadius: '16px',
-    boxShadow: '0 4px 20px rgba(0,0,0,0.2)'
-  },
-  chartContainer: {
-    background: 'linear-gradient(145deg, #1a202c, #2d3748)',
-    border: 'none',
-    borderRadius: '16px',
-    boxShadow: '0 10px 30px rgba(0,0,0,0.3)'
-  },
-  chartHeader: {
-    background: 'transparent',
-    borderBottom: '1px solid rgba(255,255,255,0.05)',
-    padding: '1.5rem'
-  },
-  chartTitle: {
-    color: '#ffffff',
-    fontSize: '1.1rem',
-    fontWeight: '600',
-    letterSpacing: '0.5px',
-    marginBottom: '0.25rem'
-  },
-  chartSubtitle: {
-    color: 'rgba(255,255,255,0.6)',
-    fontSize: '0.875rem'
-  },
-  buttonGroup: {
-    background: 'rgba(255,255,255,0.05)',
-    borderRadius: '12px',
-    padding: '4px',
-    display: 'inline-flex'
-  },
-  filterButton: {
-    border: 'none',
-    borderRadius: '8px',
-    padding: '6px 16px',
-    fontSize: '0.875rem',
-    fontWeight: '500',
-    transition: 'all 0.3s ease',
-    margin: '0 2px'
-  },
-  activeFilterButton: {
-    background: CHART_COLORS.orange,
-    color: 'white',
-    boxShadow: '0 2px 10px rgba(243, 108, 33, 0.3)'
-  },
-  inactiveFilterButton: {
-    background: 'transparent',
-    color: 'rgba(255,255,255,0.7)'
-  },
-  promotionCard: {
-    transition: 'transform 0.3s ease, box-shadow 0.3s ease',
-    cursor: 'pointer',
-    overflow: 'hidden',
-    borderRadius: '12px',
-    background: '#ffffff', // Fond blanc pour les cartes de promotion
-    border: 'none'
-  },
-  promotionCardHover: {
-    transform: 'translateY(-5px)',
-    boxShadow: '0 15px 30px rgba(0,0,0,0.1)'
-  }
-};
+const CUSTOM_STYLES = {};
 
 // --- Petit composant ImageWithPlaceholder ---
 const LOCAL_FALLBACK = `${process.env.PUBLIC_URL}/img/placeholder-320x180.jpg`;
@@ -197,19 +134,11 @@ const PromotionCard = React.memo(({ promotion, onClick }) => {
     return "https://via.placeholder.com/320x180.png?text=PubCash+Vidéo";
   };
 
-  const cardStyle = {
-    ...CUSTOM_STYLES.promotionCard,
-    ...(isHovered && CUSTOM_STYLES.promotionCardHover)
-  };
-
   return (
     <Col xl="3" lg="4" md="6" className="mb-4">
       <Card
-        className="shadow-sm border-0" // Utilisation de shadow-sm pour un effet plus subtil
+        className="promo-card-custom"
         onClick={() => onClick(promotion)}
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
-        style={cardStyle}
       >
         <div className="card-image-container">
           <ImageWithPlaceholder src={getThumbnail()} alt={promotion.titre} height={180} />
@@ -554,139 +483,72 @@ const Index = () => {
     ));
   };
 
-  // Cartes de statistiques globales avec style personnalisé
-  const StatCard = ({ title, value, icon, color, subtitle }) => (
-    <Col lg="3" md="6" className="mb-4">
-      <Card style={CUSTOM_STYLES.statCard}>
-        <CardBody style={{ padding: '1.5rem' }}>
-          <Row className="align-items-center">
-            <div className="col">
-              <h5 className="card-title text-uppercase mb-1" style={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '0.8rem', fontWeight: '600' }}>
-                {title}
-              </h5>
-              <span className="h2 font-weight-bold mb-0 d-block" style={{ color: CHART_COLORS.orange, fontSize: '2rem' }}>
-                {typeof value === 'number' ? value.toLocaleString('fr-FR') : value}
-              </span>
-              {subtitle && (
-                <span className="text-sm" style={{ color: 'rgba(255, 255, 255, 0.5)' }}>
-                  {subtitle}
-                </span>
-              )}
-            </div>
-            <div className="col-auto">
-              <div className="icon icon-shape text-white rounded-circle shadow" style={{
-                background: `linear-gradient(45deg, ${color}, ${color}99)`,
-                width: '60px',
-                height: '60px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}>
-                <i className={`${icon} fa-lg`} />
-              </div>
-            </div>
-          </Row>
-        </CardBody>
-      </Card>
-    </Col>
-  );
 
   return (
     <>
       <ClientHeader />
       <Container className="mt--7" fluid>
 
-        {/* Section du Graphique d'Activité Détailée */}
-        <Row className="mb-4">
-          <Col>
-            <Card style={CUSTOM_STYLES.chartContainer}>
-              <CardHeader style={CUSTOM_STYLES.chartHeader}>
-                <Row className="align-items-center">
-                  <Col>
-                    <h3 style={CUSTOM_STYLES.chartTitle}>Analytics Détaillées</h3>
-                    <p style={CUSTOM_STYLES.chartSubtitle}>
-                      Performance complète de vos campagnes publicitaires sur 12 mois
-                    </p>
-                  </Col>
-                  <Col className="text-right">
-                    <div style={CUSTOM_STYLES.buttonGroup}>
-                      <Button
-                        size="sm"
-                        onClick={() => setActiveChart('tous')}
-                        style={{
-                          ...CUSTOM_STYLES.filterButton,
-                          ...(activeChart === 'tous' ? CUSTOM_STYLES.activeFilterButton : CUSTOM_STYLES.inactiveFilterButton)
-                        }}
-                      >
-                        Tous
-                      </Button>
-                      <Button
-                        size="sm"
-                        onClick={() => setActiveChart('vues')}
-                        style={{
-                          ...CUSTOM_STYLES.filterButton,
-                          ...(activeChart === 'vues' ? CUSTOM_STYLES.activeFilterButton : CUSTOM_STYLES.inactiveFilterButton)
-                        }}
-                      >
-                        Vues
-                      </Button>
-                      <Button
-                        size="sm"
-                        onClick={() => setActiveChart('likes')}
-                        style={{
-                          ...CUSTOM_STYLES.filterButton,
-                          ...(activeChart === 'likes' ? CUSTOM_STYLES.activeFilterButton : CUSTOM_STYLES.inactiveFilterButton)
-                        }}
-                      >
-                        Likes
-                      </Button>
-                      <Button
-                        size="sm"
-                        onClick={() => setActiveChart('partages')}
-                        style={{
-                          ...CUSTOM_STYLES.filterButton,
-                          ...(activeChart === 'partages' ? CUSTOM_STYLES.activeFilterButton : CUSTOM_STYLES.inactiveFilterButton)
-                        }}
-                      >
-                        Partages
-                      </Button>
+        {/* Section Analytics (Split) */}
+        <div className="analytics-container mb-4">
+            <div className="analytics-header">
+                <h3>Analytics Détaillées</h3>
+                <p className="text-muted">Performance complète de vos campagnes publicitaires sur 12 mois</p>
+            </div>
+            <Row>
+                <Col lg="8" className="mb-4 mb-lg-0">
+                    <div className="chart-box">
+                        <div className="d-flex justify-content-between align-items-center mb-4">
+                            <h4 className="chart-box-title mb-0">Vue d'ensemble</h4>
+                            <div>
+                                <Button size="sm" onClick={() => setActiveChart('tous')} className={`btn-filter-custom ${activeChart === 'tous' ? 'active' : ''}`}>Tous</Button>
+                                <Button size="sm" onClick={() => setActiveChart('vues')} className={`btn-filter-custom ${activeChart === 'vues' ? 'active' : ''}`}>Vues</Button>
+                                <Button size="sm" onClick={() => setActiveChart('likes')} className={`btn-filter-custom ${activeChart === 'likes' ? 'active' : ''}`}>Likes</Button>
+                                <Button size="sm" onClick={() => setActiveChart('partages')} className={`btn-filter-custom ${activeChart === 'partages' ? 'active' : ''}`}>Partages</Button>
+                            </div>
+                        </div>
+                        <div className="chart-big-number">
+                             {statsLoading ? "..." : (activeChart === 'likes' ? globalStats.total_likes : activeChart === 'partages' ? globalStats.total_partages : globalStats.total_vues).toLocaleString('fr-FR')}
+                        </div>
+                        <div style={{ height: '300px' }}>
+                             {statsLoading ? <div className="text-center py-5">Chargement...</div> :
+                              chartData ? <Line data={filterDatasets(activeChart)} options={customChartOptions} /> :
+                              <div className="text-center">Aucune donnée</div>}
+                        </div>
                     </div>
-                  </Col>
-                </Row>
-              </CardHeader>
-              <CardBody style={{ padding: '1.5rem' }}>
-                {statsLoading ? (
-                  <div className="text-center py-5">
-                    <div className="spinner-border text-warning" role="status">
-                      <span className="sr-only">Chargement...</span>
+                </Col>
+                <Col lg="4">
+                    <div className="chart-box">
+                        <h4 className="chart-box-title">Répartition</h4>
+                         <div className="chart-big-number">
+                            {(globalStats.total_vues + globalStats.total_likes + globalStats.total_partages).toLocaleString('fr-FR')}
+                        </div>
+                        <div style={{ height: '250px', position: 'relative' }}>
+                            <Doughnut
+                                data={{
+                                    labels: ['Vues', 'Likes', 'Partages'],
+                                    datasets: [{
+                                        data: [globalStats.total_vues, globalStats.total_likes, globalStats.total_partages],
+                                        backgroundColor: ['#0076bd', '#5e0080', '#00c853'],
+                                        borderWidth: 0
+                                    }]
+                                }}
+                                options={{
+                                    cutout: '70%',
+                                    plugins: { legend: { position: 'right' } },
+                                    maintainAspectRatio: false
+                                }}
+                            />
+                        </div>
                     </div>
-                    <p className="mt-2 mb-0" style={{ color: CHART_COLORS.text }}>Chargement des analytics...</p>
-                  </div>
-                ) : chartData ? (
-                  <div className="chart" style={{ height: '400px', position: 'relative' }}>
-                    <Line
-                      data={filterDatasets(activeChart)}
-                      options={customChartOptions}
-                    />
-                  </div>
-                ) : (
-                  <div className="text-center py-5" style={{ color: CHART_COLORS.text }}>
-                    <i className="fas fa-chart-line fa-3x mb-3 opacity-50"></i>
-                    <p>Aucune donnée analytique disponible</p>
-                    <small style={{ color: 'rgba(255, 255, 255, 0.6)' }}>
-                      Créez des promotions pour générer des statistiques
-                    </small>
-                  </div>
-                )}
-              </CardBody>
-            </Card>
-          </Col>
-        </Row>
+                </Col>
+            </Row>
+        </div>
         {/* Section Filtres et Promotions */}
         <Row className="align-items-center mb-4">
           <Col>
-            <h2 className="mb-0" style={{ color: "White" }}>Mes Promotions</h2>
-            <p className="text-light mb-0">Gérez et suivez vos campagnes publicitaires</p>
+            <h2 className="mb-0 text-dark">Mes Promotions</h2>
+            <p className="text-muted mb-0">Gérez et suivez vos campagnes publicitaires</p>
           </Col>
           <Col className="text-right d-flex justify-content-end">
             <Button

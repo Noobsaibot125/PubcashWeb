@@ -2,17 +2,18 @@
 
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import {
-    Card, CardHeader, CardBody, Container, Row, Col, Form, FormGroup, Input,
+    Card, CardBody, Container, Row, Col, Form, FormGroup, Input,
     Button, Label, Modal, ModalHeader, ModalBody, ModalFooter, Spinner
 } from 'reactstrap';
-import ClientHeader from "components/Headers/ClientHeader.js";
+// Removing ClientHeader to match the clean mockup look
+// import ClientHeader from "components/Headers/ClientHeader.js";
 import api from '../../services/api';
 
 // On définit les coûts des packs pour les calculs de vues potentielles
 const PACK_REMUNERATIONS = { 'Agent': 50, 'Gold': 75, 'Diamant': 100 };
 
 const CreerPromotion = () => {
-    // --- ETATS INITIAUX (Ta version) ---
+    // --- ETATS INITIAUX ---
     const [formData, setFormData] = useState({
         titre: '', description: '', budget: '',
         tranche_age: 'tous', ciblage_commune: 'toutes'
@@ -30,7 +31,7 @@ const CreerPromotion = () => {
 
     // --- NOUVEAUX ETATS (Pour le Quiz et le Wizard) ---
     const [step, setStep] = useState(1); // 1 = Promo, 2 = Quiz
-    const [includeQuiz, setIncludeQuiz] = useState(false); // Est-ce qu'on ajoute le quiz ?
+    const [includeQuiz, setIncludeQuiz] = useState(false);
     const [quizData, setQuizData] = useState({
         question: '',
         mauvaiseReponse1: '',
@@ -38,7 +39,7 @@ const CreerPromotion = () => {
         bonneReponse: ''
     });
 
-    // --- EFFETS ET API (Ta version) ---
+    // --- EFFETS ET API ---
     useEffect(() => {
         const fetchProfile = async () => {
             try {
@@ -63,15 +64,13 @@ const CreerPromotion = () => {
         return res.data; 
     };
 
-    // --- CALCULS (Ta version) ---
+    // --- CALCULS ---
     const budgetPourCampagne = useMemo(() => (parseFloat(formData.budget) > 0 ? (parseFloat(formData.budget) * 0.85).toFixed(2) : '0.00'), [formData.budget]);
     const vuesPotentielles = useMemo(() => (parseFloat(budgetPourCampagne) > 0 && PACK_REMUNERATIONS[pack] > 0 ? Math.floor(parseFloat(budgetPourCampagne) / PACK_REMUNERATIONS[pack]) : 0), [budgetPourCampagne, pack]);
     const nouveauSolde = useMemo(() => (parseFloat(formData.budget) > 0 && parseFloat(profile.solde_recharge) >= parseFloat(formData.budget) ? (parseFloat(profile.solde_recharge) - parseFloat(formData.budget)).toFixed(2) : parseFloat(profile.solde_recharge).toFixed(2)), [formData.budget, profile.solde_recharge]);
 
-    // --- HANDLERS (Ta version + Quiz) ---
+    // --- HANDLERS ---
     const handleChange = (e) => setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
-    
-    // Nouveau handler pour le quiz
     const handleQuizChange = (e) => setQuizData(prev => ({ ...prev, [e.target.name]: e.target.value }));
 
     const handleFileChange = (event) => {
@@ -118,50 +117,38 @@ const CreerPromotion = () => {
     const clearVideoFile = () => { setVideoFile(null); setDuree(''); setPack(''); };
 
     // --- NAVIGATION ET VALIDATION ---
-
-    // 1. Validation de l'étape 1 (Modifié pour aller à l'étape 2 au lieu d'ouvrir le modal direct)
     const handleStep1Submit = (e) => {
         e.preventDefault();
         setError('');
         if (!videoFile) return setError('Veuillez importer une vidéo.');
         if (!pack || !duree) return setError('Durée de la vidéo non déterminée. Vérifiez le fichier.');
         if (parseFloat(formData.budget) > parseFloat(profile.solde_recharge)) return setError('Solde insuffisant.');
-        
-        // Tout est bon, on passe à l'étape Quiz
         setStep(2);
     };
 
-    // 2. Validation de l'étape 2 et ouverture du Modal
     const handleFinalPreSubmit = (withQuiz) => {
         setIncludeQuiz(withQuiz);
         setError('');
-
         if (withQuiz) {
             if (!quizData.question || !quizData.bonneReponse || !quizData.mauvaiseReponse1 || !quizData.mauvaiseReponse2) {
                 setError("Veuillez remplir tous les champs du quiz pour continuer.");
                 return;
             }
         }
-        // Si tout est ok (ou si on ignore le quiz), on ouvre ta modale de confirmation
         setIsModalOpen(true);
     };
 
-    // 3. Soumission Finale au Backend
     const submitPromotion = async () => {
         setIsModalOpen(false);
         setLoading(true);
-
         try {
             let videoFilename = null;
             let thumbFilename = null;
-
-            // 1. Upload Vidéo
             if (videoFile) {
                 const uploadResult = await uploadVideoToServer(videoFile);
                 videoFilename = uploadResult.videoFilename;
                 thumbFilename = uploadResult.thumbFilename || null;
             }
-
             const cleanValue = (value) => (value === undefined ? null : value);
             const submissionData = {
                 titre: cleanValue(formData.titre),
@@ -173,20 +160,16 @@ const CreerPromotion = () => {
                 tranche_age: cleanValue(formData.tranche_age),
                 ciblage_commune: cleanValue(formData.ciblage_commune)
             };
-
-            // 2. Création de la promotion
             const response = await api.post('/client/promotions', submissionData);
             const data = response.data;
-           const promoId = data.promotionId;
+            const promoId = data.promotionId;
 
-            // 3. Création du Quiz (Si demandé)
             if (includeQuiz && promoId) {
                 const reponsesPossibles = JSON.stringify([
                     quizData.bonneReponse, 
                     quizData.mauvaiseReponse1, 
                     quizData.mauvaiseReponse2
                 ]);
-
                 await api.post('/games/create', {
                     type: 'quiz',
                     titre: `Quiz: ${formData.titre}`,
@@ -198,17 +181,12 @@ const CreerPromotion = () => {
                     statut: 'actif'
                 });
             }
-
-            // Fin succès
             setShowSuccessModal(true);
             setProfile(prev => ({ ...prev, solde_recharge: data.newBalance }));
-            
-            // Réinitialiser tout
             setFormData({ titre: '', description: '', budget: '', tranche_age: 'tous', ciblage_commune: 'toutes' });
             setQuizData({ question: '', bonneReponse: '', mauvaiseReponse1: '', mauvaiseReponse2: '' });
             clearVideoFile();
-            setStep(1); // Retour à l'étape 1
-
+            setStep(1);
         } catch (err) {
             const errorMessage = err.response?.data?.message || 'Une erreur est survenue.';
             setError(errorMessage);
@@ -219,148 +197,155 @@ const CreerPromotion = () => {
 
     return (
         <>
-            <ClientHeader />
-            <Container className="mt--7" fluid>
-                <Row className="justify-content-center">
-                    <Col xl="10">
-                        <Card className="shadow">
-                            <CardHeader>
-                                <div className="d-flex justify-content-between align-items-center">
-                                    <h3 className="mb-0">
-                                        {step === 1 ? "Créer une nouvelle promotion" : "Ajouter un Quiz (Optionnel)"}
-                                    </h3>
-                                    {step === 2 && (
-                                        <Button size="sm" color="secondary" onClick={() => setStep(1)}>
-                                            <i className="ni ni-bold-left"></i> Retour
-                                        </Button>
-                                    )}
-                                </div>
-                            </CardHeader>
-                            <CardBody>
-                                {error && <div className="text-danger my-3 text-center alert alert-danger"><small>{error}</small></div>}
-                                {success && <div className="text-success my-3 text-center"><small>{success}</small></div>}
+            {/* Simple spacer instead of ClientHeader to keep it clean */}
+            <div className="header pt-5 pt-md-8 pb-4"></div>
 
-                                {/* ==================== ÉTAPE 1 : TA VERSION ORIGINALE ==================== */}
+            <Container fluid>
+                <Row className="justify-content-center">
+                    <Col xl="11">
+                        <Card className="pubcash-form-card bg-white shadow">
+                            <CardBody className="p-4 p-md-5">
+                                <h2 className="pubcash-form-title mb-5">
+                                    {step === 1 ? "Créer une nouvelle promotion" : "Ajouter un Quiz (Optionnel)"}
+                                </h2>
+
+                                {error && <div className="alert alert-danger rounded-lg">{error}</div>}
+                                {success && <div className="alert alert-success rounded-lg">{success}</div>}
+
+                                {/* ==================== ÉTAPE 1 : PROMOTION ==================== */}
                                 <div style={{ display: step === 1 ? 'block' : 'none' }}>
                                     <Form onSubmit={handleStep1Submit}>
-                                        <h6 className="heading-small text-muted mb-4">Informations sur la publicité</h6>
+
+                                        {/* --- Section 1: Informations --- */}
+                                        <h6 className="section-title-orange">INFORMATIONS SUR LA PUBLICITÉ</h6>
                                         <Row>
-                                            <Col lg="8">
+                                            <Col md="6">
                                                 <FormGroup>
-                                                    <Label for="titre">Titre</Label>
+                                                    <Label className="form-control-label-pubcash" for="titre">Titre</Label>
                                                     <Input
+                                                        className="form-control-pubcash"
                                                         type="text"
                                                         name="titre"
                                                         id="titre"
-                                                        placeholder="Ex: Super promo sur les T-shirts"
+                                                        placeholder="Ex: Promo T-shirt"
                                                         value={formData.titre}
                                                         onChange={handleChange}
                                                         required
                                                     />
                                                 </FormGroup>
+                                            </Col>
+                                            <Col md="6">
                                                 <FormGroup>
-                                                    <Label for="description">Description</Label>
+                                                    <Label className="form-control-label-pubcash" for="tranche_age">Tranche d'âge ciblée</Label>
                                                     <Input
-                                                        type="textarea"
+                                                        className="form-control-pubcash"
+                                                        type="select"
+                                                        name="tranche_age"
+                                                        id="tranche_age"
+                                                        value={formData.tranche_age}
+                                                        onChange={handleChange}
+                                                        required
+                                                    >
+                                                        <option value="tous">Tout le monde</option>
+                                                        <option value="12-17">Adolescents (12-17 ans)</option>
+                                                        <option value="18+">Adultes (18 ans et plus)</option>
+                                                    </Input>
+                                                </FormGroup>
+                                            </Col>
+                                        </Row>
+                                        <Row>
+                                            <Col md="6">
+                                                <FormGroup>
+                                                    <Label className="form-control-label-pubcash" for="description">Description</Label>
+                                                    <Input
+                                                        className="form-control-pubcash"
+                                                        type="text"
                                                         name="description"
                                                         id="description"
-                                                        rows="3"
-                                                        placeholder="Une courte description de votre produit ou service."
+                                                        placeholder="Courte description ..."
                                                         value={formData.description}
                                                         onChange={handleChange}
                                                     />
                                                 </FormGroup>
-
-                                                {/* Nouveaux champs ajoutés */}
-                                                <Row>
-                                                    <Col md="6">
-                                                        <FormGroup>
-                                                            <Label for="tranche_age">Tranche d'âge ciblée</Label>
-                                                            <Input
-                                                                type="select"
-                                                                name="tranche_age"
-                                                                id="tranche_age"
-                                                                value={formData.tranche_age}
-                                                                onChange={handleChange}
-                                                                required
-                                                            >
-                                                                <option value="tous">Tout le monde</option>
-                                                                <option value="12-17">Adolescents (12-17 ans)</option>
-                                                                <option value="18+">Adultes (18 ans et plus)</option>
-                                                            </Input>
-                                                        </FormGroup>
-                                                    </Col>
-                                                    <Col md="6">
-                                                        <FormGroup>
-                                                            <Label for="ciblage_commune">Ciblage par commune</Label>
-                                                            <Input
-                                                                type="select"
-                                                                name="ciblage_commune"
-                                                                id="ciblage_commune"
-                                                                value={formData.ciblage_commune}
-                                                                onChange={handleChange}
-                                                                required
-                                                            >
-                                                                <option value="toutes">Toutes les communes</option>
-                                                                <option value="ma_commune">
-                                                                    {`Ma commune seulement ${profile.commune ? `(${profile.commune})` : ''}`}
-                                                                </option>
-                                                            </Input>
-                                                        </FormGroup>
-                                                    </Col>
-                                                </Row>
-                                            </Col>
-                                            <Col lg="4" className="d-flex flex-column align-items-center justify-content-center border-left-lg mt-4 mt-lg-0">
-                                                <input
-                                                    type="file"
-                                                    ref={fileInputRef}
-                                                    onChange={handleFileChange}
-                                                    style={{ display: 'none' }}
-                                                    accept="video/*"
-                                                />
-                                                {!videoFile ? (
-                                                    <Button
-                                                        color="secondary"
-                                                        outline
-                                                        onClick={triggerFileSelect}
-                                                        className="btn-icon-clipboard"
-                                                        style={{ width: '150px', height: '150px', borderRadius: '50%', borderStyle: 'dashed' }}
-                                                    >
-                                                        <div>
-                                                            <i className="ni ni-fat-add" style={{ fontSize: '3rem' }} />
-                                                            <span className="d-block mt-2">Importer Vidéo</span>
-                                                        </div>
-                                                    </Button>
-                                                ) : (
-                                                    <div className="text-center p-3 border rounded">
-                                                        <i className="ni ni-tv-2 text-success" style={{ fontSize: '3rem' }} />
-                                                        <p className="mt-2 mb-2 text-sm font-weight-bold">{videoFile.name}</p>
-                                                        <Button color="danger" size="sm" outline onClick={clearVideoFile}>Changer</Button>
-                                                    </div>
-                                                )}
-                                            </Col>
-                                        </Row>
-                                        <hr className="my-4" />
-                                        <h6 className="heading-small text-muted mb-4">Paramètres & Coûts</h6>
-                                        <Row>
-                                            <Col md="6">
-                                                <FormGroup>
-                                                    <Label>Durée (secondes)</Label>
-                                                    <Input type="number" value={duree} placeholder="Auto-détectée" disabled />
-                                                </FormGroup>
                                             </Col>
                                             <Col md="6">
                                                 <FormGroup>
-                                                    <Label>Pack associé</Label>
-                                                    <Input type="text" value={pack} placeholder="Auto-détecté" disabled />
-                                                </FormGroup>
-                                            </Col>
-                                        </Row>
-                                        <Row>
-                                            <Col md="6">
-                                                <FormGroup>
-                                                    <Label>Montant de la promotion</Label>
+                                                    <Label className="form-control-label-pubcash" for="ciblage_commune">Ciblage par commune</Label>
                                                     <Input
+                                                        className="form-control-pubcash"
+                                                        type="select"
+                                                        name="ciblage_commune"
+                                                        id="ciblage_commune"
+                                                        value={formData.ciblage_commune}
+                                                        onChange={handleChange}
+                                                        required
+                                                    >
+                                                        <option value="toutes">Toutes les communes</option>
+                                                        <option value="ma_commune">
+                                                            {`Ma commune seulement ${profile.commune ? `(${profile.commune})` : ''}`}
+                                                        </option>
+                                                    </Input>
+                                                </FormGroup>
+                                            </Col>
+                                        </Row>
+
+                                        {/* --- Section 2: Upload Video --- */}
+                                        <div className="my-5">
+                                            <div className="text-center mb-3">
+                                                <Label className="form-control-label-pubcash" style={{ fontSize: '1rem' }}>Importer la vidéo</Label>
+                                            </div>
+
+                                            <input
+                                                type="file"
+                                                ref={fileInputRef}
+                                                onChange={handleFileChange}
+                                                style={{ display: 'none' }}
+                                                accept="video/*"
+                                            />
+
+                                            {!videoFile ? (
+                                                <div className="upload-zone" onClick={triggerFileSelect}>
+                                                    <div className="upload-icon-circle">
+                                                        <i className="ni ni-fat-add"></i>
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <div className="upload-zone" style={{ borderColor: 'var(--pubcash-green)' }}>
+                                                    <div className="text-center">
+                                                        <div className="upload-icon-circle mb-3 mx-auto" style={{ backgroundColor: '#d1fae5', color: '#059669' }}>
+                                                            <i className="ni ni-check-bold"></i>
+                                                        </div>
+                                                        <p className="font-weight-bold mb-2">{videoFile.name}</p>
+                                                        <Button size="sm" color="danger" outline onClick={(e) => { e.stopPropagation(); clearVideoFile(); }}>
+                                                            Supprimer
+                                                        </Button>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* --- Section 3: Paramètres & Coûts --- */}
+                                        <h6 className="section-title-green">PARAMÈTRES & COÛTS</h6>
+                                        <Row>
+                                            <Col md="6">
+                                                <FormGroup>
+                                                    <Label className="form-control-label-pubcash">Durée (secondes)</Label>
+                                                    <Input className="form-control-pubcash" type="text" value={duree || ''} placeholder="Auto-détectée" disabled />
+                                                </FormGroup>
+                                            </Col>
+                                            <Col md="6">
+                                                <FormGroup>
+                                                    <Label className="form-control-label-pubcash">Pack associé</Label>
+                                                    <Input className="form-control-pubcash" type="text" value={pack || ''} placeholder="Auto-détectée" disabled />
+                                                </FormGroup>
+                                            </Col>
+                                        </Row>
+                                        <Row>
+                                            <Col md="6">
+                                                <FormGroup>
+                                                    <Label className="form-control-label-pubcash">Montant de la promotion (FCFA)</Label>
+                                                    <Input
+                                                        className="form-control-pubcash"
                                                         type="number"
                                                         name="budget"
                                                         placeholder="Ex: 10000"
@@ -372,43 +357,59 @@ const CreerPromotion = () => {
                                             </Col>
                                             <Col md="6">
                                                 <FormGroup>
-                                                    <Label>Budget réel pour les vues (après commission)</Label>
-                                                    <Input type="text" value={`${budgetPourCampagne} FCFA`} disabled />
+                                                    <Label className="form-control-label-pubcash">Budget réel pour les vues ...</Label>
+                                                    <div className="position-relative">
+                                                        <Input className="form-control-pubcash" type="text" value={`${budgetPourCampagne} FCFA`} disabled />
+                                                        <i className="ni ni-bold-down position-absolute" style={{ right: '15px', top: '15px', color: '#a0aec0' }}></i>
+                                                    </div>
                                                 </FormGroup>
                                             </Col>
                                         </Row>
-                                        <Row>
-                                            <Col>
+
+                                         {/* Added Potential Views Field */}
+                                         <Row>
+                                            <Col md="12">
                                                 <FormGroup>
-                                                    <Label>Nombre de vue potentielles</Label>
-                                                    <Input type="text" value={`~ ${vuesPotentielles} personnes`} disabled />
+                                                    <Label className="form-control-label-pubcash text-primary">Nombre de vues potentielles estimées</Label>
+                                                    <Input
+                                                        className="form-control-pubcash"
+                                                        style={{ fontWeight: 'bold', color: 'var(--pubcash-blue)' }}
+                                                        type="text"
+                                                        value={vuesPotentielles > 0 ? `~ ${vuesPotentielles} Personnes` : '-'}
+                                                        disabled
+                                                    />
                                                 </FormGroup>
                                             </Col>
                                         </Row>
-                                        <hr className="my-4" />
-                                        
-                                        <div className="text-right">
-                                            {/* Changement ici: Le bouton passe à l'étape suivante au lieu de submit direct */}
-                                            <Button color="primary" type="submit" disabled={loading || !formData.budget}>
-                                                Suivant : Configurer le Quiz <i className="ni ni-bold-right ml-2"></i>
+
+
+                                        <div className="text-right mt-5">
+                                            <Button
+                                                className="btn-lg px-5"
+                                                style={{ backgroundColor: 'var(--pubcash-orange)', borderColor: 'var(--pubcash-orange)', color: 'white', borderRadius: '10px' }}
+                                                type="submit"
+                                                disabled={loading || !formData.budget}
+                                            >
+                                                Suivant <i className="ni ni-bold-right ml-2"></i>
                                             </Button>
                                         </div>
                                     </Form>
                                 </div>
 
-                                {/* ==================== ÉTAPE 2 : LE QUIZ (Nouveau) ==================== */}
+                                {/* ==================== ÉTAPE 2 : QUIZ ==================== */}
                                 <div style={{ display: step === 2 ? 'block' : 'none' }}>
                                     <div className="text-center mb-5">
-                                        <div className="icon icon-shape bg-gradient-primary text-white rounded-circle shadow mb-4">
-                                            <i className="ni ni-hat-3"></i>
+                                        <div className="icon icon-shape bg-gradient-success text-white rounded-circle shadow mb-4" style={{ width: '80px', height: '80px' }}>
+                                            <i className="ni ni-hat-3" style={{ fontSize: '2rem' }}></i>
                                         </div>
-                                        <h4>Engagez votre audience avec un Quiz !</h4>
+                                        <h3 className="text-dark">Engagez votre audience avec un Quiz !</h3>
                                         <p className="text-muted">Si l'utilisateur répond correctement après avoir partagé, il gagne 5 points bonus.</p>
                                     </div>
 
                                     <FormGroup>
-                                        <Label className="form-control-label">La Question</Label>
+                                        <Label className="form-control-label-pubcash">La Question</Label>
                                         <Input 
+                                            className="form-control-pubcash"
                                             type="text" 
                                             placeholder="Ex: Quelle est la couleur du t-shirt dans la vidéo ?" 
                                             name="question"
@@ -420,21 +421,23 @@ const CreerPromotion = () => {
                                     <Row>
                                         <Col md="4">
                                             <FormGroup>
-                                                <Label className="form-control-label text-success">Bonne Réponse</Label>
+                                                <Label className="form-control-label-pubcash text-success">Bonne Réponse</Label>
                                                 <Input 
+                                                    className="form-control-pubcash"
                                                     type="text" 
                                                     placeholder="La réponse correcte" 
                                                     name="bonneReponse"
                                                     value={quizData.bonneReponse}
                                                     onChange={handleQuizChange}
-                                                    valid={quizData.bonneReponse.length > 0}
+                                                    style={{ borderColor: '#48bb78' }}
                                                 />
                                             </FormGroup>
                                         </Col>
                                         <Col md="4">
                                             <FormGroup>
-                                                <Label className="form-control-label text-danger">Mauvaise Réponse 1</Label>
+                                                <Label className="form-control-label-pubcash text-danger">Mauvaise Réponse 1</Label>
                                                 <Input 
+                                                    className="form-control-pubcash"
                                                     type="text" 
                                                     name="mauvaiseReponse1"
                                                     value={quizData.mauvaiseReponse1}
@@ -444,8 +447,9 @@ const CreerPromotion = () => {
                                         </Col>
                                         <Col md="4">
                                             <FormGroup>
-                                                <Label className="form-control-label text-danger">Mauvaise Réponse 2</Label>
+                                                <Label className="form-control-label-pubcash text-danger">Mauvaise Réponse 2</Label>
                                                 <Input 
+                                                    className="form-control-pubcash"
                                                     type="text" 
                                                     name="mauvaiseReponse2"
                                                     value={quizData.mauvaiseReponse2}
@@ -456,12 +460,32 @@ const CreerPromotion = () => {
                                     </Row>
 
                                     <div className="d-flex justify-content-between mt-5 pt-4 border-top">
-                                        <Button color="secondary" outline onClick={() => handleFinalPreSubmit(false)}>
+                                        <Button
+                                            color="secondary"
+                                            outline
+                                            className="px-4"
+                                            onClick={() => handleFinalPreSubmit(false)}
+                                            style={{ borderRadius: '10px' }}
+                                        >
                                             Ignorer le Quiz et Lancer
                                         </Button>
-                                        <Button color="success" onClick={() => handleFinalPreSubmit(true)}>
-                                            Valider le Quiz et Lancer
-                                        </Button>
+                                        <div className="d-flex">
+                                             <Button
+                                                color="secondary"
+                                                className="mr-3"
+                                                onClick={() => setStep(1)}
+                                                style={{ borderRadius: '10px' }}
+                                            >
+                                                Retour
+                                            </Button>
+                                            <Button
+                                                className="px-4"
+                                                onClick={() => handleFinalPreSubmit(true)}
+                                                style={{ backgroundColor: 'var(--pubcash-green)', color: 'white', borderRadius: '10px', border: 'none' }}
+                                            >
+                                                Valider et Lancer
+                                            </Button>
+                                        </div>
                                     </div>
                                 </div>
 
@@ -471,58 +495,67 @@ const CreerPromotion = () => {
                 </Row>
             </Container>
 
-            {/* --- TA MODALE DE CONFIRMATION ORIGINALE (Légèrement adaptée pour le Quiz) --- */}
-            <Modal isOpen={isModalOpen} toggle={() => setIsModalOpen(false)}>
+            {/* --- CONFIRMATION MODAL --- */}
+            <Modal isOpen={isModalOpen} toggle={() => setIsModalOpen(false)} size="lg">
                 <ModalHeader toggle={() => setIsModalOpen(false)}>Confirmer la promotion</ModalHeader>
                 <ModalBody>
-                    <p>Vous êtes sur le point de lancer cette promotion :</p>
-                    <ul>
-                        <li>Titre : <b>{formData.titre}</b></li>
-                        <li>Budget total : <b>{parseFloat(formData.budget).toLocaleString('fr-FR')} FCFA</b></li>
-                        <li>Nouveau solde estimé : <b>{parseFloat(nouveauSolde).toLocaleString('fr-FR')} FCFA</b></li>
-                        <li>Vues estimées : <b>~ {vuesPotentielles} personnes</b></li>
-                        <li>Tranche d'âge : <b>
-                            {formData.tranche_age === 'tous' ? 'Tout le monde' :
-                                formData.tranche_age === '12-17' ? 'Adolescents (12-17 ans)' :
-                                    'Adultes (18 ans et plus)'}
-                        </b></li>
-                        <li>Ciblage : <b>
-                            {formData.ciblage_commune === 'toutes'
-                                ? 'Toutes les communes'
-                                : `Ma commune seulement ${profile.commune ? `(${profile.commune})` : ''}`
-                            }
-                        </b></li>
-                        {/* Ajout discret pour indiquer la présence du quiz */}
-                        {includeQuiz && (
-                            <li className="text-success mt-2">
-                                <i className="ni ni-check-bold mr-1"></i> <b>Quiz bonus inclus</b>
-                            </li>
-                        )}
-                    </ul>
-                    <p>Êtes-vous sûr de vouloir continuer ? Cette action est irréversible.</p>
+                    <div className="py-3">
+                         <Row>
+                             <Col md="6">
+                                 <p className="text-sm text-muted mb-1">Titre de la promotion</p>
+                                 <h4 className="mb-3">{formData.titre}</h4>
+
+                                 <p className="text-sm text-muted mb-1">Budget Total</p>
+                                 <h4 className="mb-3 text-primary">{parseFloat(formData.budget).toLocaleString('fr-FR')} FCFA</h4>
+
+                                 <p className="text-sm text-muted mb-1">Vues Estimées</p>
+                                 <h4 className="mb-3">~ {vuesPotentielles} personnes</h4>
+                             </Col>
+                             <Col md="6">
+                                 <p className="text-sm text-muted mb-1">Ciblage</p>
+                                 <h5 className="mb-3">
+                                     {formData.tranche_age === 'tous' ? 'Tout le monde' : 'Ciblé par âge'} <br/>
+                                     {formData.ciblage_commune === 'toutes' ? 'Toutes les communes' : profile.commune}
+                                 </h5>
+
+                                 {includeQuiz && (
+                                    <div className="p-3 bg-secondary rounded">
+                                        <i className="ni ni-check-bold text-success mr-2"></i>
+                                        <span className="font-weight-bold">Quiz Inclus</span>
+                                    </div>
+                                 )}
+                             </Col>
+                         </Row>
+                         <hr/>
+                         <p className="text-center font-weight-bold mt-2">
+                             Votre solde actuel : {parseFloat(profile.solde_recharge).toLocaleString('fr-FR')} FCFA <br/>
+                             Nouveau solde après opération : <span className="text-warning">{parseFloat(nouveauSolde).toLocaleString('fr-FR')} FCFA</span>
+                         </p>
+                    </div>
                 </ModalBody>
                 <ModalFooter>
-                    <Button color="primary" onClick={submitPromotion} disabled={loading}>
-                        {loading ? <Spinner size="sm" /> : "Confirmer et Payer"}
-                    </Button>{' '}
                     <Button color="secondary" onClick={() => setIsModalOpen(false)}>Annuler</Button>
+                    <Button color="success" onClick={submitPromotion} disabled={loading}>
+                        {loading ? <Spinner size="sm" /> : "Confirmer et Payer"}
+                    </Button>
                 </ModalFooter>
             </Modal>
 
-            {/* --- TA MODALE DE SUCCES ORIGINALE --- */}
-            <Modal isOpen={showSuccessModal} toggle={() => window.location.reload()} centered>
-                <ModalHeader toggle={() => window.location.reload()} className="text-success">
-                    <span style={{ fontWeight: 'bold' }}>Félicitations !</span>
-                </ModalHeader>
-                <ModalBody>
+            {/* --- SUCCESS MODAL --- */}
+            <Modal isOpen={showSuccessModal} toggle={() => window.location.reload()} centered contentClassName="bg-white">
+                <div className="modal-header border-0 pb-0 d-flex justify-content-end">
+                    <button className="close" onClick={() => window.location.reload()}><span>×</span></button>
+                </div>
+                <ModalBody className="px-5 pb-5">
                     <div className="text-center">
-                        <i className="ni ni-check-bold ni-3x text-success mb-3"></i>
-                        <h4 className="text-success">Promotion {includeQuiz && "& Quiz"} créée avec succès !</h4>
-                        <p style={{ color: 'black' }}>
-                            Votre promotion a été enregistrée et est maintenant active.
+                        <div className="icon icon-shape bg-success text-white rounded-circle mb-4" style={{ width: '70px', height: '70px' }}>
+                             <i className="ni ni-check-bold" style={{ fontSize: '2rem' }}></i>
+                        </div>
+                        <h3 className="text-success mb-3">Promotion créée avec succès !</h3>
+                        <p className="text-muted mb-4">
+                            Votre campagne publicitaire est maintenant active. Vous pouvez suivre ses performances depuis le tableau de bord.
                         </p>
-                        {/* C'EST ICI QUE J'AI FAIT LA MODIFICATION : */}
-                        <Button color="success" onClick={() => window.location.reload()}>
+                        <Button style={{ backgroundColor: 'var(--pubcash-orange)', border: 'none' }} block onClick={() => window.location.reload()}>
                             Continuer
                         </Button>
                     </div>
