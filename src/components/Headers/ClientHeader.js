@@ -1,6 +1,6 @@
 // src/components/Headers/ClientHeader.js
 import React, { useState, useEffect } from 'react';
-import { Card, CardBody, CardTitle, Container, Row, Col, Spinner } from 'reactstrap';
+import { Card, CardBody, Container, Row, Col, Spinner } from 'reactstrap';
 import api from '../../services/api';
 
 const ClientHeaderComponent = () => {
@@ -33,30 +33,26 @@ const ClientHeaderComponent = () => {
     fetchHeaderData();
   }, []);
 
-  const renderStatCard = (title, value, icon, color, isSolde = false) => (
+  const renderStatCard = (title, value, icon, variant, isSolde = false) => (
     <Col lg="6" xl="3">
-      <Card className="card-stats mb-4 mb-xl-0">
+      <Card className={`card-stats-solid card-stats-${variant} mb-4 mb-xl-0`}>
         <CardBody>
-          <Row>
-            <div className="col">
-              <CardTitle tag="h5" className="text-uppercase text-muted mb-0">{title}</CardTitle>
-              <span className="h2 font-weight-bold mb-0">
+          <div className="icon-large">
+             <i className={icon}></i>
+          </div>
+          <div className="content-bottom">
+            <span className="stat-label">{title}</span>
+            <span className="stat-value">
                 {loading ? (
-                  <Spinner size="sm" />
+                  <Spinner size="sm" color="light" />
                 ) : isSolde ? (
-                  // Ici on enlève les points et les décimales
-                  `${parseInt(value || 0)} FCFA`
+                   // Mockup style: "15 009 F"
+                  `${parseInt(value || 0).toLocaleString('fr-FR').replace(/\s/g, ' ')} F`
                 ) : (
-                  (value || 0).toLocaleString('fr-FR')
+                  (value || 0).toLocaleString('fr-FR').replace(/\s/g, ' ')
                 )}
-              </span>
-            </div>
-            <Col className="col-auto">
-              <div className={`icon icon-shape bg-${color} text-white rounded-circle shadow`}>
-                <i className={icon} />
-              </div>
-            </Col>
-          </Row>
+            </span>
+          </div>
         </CardBody>
       </Card>
     </Col>
@@ -64,14 +60,15 @@ const ClientHeaderComponent = () => {
   
 
   return (
-    <div className="header bg-gradient-primary pb-8 pt-5 pt-md-8">
+    <div className="header pb-8 pt-5 pt-md-8">
+      {/* Background is transparent to show body grey */}
       <Container fluid>
         <div className="header-body">
           <Row>
-            {renderStatCard("Mon Solde (FCFA)", stats.solde, "fas fa-wallet", "success", true)}
-            {renderStatCard("Vues Totales", stats.vues, "fas fa-eye", "info")}
-            {renderStatCard("Likes Totaux", stats.likes, "fas fa-thumbs-up", "primary")}
-            {renderStatCard("Partages Totaux", stats.partages, "fas fa-share", "warning")}
+            {renderStatCard("Mon Solde (FCFA)", stats.solde, "fas fa-credit-card", "orange", true)}
+            {renderStatCard("Vues Totales", stats.vues, "fas fa-eye", "blue")}
+            {renderStatCard("Likes Totaux", stats.likes, "fas fa-thumbs-up", "purple")}
+            {renderStatCard("Partages Totaux", stats.partages, "fas fa-share-alt", "green")}
           </Row>
         </div>
       </Container>
