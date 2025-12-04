@@ -20,7 +20,15 @@ body {
 .main-content {
   background-color: var(--pubcash-bg) !important;
 }
-
+.bg-gradient-info {
+  background: linear-gradient(87deg, #f0f2f5 0, #f0f2f5 100%) !important;
+}
+.fill-default{
+  fill: #f36c21 !important;
+}
+.text-light {
+  color: #32325d !important;
+}
 /* --- Sidebar (Navbar Vertical) --- */
 .navbar-vertical.navbar-light {
   background-color: #ffffff !important;

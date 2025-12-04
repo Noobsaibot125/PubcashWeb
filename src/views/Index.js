@@ -220,43 +220,53 @@ const Index = () => {
   };
 
   // Fonction pour récupérer les statistiques détaillées AVEC interactions
-  const fetchDetailedStats = useCallback(async () => {
+ const fetchDetailedStats = useCallback(async () => {
     setStatsLoading(true);
     try {
       const response = await api.get('/client/detailed-stats');
       const data = response.data;
 
-      if (data.monthlyStats) { // Modifié pour s'exécuter même si les stats sont vides
-        // Préparer les données pour l'année civile en cours
+      if (data.monthlyStats) {
+        // 1. Préparation des données pour le graphique linéaire (inchangé)
         const currentYear = new Date().getFullYear();
         const monthlyData = [];
 
-        // Créer un tableau pour les 12 mois de l'année en cours (Janvier à Décembre)
+        // Variables pour accumuler les totaux pour le graphique "Répartition"
+        let sumVues = 0;
+        let sumLikes = 0;
+        let sumPartages = 0;
+
         for (let month = 1; month <= 12; month++) {
           const existingData = data.monthlyStats.find(stat =>
             stat.annee === currentYear && stat.mois === month
           );
 
+          // Récupération des valeurs (ou 0 si vide)
+          const vues = existingData?.total_vues || 0;
+          const likes = existingData?.total_likes || 0;
+          const partages = existingData?.total_partages || 0;
+
+          // On ajoute au cumul annuel
+          sumVues += vues;
+          sumLikes += likes;
+          sumPartages += partages;
+
           monthlyData.push({
             annee: currentYear,
             mois: month,
             nom_mois: getFrenchMonthName(month).substring(0, 3),
-            total_vues: existingData?.total_vues || 0,
-            total_likes: existingData?.total_likes || 0,
-            total_partages: existingData?.total_partages || 0,
-            nombre_promotions: existingData?.nombre_promotions || 0
+            total_vues: vues,
+            total_likes: likes,
+            total_partages: partages,
           });
         }
 
-        // L'année est maintenant toujours la même, on peut l'afficher de manière plus concise
-        const labels = monthlyData.map(item => `${item.nom_mois}`); // On retire l'année du label mensuel
-
-        // Données pour chaque métrique
+        const labels = monthlyData.map(item => item.nom_mois);
         const vuesData = monthlyData.map(item => item.total_vues);
         const likesData = monthlyData.map(item => item.total_likes);
         const partagesData = monthlyData.map(item => item.total_partages);
 
-        // MODIFIÉ: Configuration des datasets avec les couleurs et remplissages souhaités
+        // Mise à jour du Graphique Linéaire
         setChartData({
           labels: labels,
           datasets: [
@@ -264,63 +274,50 @@ const Index = () => {
               label: "Vues",
               data: vuesData,
               borderColor: CHART_COLORS.white,
-              backgroundColor: CHART_COLORS.whiteLight, // Remplissage blanc transparent
+              backgroundColor: CHART_COLORS.whiteLight,
               pointBackgroundColor: CHART_COLORS.white,
               pointBorderColor: CHART_COLORS.white,
-              pointHoverBackgroundColor: CHART_COLORS.orange,
-              pointHoverBorderColor: CHART_COLORS.white,
-              pointRadius: 4,
-              pointHoverRadius: 6,
               tension: 0.4,
-              fill: true, // Activation du remplissage
+              fill: true,
               borderWidth: 3,
-              yAxisID: 'y'
             },
             {
               label: "Likes",
               data: likesData,
               borderColor: CHART_COLORS.orange,
-              backgroundColor: CHART_COLORS.orangeLight, // Remplissage orange transparent
+              backgroundColor: CHART_COLORS.orangeLight,
               pointBackgroundColor: CHART_COLORS.orange,
               pointBorderColor: CHART_COLORS.white,
-              pointHoverBackgroundColor: CHART_COLORS.white,
-              pointHoverBorderColor: CHART_COLORS.orange,
-              pointRadius: 3,
-              pointHoverRadius: 5,
               tension: 0.4,
-              fill: true, // Activation du remplissage
+              fill: true,
               borderWidth: 2,
-              yAxisID: 'y'
             },
             {
               label: "Partages",
               data: partagesData,
-              borderColor: '#ff8c42', // Couleur orange clair pour la ligne
-              backgroundColor: 'rgba(255, 140, 66, 0.1)', // Remplissage associé
+              borderColor: '#ff8c42',
+              backgroundColor: 'rgba(255, 140, 66, 0.1)',
               pointBackgroundColor: '#ff8c42',
               pointBorderColor: CHART_COLORS.white,
-              pointRadius: 3,
-              pointHoverRadius: 5,
               tension: 0.4,
-              fill: true, // Activation du remplissage
+              fill: true,
               borderWidth: 2,
-              yAxisID: 'y',
               hidden: activeChart !== 'tous' && activeChart !== 'partages'
             }
           ]
         });
 
-        // Mettre à jour les statistiques globales
-        if (data.globalStats) {
-          setGlobalStats({
-            total_vues: data.globalStats.total_vues || 0,
-            total_likes: data.globalStats.total_likes || 0,
-            total_partages: data.globalStats.total_partages || 0,
-            total_promotions: data.globalStats.total_promotions || 0,
-            total_budget: data.globalStats.total_budget_depense || 0,
-            performance_moyenne: data.globalStats.performance_moyenne || 0
-          });
-        }
+        // 2. MISE A JOUR DES STATS GLOBALES (POUR LA CHART-BOX RÉPARTITION)
+        // On utilise les sommes calculées ci-dessus (sumVues, sumLikes, sumPartages)
+        setGlobalStats({
+          total_vues: sumVues,
+          total_likes: sumLikes,
+          total_partages: sumPartages,
+          // Pour ces deux-là, on garde la valeur de l'API si elle existe, sinon on garde l'ancien état ou 0
+          total_promotions: data.globalStats?.total_promotions || 0,
+          total_budget: data.globalStats?.total_budget_depense || 0,
+          performance_moyenne: data.globalStats?.performance_moyenne || 0
+        });
       }
     } catch (err) {
       console.error("Erreur fetchDetailedStats:", err);

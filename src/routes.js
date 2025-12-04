@@ -49,6 +49,7 @@ var routes = [
     component: <Index />,
     layout: "/client", // IMPORTANT : Le layout est maintenant /client
     role: "client",
+    
   },
   {
     path: "/creer-promotion",

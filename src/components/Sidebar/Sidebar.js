@@ -50,6 +50,7 @@ const Sidebar = (props) => {
     }
 
     return routes.map((prop, key) => {
+      
       const hasAccess = Array.isArray(prop.role)
         ? prop.role.includes(userRole)
         : prop.role === userRole;
