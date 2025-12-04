@@ -628,158 +628,146 @@ const Index = () => {
       </Container>
 
       {/* Modal de détail de promotion (Aucune modification ici) */}
-      <Modal isOpen={!!selectedPromo} toggle={toggleModal} size="lg" centered>
-        <ModalHeader toggle={toggleModal} className="border-bottom pb-2" style={{ background: 'linear-gradient(45deg, #2d3748, #4a5568)', color: 'white' }}>
-          <div>
-            <h4 className="mb-0">{selectedPromo?.titre}</h4>
-            <small className="text-light">{selectedPromo?.description}</small>
+      <Modal isOpen={!!selectedPromo} toggle={toggleModal} size="xl" centered contentClassName="shadow-lg border-0" style={{ borderRadius: '1rem' }}>
+        
+        {/* Header blanc épuré avec Titre Orange */}
+        <ModalHeader toggle={toggleModal} className="border-bottom-0 pt-4 pl-4" cssModule={{ 'modal-title': 'w-100' }}>
+          <div className="d-flex justify-content-between align-items-start w-100">
+            <div>
+              <h6 className="text-uppercase text-muted ls-1 mb-1">Détails de la campagne</h6>
+              <h2 className="mb-0" style={{ color: '#2d3748', fontWeight: 800 }}>{selectedPromo?.titre}</h2>
+            </div>
           </div>
         </ModalHeader>
-        <ModalBody style={{ backgroundColor: '#f8f9fa' }}>
+
+        <ModalBody className="p-4" style={{ backgroundColor: '#f7fafc' }}>
           {selectedPromo && (
             <Row>
-              <Col md="8">
-                <div className="player-wrapper mb-3 mb-md-0" style={{ borderRadius: '0.375rem', overflow: 'hidden', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
-                  <div className="player-wrapper mb-3 mb-md-0" style={{ minHeight: 200 }}>
-                    <video
-                      controls
-                      width="100%"
-                      height="100%"
-                      key={selectedPromo.url_video}
-                      style={{ backgroundColor: 'black', borderRadius: '0.375rem' }}
-                      poster={getMediaUrl(selectedPromo.thumbnail_url)}
-                    >
-                      <source src={getMediaUrl(selectedPromo.url_video)} type="video/mp4" />
-                      Votre navigateur ne prend pas en charge la lecture de vidéos.
-                    </video>
-                  </div>
+              {/* --- COLONNE GAUCHE : VIDÉO & INFOS --- */}
+              <Col lg="7" className="mb-4 mb-lg-0">
+                {/* Lecteur Vidéo style "Cinéma" */}
+                <div className="rounded-lg shadow-lg overflow-hidden position-relative bg-dark mb-4" style={{ minHeight: '300px', border: '4px solid white' }}>
+                  <video
+                    controls
+                    style={{ width: '100%', height: '100%', display: 'block', objectFit: 'contain', maxHeight: '400px' }}
+                    poster={getMediaUrl(selectedPromo.thumbnail_url)}
+                    src={getMediaUrl(selectedPromo.url_video)}
+                  >
+                     Votre navigateur ne supporte pas la vidéo.
+                  </video>
                 </div>
 
-                <Card className="mt-3 shadow-sm">
-                  <CardBody>
-                    <h6 className="text-uppercase text-muted mb-3">Informations de la campagne</h6>
-                    <Row>
-                      <Col sm="6">
-                        <p className="mb-1"><strong>Pack:</strong> {selectedPromo.nom_pack}</p>
-                        <p className="mb-1"><strong>Statut:</strong>
-                          <Badge color={selectedPromo.statut === 'en_cours' ? 'success' : 'secondary'} className="ml-2">
-                            {selectedPromo.statut?.replace('_', ' ') || 'Inconnu'}
-                          </Badge>
-                        </p>
-                      </Col>
-                      <Col sm="6">
-                        <p className="mb-1"><strong>Budget initial:</strong> {parseFloat(selectedPromo.budget_initial || 0).toLocaleString('fr-FR')} FCFA</p>
-                        <p className="mb-1"><strong>Budget restant:</strong> {parseFloat(selectedPromo.budget_restant || 0).toLocaleString('fr-FR')} FCFA</p>
-                      </Col>
-                    </Row>
-                  </CardBody>
-                </Card>
+                {/* Cartes d'informations Rapides */}
+                <Row>
+                  <Col md="6">
+                     <Card className="border-0 shadow-sm mb-3">
+                        <CardBody className="p-3">
+                           <div className="d-flex align-items-center mb-2">
+                              <div className="icon icon-shape icon-xs bg-gradient-orange text-white rounded-circle mr-2">
+                                 <i className="fas fa-box-open"></i>
+                              </div>
+                              <span className="text-muted small font-weight-bold">Offre Actuelle</span>
+                           </div>
+                           <h4 className="mb-0 text-dark">{selectedPromo.nom_pack}</h4>
+                           <small className="text-success font-weight-bold">
+                              <i className="fas fa-check-circle mr-1"></i>
+                              {selectedPromo.statut?.replace('_', ' ')}
+                           </small>
+                        </CardBody>
+                     </Card>
+                  </Col>
+                  <Col md="6">
+                     <Card className="border-0 shadow-sm mb-3">
+                        <CardBody className="p-3">
+                           <div className="d-flex align-items-center mb-2">
+                              <div className="icon icon-shape icon-xs bg-gradient-green text-white rounded-circle mr-2">
+                                 <i className="fas fa-coins"></i>
+                              </div>
+                              <span className="text-muted small font-weight-bold">Budget Restant</span>
+                           </div>
+                           <h4 className="mb-0 text-dark">{parseFloat(selectedPromo.budget_restant || 0).toLocaleString('fr-FR')} FCFA</h4>
+                           <Progress 
+                              value={(selectedPromo.budget_restant / selectedPromo.budget_initial) * 100} 
+                              color="success" 
+                              className="mt-2" 
+                              style={{ height: '3px' }} 
+                           />
+                        </CardBody>
+                     </Card>
+                  </Col>
+                </Row>
+
+                {/* Badges de Ciblage */}
+                <div className="d-flex flex-wrap mt-2">
+                   <Badge color="neutral" className="badge-lg mr-2 mb-2 text-default bg-white shadow-sm p-2">
+                      <i className="fas fa-map-marker-alt mr-2 text-danger"></i>
+                      {selectedPromo.ciblage_commune === 'toutes' ? 'Toutes zones' : selectedPromo.ciblage_commune}
+                   </Badge>
+                   <Badge color="neutral" className="badge-lg mb-2 text-default bg-white shadow-sm p-2">
+                      <i className="fas fa-users mr-2 text-info"></i>
+                      {selectedPromo.tranche_age === 'tous' ? 'Tout âge' : `${selectedPromo.tranche_age} ans`}
+                   </Badge>
+                </div>
               </Col>
 
-              <Col md="4">
-                <h5 className="mb-3 font-weight-bold text-dark">Statistiques détaillées</h5>
+              {/* --- COLONNE DROITE : STATS --- */}
+              <Col lg="5">
+                <Card className="border-0 shadow-sm h-100 bg-white">
+                  <CardHeader className="bg-transparent border-0 pb-0">
+                    <h5 className="text-uppercase text-muted ls-1 mb-0">Performances en direct</h5>
+                  </CardHeader>
+                  <CardBody>
+                    
+                    {/* Grille de stats */}
+                    <div className="d-flex flex-column gap-3">
+                       
+                       {/* Vues */}
+                       <div className="d-flex align-items-center p-3 rounded mb-3" style={{ background: '#f6f9fc' }}>
+                          <div className="icon icon-shape bg-white text-info shadow-sm rounded-circle mr-3">
+                             <i className="fas fa-eye"></i>
+                          </div>
+                          <div className="flex-grow-1">
+                             <h5 className="mb-0 text-muted">Vues Totales</h5>
+                             <span className="h3 font-weight-bold mb-0 text-dark">{selectedPromo.vues ?? 0}</span>
+                          </div>
+                       </div>
 
-                <ListGroup flush>
-                  {/* --- NOUVEAU : CIBLAGE COMMUNE --- */}
-  <ListGroupItem className="px-0 py-3 d-flex justify-content-between align-items-center">
-    <div className="d-flex align-items-center">
-      {/* J'utilise un style inline pour le violet car bg-neutral-purple n'existe peut-être pas dans votre CSS */}
-      <div className="icon icon-shape icon-sm text-white rounded-circle mr-3" style={{ backgroundColor: '#9b59b6' }}>
-        <i className="fas fa-map-marker-alt" />
-      </div>
-      <span className="font-weight-bold">Zone Ciblée</span>
-    </div>
-    <Badge color="dark" pill className="px-3 py-2">
-      {selectedPromo.ciblage_commune === 'toutes' 
-        ? 'Toutes les communes' 
-        : selectedPromo.ciblage_commune}
-    </Badge>
-  </ListGroupItem>
+                       {/* Interactions (Likes & Partages) */}
+                       <Row>
+                          <Col xs="6">
+                             <div className="text-center p-3 rounded border" style={{ borderColor: '#e9ecef' }}>
+                                <i className="fas fa-thumbs-up text-primary mb-2 fa-lg"></i>
+                                <h4 className="mb-0">{selectedPromo.likes ?? 0}</h4>
+                                <small className="text-muted">Likes</small>
+                             </div>
+                          </Col>
+                          <Col xs="6">
+                             <div className="text-center p-3 rounded border" style={{ borderColor: '#e9ecef' }}>
+                                <i className="fas fa-share text-success mb-2 fa-lg"></i>
+                                <h4 className="mb-0">{selectedPromo.partages ?? 0}</h4>
+                                <small className="text-muted">Partages</small>
+                             </div>
+                          </Col>
+                       </Row>
 
-  {/* --- NOUVEAU : CIBLAGE AGE --- */}
-  <ListGroupItem className="px-0 py-3 d-flex justify-content-between align-items-center">
-    <div className="d-flex align-items-center">
-      <div className="icon icon-shape icon-sm text-white rounded-circle mr-3" style={{ backgroundColor: '#34495e' }}>
-        <i className="fas fa-users" />
-      </div>
-      <span className="font-weight-bold">Tranche d'âge</span>
-    </div>
-    <Badge color="secondary" pill className="px-3 py-2">
-      {selectedPromo.tranche_age === 'tous' 
-        ? 'Tout public' 
-        : `${selectedPromo.tranche_age} ans`}
-    </Badge>
-  </ListGroupItem>
-                  <ListGroupItem className="px-0 py-3 d-flex justify-content-between align-items-center">
-                    <div className="d-flex align-items-center">
-                      <div className="icon icon-shape icon-sm text-info bg-neutral-info rounded-circle mr-3">
-                        <i className="fas fa-eye" />
-                      </div>
-                      <span className="font-weight-bold">Vues totales</span>
+                       <hr className="my-4" />
+
+                       {/* Score de Performance */}
+                       <div className="text-center">
+                          <h6 className="text-muted mb-3">Score d'engagement</h6>
+                          <div className="position-relative d-inline-block">
+                             <div style={{ width: 120, height: 120, borderRadius: '50%', border: '8px solid #edf2f7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                 <span className="h2 font-weight-bold mb-0 text-primary">
+                                    {selectedPromo.vues ? Math.round(((selectedPromo.likes + selectedPromo.partages) / selectedPromo.vues) * 100) : 0}%
+                                 </span>
+                             </div>
+                          </div>
+                          <p className="mt-3 text-sm text-muted">
+                             Basé sur les interactions par rapport aux vues.
+                          </p>
+                       </div>
+
                     </div>
-                    <Badge color="info" pill className="px-3 py-2">{selectedPromo.vues ?? 0}</Badge>
-                  </ListGroupItem>
-
-                  <ListGroupItem className="px-0 py-3 d-flex justify-content-between align-items-center">
-                    <div className="d-flex align-items-center">
-                      <div className="icon icon-shape icon-sm text-primary bg-neutral-primary rounded-circle mr-3">
-                        <i className="fas fa-thumbs-up" />
-                      </div>
-                      <span className="font-weight-bold">Likes</span>
-                    </div>
-                    <Badge color="primary" pill className="px-3 py-2">{selectedPromo.likes ?? 0}</Badge>
-                  </ListGroupItem>
-
-                  <ListGroupItem className="px-0 py-3 d-flex justify-content-between align-items-center">
-                    <div className="d-flex align-items-center">
-                      <div className="icon icon-shape icon-sm text-success bg-neutral-success rounded-circle mr-3">
-                        <i className="fas fa-share" />
-                      </div>
-                      <span className="font-weight-bold">Partages</span>
-                    </div>
-                    <Badge color="success" pill className="px-3 py-2">{selectedPromo.partages ?? 0}</Badge>
-                  </ListGroupItem>
-
-                  <ListGroupItem className="px-0 py-3 d-flex justify-content-between align-items-center">
-                    <div className="d-flex align-items-center">
-                      <div className="icon icon-shape icon-sm text-warning bg-neutral-warning rounded-circle mr-3">
-                        <i className="fas fa-wallet" />
-                      </div>
-                      <span className="font-weight-bold">Budget Restant</span>
-                    </div>
-                    <Badge color="warning" pill className="px-3 py-2">
-                      {parseFloat(selectedPromo.budget_restant || 0).toLocaleString('fr-FR')} FCFA
-                    </Badge>
-                  </ListGroupItem>
-
-                  <ListGroupItem className="px-0 py-3 d-flex justify-content-between align-items-center">
-                    <div className="d-flex align-items-center">
-                      <div className="icon icon-shape icon-sm text-danger bg-neutral-danger rounded-circle mr-3">
-                        <i className="fas fa-chart-line" />
-                      </div>
-                      <span className="font-weight-bold">Taux d'engagement</span>
-                    </div>
-                    <Badge color="danger" pill className="px-3 py-2">
-                      {selectedPromo.vues ?
-                        Math.round(((selectedPromo.likes + selectedPromo.partages) / selectedPromo.vues) * 100) : 0
-                      }%
-                    </Badge>
-                  </ListGroupItem>
-                </ListGroup>
-
-                <Card className="mt-3 shadow-sm border-0">
-                  <CardBody className="text-center">
-                    <h6 className="text-uppercase text-muted mb-2">Performance</h6>
-                    <div className="d-flex justify-content-center align-items-center">
-                      <div className={`rounded-circle p-3 ${selectedPromo.vues > 50 ? 'bg-success' : selectedPromo.vues > 10 ? 'bg-warning' : 'bg-danger'}`}>
-                        <i className={`fas ${selectedPromo.vues > 50 ? 'fa-fire' : selectedPromo.vues > 10 ? 'fa-trend-up' : 'fa-trend-down'} text-white fa-2x`}></i>
-                      </div>
-                    </div>
-                    <p className="mt-2 mb-0 small">
-                      {selectedPromo.vues > 50 ? 'Excellente performance' :
-                        selectedPromo.vues > 10 ? 'Performance moyenne' :
-                          'Démarrage lent'}
-                    </p>
                   </CardBody>
                 </Card>
               </Col>

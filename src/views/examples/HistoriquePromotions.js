@@ -6,160 +6,36 @@ import {
     Container,
     Row,
     Col,
-    Badge,
-    Button,
+    Progress,
+    Spinner,
     Modal,
     ModalHeader,
     ModalBody,
-    ListGroup,
-    ListGroupItem,
-    Collapse,
-    Spinner
+    Badge
 } from "reactstrap";
 import ClientHeader from "components/Headers/ClientHeader.js";
-import api from 'services/api';
-import { getMediaUrl } from "../../services/api"; // Assurez-vous que cette fonction est exportée
+import api, { getMediaUrl } from 'services/api';
 
-// --- COMPOSANT VideoThumbnail ---
-const VideoThumbnail = ({ promotion, onClick }) => {
-    const getThumbnail = () => {
-        try {
-            if (promotion.thumbnail_url) return getMediaUrl(promotion.thumbnail_url);
-            if (promotion.url_video) {
-                const url = new URL(promotion.url_video);
-                if (url.hostname.includes("youtube.com") || url.hostname.includes("youtu.be")) {
-                    const videoId = url.searchParams.get('v') || url.pathname.split('/').pop();
-                    return `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`;
-                }
-            }
-        } catch (e) { }
-        return "https://via.placeholder.com/150x84.png?text=Vidéo";
-    };
-
-    return (
-        <div onClick={onClick} style={{ cursor: 'pointer', position: 'relative', width: '150px', height: '84px', borderRadius: '0.25rem', overflow: 'hidden' }}>
-            <img
-                src={getThumbnail()}
-                alt={promotion.titre}
-                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-            />
-            <div className="card-img-overlay d-flex align-items-center justify-content-center" style={{ backgroundColor: 'rgba(0,0,0,0.3)' }}>
-                <i className="fas fa-play text-white fa-lg"></i>
-            </div>
-        </div>
-    );
+// --- Helper Functions ---
+const formatDate = (dateString) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
 };
 
-// --- COMPOSANT PromotionHistoryItem (pour chaque ligne de l'historique) ---
-const PromotionHistoryItem = ({ promotion, onVideoClick }) => {
-    const [isCommentsOpen, setIsCommentsOpen] = useState(false);
-    const toggleComments = () => setIsCommentsOpen(!isCommentsOpen);
-
-    const formatEndDate = (date) => {
-        if (!date) return 'N/A';
-        return new Date(date).toLocaleString('fr-FR', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-        });
-    };
-    return (
-        <Card className="shadow-sm mb-4">
-            <CardHeader>
-                <Row className="align-items-center">
-                    <Col>
-                        <h4 className="mb-0" style={{ color: "black" }}>{promotion.titre}</h4>
-                        <small className="text-muted">
-                            Campagne terminée le: {formatEndDate(promotion.date_fin)}
-                        </small>
-                    </Col>
-                    <Col className="text-right">
-                        <Badge
-                            pill
-                            style={{ backgroundColor: "green", color: "white" }}
-                        >
-                            Terminé
-                        </Badge>
-                    </Col>
-                </Row>
-            </CardHeader>
-            <CardBody>
-                <Row>
-                    <Col md="3" className="d-flex flex-column align-items-center mb-4 mb-md-0">
-                        <h6 className="text-muted text-uppercase small">Vidéo</h6>
-                        <VideoThumbnail promotion={promotion} onClick={() => onVideoClick(promotion)} />
-                    </Col>
-                    <Col md="4" className="border-left-md border-right-md px-md-4 mb-4 mb-md-0">
-                        <h6 className="text-muted text-uppercase small">Résumé de la campagne</h6>
-                        <ListGroup flush>
-                            <ListGroupItem className="px-0 d-flex justify-content-between"><span>Budget Initial</span><strong>{parseFloat(promotion.budget_initial).toLocaleString('fr-FR')} FCFA</strong></ListGroupItem>
-                            <ListGroupItem className="px-0 d-flex justify-content-between"><span><i className="fas fa-eye text-info mr-2" />Vues</span><Badge color="info" pill>{promotion.vues}</Badge></ListGroupItem>
-                            <ListGroupItem className="px-0 d-flex justify-content-between"><span><i className="fas fa-thumbs-up text-primary mr-2" />Likes</span><Badge color="primary" pill>{promotion.likes}</Badge></ListGroupItem>
-                            <ListGroupItem className="px-0 d-flex justify-content-between"><span><i className="fas fa-share text-success mr-2" />Partages</span><Badge color="success" pill>{promotion.partages}</Badge></ListGroupItem>
-                        </ListGroup>
-                    </Col>
-                    <Col md="5">
-                        <div className="d-flex justify-content-between align-items-center mb-3">
-                            <h6 className="text-muted text-uppercase small mb-0">
-                                COMMENTAIRES ({promotion.commentaires?.length || 0})
-                            </h6>
-                            {promotion.commentaires && promotion.commentaires.length > 0 && (
-                                <Button color="secondary" size="sm" outline onClick={toggleComments}>
-                                    {isCommentsOpen ? "Masquer" : "Afficher"}
-                                </Button>
-                            )}
-                        </div>
-
-                        {promotion.commentaires && promotion.commentaires.length > 0 ? (
-                            <Collapse isOpen={isCommentsOpen}>
-                                <ListGroup
-                                    flush
-                                    className="list-group-comments"
-                                    style={{
-                                        maxHeight: '150px', // Hauteur maximale avant que le scroll n'apparaisse
-                                        overflowY: 'auto'   // Ajoute une barre de défilement verticale si nécessaire
-                                    }}
-                                >
-                                    {promotion.commentaires.map(comment => (
-                                        <ListGroupItem key={comment.id} className="px-0 py-2">
-                                            <div className="d-flex justify-content-between">
-                                                <strong>{comment.nom_utilisateur}</strong>
-                                                <small className="text-muted">
-                                                    {new Date(comment.date_commentaire).toLocaleDateString()}
-                                                </small>
-                                            </div>
-                                            <p className="mb-0 text-sm">{comment.commentaire}</p>
-                                        </ListGroupItem>
-                                    ))}
-                                </ListGroup>
-                            </Collapse>
-                        ) : (
-                            <p className="text-muted font-italic mt-4 text-center">
-                                *Aucun commentaire pour cette promotion.*
-                            </p>
-                        )}
-                    </Col>
-                </Row>
-            </CardBody>
-        </Card>
-    );
-};
-
-// --- COMPOSANT PRINCIPAL HistoriquePromotions ---
+// --- Main Component ---
 const HistoriquePromotions = () => {
     const [history, setHistory] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [selectedVideo, setSelectedVideo] = useState(null);
 
+    // Fetch History Data
     useEffect(() => {
         const fetchHistory = async () => {
             try {
-                // On suppose un endpoint pour l'historique
                 const response = await api.get('/client/promotions/history');
-                setHistory(response.data);
+                setHistory(Array.isArray(response.data) ? response.data : []);
             } catch (err) {
                 console.error("Erreur chargement historique:", err);
                 setError("Impossible de charger l'historique.");
@@ -172,25 +48,35 @@ const HistoriquePromotions = () => {
 
     const toggleModal = () => setSelectedVideo(null);
 
+    const getThumbnailUrl = (promo) => {
+        if (promo.thumbnail_url) return getMediaUrl(promo.thumbnail_url);
+        // Basic YouTube Fallback
+        if (promo.url_video && (promo.url_video.includes('youtube') || promo.url_video.includes('youtu.be'))) {
+             try {
+                 const url = new URL(promo.url_video);
+                 const v = url.searchParams.get('v') || url.pathname.slice(1);
+                 return `https://img.youtube.com/vi/${v}/mqdefault.jpg`;
+             } catch(e) {}
+        }
+        return "https://via.placeholder.com/150x84.png?text=Vidéo";
+    };
+
     return (
         <>
             <ClientHeader />
             <Container className="mt--7" fluid>
                 <Row>
                     <Col className="mb-5 mb-xl-0" xl="12">
-                        <Card className="shadow bg-secondary border-0">
-                            <CardHeader className="bg-white border-0">
-                                <Row className="align-items-center">
-                                    <Col xs="8">
-                                        <h3 className="mb-0">Historique des Campagnes</h3>
-                                    </Col>
-                                </Row>
+                        <Card className="shadow campaign-list-card bg-white">
+                            <CardHeader className="bg-white border-0 pt-4 pb-2 pl-4">
+                                <h3 className="mb-0 text-dark font-weight-800">Historique des Campagnes</h3>
                             </CardHeader>
-                            <CardBody>
+
+                            <CardBody className="p-0">
                                 {loading ? (
                                     <div className="text-center py-5">
                                         <Spinner color="primary" />
-                                        <p className="mt-2">Chargement de l'historique...</p>
+                                        <p className="mt-2 text-muted">Chargement de l'historique...</p>
                                     </div>
                                 ) : error ? (
                                     <div className="text-center py-5 text-danger">
@@ -199,16 +85,142 @@ const HistoriquePromotions = () => {
                                     </div>
                                 ) : history.length === 0 ? (
                                     <div className="text-center py-5 text-muted">
-                                        <i className="fas fa-history fa-3x mb-3"></i>
-                                        <p>Aucune campagne terminée dans l'historique.</p>
+                                        <i className="fas fa-history fa-3x mb-3 text-light"></i>
+                                        <p>Aucune campagne terminée pour le moment.</p>
                                     </div>
                                 ) : (
-                                    history.map(promo => (
-                                        <PromotionHistoryItem
-                                            key={promo.id}
-                                            promotion={promo}
-                                            onVideoClick={setSelectedVideo}
-                                        />
+                                    history.map((promo, index) => (
+                                        <div className="campaign-row" key={promo.id || index}>
+                                            <Row>
+                                                {/* Left Column: Video Thumbnail */}
+                                                <Col lg="3" md="4" className="mb-4 mb-md-0 d-flex flex-column justify-content-center">
+                                                    <div
+                                                        className="campaign-video-wrapper"
+                                                        onClick={() => setSelectedVideo(promo)}
+                                                        style={{ cursor: 'pointer' }}
+                                                    >
+                                                        <img
+                                                            src={getThumbnailUrl(promo)}
+                                                            alt={promo.titre}
+                                                            className="campaign-video-thumb"
+                                                        />
+                                                        <div className="campaign-video-overlay">
+                                                            <i className="fas fa-play-circle fa-3x text-white"></i>
+                                                        </div>
+                                                    </div>
+                                                    <div className="text-center mt-2">
+                                                        <Badge color="success" pill>Terminé</Badge>
+                                                        <small className="text-muted d-block mt-1">
+                                                            Fin le: {formatDate(promo.date_fin)}
+                                                        </small>
+                                                    </div>
+                                                </Col>
+
+                                                {/* Middle Column: Info & Stats */}
+                                                <Col lg="5" md="8" className="mb-4 mb-lg-0 px-lg-4 border-right-lg">
+                                                    <h3 className="mb-1 text-dark text-truncate" title={promo.titre}>
+                                                        {promo.titre || "Campagne Sans Titre"}
+                                                    </h3>
+                                                    <p className="text-sm text-muted mb-4">
+                                                        Budget Total: <span className="font-weight-bold text-dark">{parseFloat(promo.budget_initial || 0).toLocaleString('fr-FR')} FCFA</span>
+                                                    </p>
+
+                                                    {/* Progress Bars for Stats */}
+                                                    <div className="stat-row">
+                                                        <span className="stat-label-text">Vues</span>
+                                                        <div className="stat-progress-wrapper">
+                                                            <Progress
+                                                                max={(promo.vues || 0) + 100}
+                                                                value={promo.vues}
+                                                                color="info"
+                                                                style={{ height: '6px', marginBottom: 0 }}
+                                                            />
+                                                        </div>
+                                                        <span className="stat-value-text text-info">{promo.vues || 0}</span>
+                                                    </div>
+
+                                                    <div className="stat-row">
+                                                        <span className="stat-label-text">Likes</span>
+                                                        <div className="stat-progress-wrapper">
+                                                            <Progress
+                                                                max={promo.vues || 100}
+                                                                value={promo.likes}
+                                                                barClassName="bg-purple"
+                                                                style={{ height: '6px', marginBottom: 0 }}
+                                                            />
+                                                        </div>
+                                                        <span className="stat-value-text" style={{color: '#8965e0'}}>{promo.likes || 0}</span>
+                                                    </div>
+
+                                                    <div className="stat-row">
+                                                        <span className="stat-label-text">Partages</span>
+                                                        <div className="stat-progress-wrapper">
+                                                            <Progress
+                                                                max={promo.vues || 100}
+                                                                value={promo.partages}
+                                                                color="success"
+                                                                style={{ height: '6px', marginBottom: 0 }}
+                                                            />
+                                                        </div>
+                                                        <span className="stat-value-text text-success">{promo.partages || 0}</span>
+                                                    </div>
+                                                </Col>
+
+                                                {/* Right Column: Comments */}
+                                                <Col lg="4" className="d-none d-lg-block">
+                                                    <span className="comments-section-title">
+                                                        Commentaires ({promo.commentaires ? promo.commentaires.length : 0})
+                                                    </span>
+                                                    <div className="comments-box custom-scrollbar">
+                                                        {promo.commentaires && promo.commentaires.length > 0 ? (
+                                                            promo.commentaires.map((comment, i) => (
+                                                                <div className="comment-item" key={i}>
+                                                                    <div className="comment-header">
+                                                                        <span className="comment-author">{comment.nom_utilisateur || 'Utilisateur'}</span>
+                                                                        <span className="comment-date">{formatDate(comment.date_commentaire)}</span>
+                                                                    </div>
+                                                                    <p className="comment-text">
+                                                                        {comment.commentaire}
+                                                                    </p>
+                                                                </div>
+                                                            ))
+                                                        ) : (
+                                                            <div className="h-100 d-flex align-items-center justify-content-center text-muted text-sm font-italic">
+                                                                Aucun commentaire
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </Col>
+                                            </Row>
+
+                                            {/* Mobile View for Comments */}
+                                            <Row className="d-lg-none mt-3">
+                                                 <Col>
+                                                    <span className="comments-section-title">
+                                                        Commentaires ({promo.commentaires ? promo.commentaires.length : 0})
+                                                    </span>
+                                                     <div className="comments-box">
+                                                         {promo.commentaires && promo.commentaires.length > 0 ? (
+                                                            promo.commentaires.map((comment, i) => (
+                                                                <div className="comment-item" key={i}>
+                                                                    <div className="comment-header">
+                                                                        <span className="comment-author">{comment.nom_utilisateur || 'Utilisateur'}</span>
+                                                                        <span className="comment-date">{formatDate(comment.date_commentaire)}</span>
+                                                                    </div>
+                                                                    <p className="comment-text">
+                                                                        {comment.commentaire}
+                                                                    </p>
+                                                                </div>
+                                                            ))
+                                                        ) : (
+                                                            <div className="h-100 d-flex align-items-center justify-content-center text-muted text-sm font-italic">
+                                                                Aucun commentaire
+                                                            </div>
+                                                        )}
+                                                     </div>
+                                                 </Col>
+                                            </Row>
+                                        </div>
                                     ))
                                 )}
                             </CardBody>
@@ -217,18 +229,18 @@ const HistoriquePromotions = () => {
                 </Row>
             </Container>
 
-            {/* MODAL VIDÉO */}
+            {/* Video Modal */}
             <Modal isOpen={!!selectedVideo} toggle={toggleModal} size="lg" centered>
-                <ModalHeader toggle={toggleModal}>
-                    {selectedVideo?.titre}
+                <ModalHeader toggle={toggleModal} className="border-0 pb-0 bg-secondary">
+                    <span className="heading-small text-muted text-uppercase">{selectedVideo?.titre}</span>
                 </ModalHeader>
-                <ModalBody className="p-0 bg-black d-flex align-items-center justify-content-center" style={{ minHeight: '400px' }}>
+                <ModalBody className="p-0 bg-black d-flex align-items-center justify-content-center" style={{ minHeight: '400px', backgroundColor: '#000' }}>
                     {selectedVideo && (
                         <video
                             controls
                             autoPlay
-                            style={{ maxWidth: '100%', maxHeight: '80vh' }}
-                            poster={getMediaUrl(selectedVideo.thumbnail_url)}
+                            style={{ maxWidth: '100%', maxHeight: '80vh', display: 'block' }}
+                            poster={getThumbnailUrl(selectedVideo)}
                         >
                             <source src={getMediaUrl(selectedVideo.url_video)} type="video/mp4" />
                             Votre navigateur ne supporte pas la lecture de vidéos.

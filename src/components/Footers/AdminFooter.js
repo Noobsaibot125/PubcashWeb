@@ -1,87 +1,57 @@
-/*!
+// Adminfooter.js
 
-=========================================================
-* Argon Dashboard React - v1.2.4
-=========================================================
-
-* Product Page: https://www.creative-tim.com/product/argon-dashboard-react
-* Copyright 2024 Creative Tim (https://www.creative-tim.com)
-* Licensed under MIT (https://github.com/creativetimofficial/argon-dashboard-react/blob/master/LICENSE.md)
-
-* Coded by Creative Tim
-
-=========================================================
-
-* The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
-
-*/
-/*eslint-disable*/
-
-// reactstrap components
+import React from "react";
 import { Container, Row, Col, Nav, NavItem, NavLink } from "reactstrap";
 
 const Footer = () => {
   return (
-    <footer className="footer footer-custom">
-      <Row className="align-items-center justify-content-xl-between">
-        <Col xl="6">
-          <div className="copyright text-center text-xl-left text-muted">
-            © {new Date().getFullYear()}{" "}
-            <a
-              className="font-weight-bold ml-1"
-              href="#"
-              rel="noopener noreferrer"
-              target="_blank"
-            >
-             KKS-TECHNOLOGIES
-            </a>
-          </div>
-        </Col>
-
-        <Col xl="6">
-          <Nav className="nav-footer justify-content-center justify-content-xl-end">
-            <NavItem>
-              <NavLink
+    // AJOUT DE: 
+    // "mt-5" -> Marge importante au-dessus du footer (pour décoller du contenu)
+    // "py-4" -> Padding (espace interne) en haut et en bas pour aérer le texte
+    <footer className="footer mt-5 py-4" style={{ backgroundColor: '#f8f9fe', borderTop: '1px solid #e9ecef' }}>
+      <Container fluid>
+        <Row className="align-items-center justify-content-lg-between">
+          <Col lg="6">
+            <div className="copyright text-center text-lg-left text-muted">
+              © {new Date().getFullYear()}{" "}
+              <a
+                className="font-weight-bold ml-1"
                 href="#"
-                rel="noopener noreferrer"
                 target="_blank"
+                rel="noopener noreferrer"
+                style={{ color: '#f36c21' }}
               >
-                PubCash
-              </NavLink>
-            </NavItem>
+                KKS-TECHNOLOGIES
+              </a>
+            </div>
+          </Col>
 
-            <NavItem>
-              <NavLink
-                href="#"
-                rel="noopener noreferrer"
-                target="_blank"
-              >
-               A propos de nous
-              </NavLink>
-            </NavItem>
-
-            {/* <NavItem>
-              <NavLink
-                href="http://blog.creative-tim.com?ref=adr-admin-footer"
-                rel="noopener noreferrer"
-                target="_blank"
-              >
-                Blog
-              </NavLink>
-            </NavItem>
-
-            <NavItem>
-              <NavLink
-                href="https://github.com/creativetimofficial/argon-dashboard/blob/master/LICENSE.md?ref=adr-admin-footer"
-                rel="noopener noreferrer"
-                target="_blank"
-              >
-                MIT License
-              </NavLink>
-            </NavItem> */}
-          </Nav>
-        </Col>
-      </Row>
+          <Col lg="6">
+            <Nav className="nav-footer justify-content-center justify-content-lg-end">
+              <NavItem>
+                <NavLink
+                  href="#"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-muted"
+                >
+                  PubCash
+                </NavLink>
+              </NavItem>
+              <NavItem>
+                <NavLink
+                  href="#"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-muted"
+                >
+                  À propos
+                </NavLink>
+              </NavItem>
+            </Nav>
+          </Col>
+        </Row>
+      </Container>
     </footer>
   );
 };

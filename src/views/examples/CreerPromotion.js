@@ -5,8 +5,8 @@ import {
     Card, CardBody, Container, Row, Col, Form, FormGroup, Input,
     Button, Label, Modal, ModalHeader, ModalBody, ModalFooter, Spinner
 } from 'reactstrap';
-// Removing ClientHeader to match the clean mockup look
-// import ClientHeader from "components/Headers/ClientHeader.js";
+
+import ClientHeader from "components/Headers/ClientHeader.js";
 import api from '../../services/api';
 
 // On définit les coûts des packs pour les calculs de vues potentielles
@@ -28,7 +28,7 @@ const CreerPromotion = () => {
     const fileInputRef = useRef(null);
     const [profile, setProfile] = useState({ solde_recharge: 0 });
     const [videoFile, setVideoFile] = useState(null);
-
+const [videoPreview, setVideoPreview] = useState(null);
     // --- NOUVEAUX ETATS (Pour le Quiz et le Wizard) ---
     const [step, setStep] = useState(1); // 1 = Promo, 2 = Quiz
     const [includeQuiz, setIncludeQuiz] = useState(false);
@@ -73,31 +73,36 @@ const CreerPromotion = () => {
     const handleChange = (e) => setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
     const handleQuizChange = (e) => setQuizData(prev => ({ ...prev, [e.target.name]: e.target.value }));
 
-    const handleFileChange = (event) => {
+   const handleFileChange = (event) => {
         const file = event.target.files[0];
         if (!file) return;
         setError('');
         setVideoFile(file);
         setFormData(prev => ({ ...prev, url_video: '' }));
+
+        // Création de l'URL pour l'aperçu et les métadonnées
+        const objectUrl = URL.createObjectURL(file);
+        setVideoPreview(objectUrl); // <--- On sauvegarde l'URL pour l'affichage
+
         const videoElement = document.createElement('video');
         videoElement.style.display = 'none';
         document.body.appendChild(videoElement);
-        const objectUrl = URL.createObjectURL(file);
+        
         videoElement.src = objectUrl;
         videoElement.onloadedmetadata = () => {
             const duration = Math.round(videoElement.duration);
             setDuree(duration);
             determinePack(duration);
-            videoElement.pause();
-            videoElement.removeAttribute('src');
-            videoElement.load();
+            
+            // Nettoyage de l'élément temporaire (mais on garde l'objectUrl pour le lecteur !)
             document.body.removeChild(videoElement);
-            URL.revokeObjectURL(objectUrl);
         };
         videoElement.onerror = () => {
             setError("Erreur de lecture vidéo");
             document.body.removeChild(videoElement);
+            // En cas d'erreur seulement, on nettoie tout
             URL.revokeObjectURL(objectUrl);
+            setVideoPreview(null);
         };
     };
 
@@ -114,7 +119,15 @@ const CreerPromotion = () => {
         if (fileInputRef.current) fileInputRef.current.value = null;
         fileInputRef.current.click();
     };
-    const clearVideoFile = () => { setVideoFile(null); setDuree(''); setPack(''); };
+   const clearVideoFile = () => { 
+        if (videoPreview) {
+            URL.revokeObjectURL(videoPreview); // Libère la mémoire
+        }
+        setVideoFile(null); 
+        setVideoPreview(null); // Réinitialise l'aperçu
+        setDuree(''); 
+        setPack(''); 
+    };
 
     // --- NAVIGATION ET VALIDATION ---
     const handleStep1Submit = (e) => {
@@ -196,11 +209,16 @@ const CreerPromotion = () => {
     };
 
     return (
+        
         <>
-            {/* Simple spacer instead of ClientHeader to keep it clean */}
-            <div className="header pt-5 pt-md-8 pb-4"></div>
-
-            <Container fluid>
+       
+           <ClientHeader />
+            {/* 
+                MODIFICATION ICI : 
+                Ajout de style={{ marginTop: '-3rem' }} pour remonter le bloc.
+                Tu peux ajuster '-3rem' (environ 50px) à '-5rem' selon tes besoins.
+            */}
+            <Container fluid style={{ marginTop: '-5rem' }}>
                 <Row className="justify-content-center">
                     <Col xl="11">
                         <Card className="pubcash-form-card bg-white shadow">
@@ -310,17 +328,31 @@ const CreerPromotion = () => {
                                                     </div>
                                                 </div>
                                             ) : (
-                                                <div className="upload-zone" style={{ borderColor: 'var(--pubcash-green)' }}>
-                                                    <div className="text-center">
-                                                        <div className="upload-icon-circle mb-3 mx-auto" style={{ backgroundColor: '#d1fae5', color: '#059669' }}>
-                                                            <i className="ni ni-check-bold"></i>
-                                                        </div>
-                                                        <p className="font-weight-bold mb-2">{videoFile.name}</p>
-                                                        <Button size="sm" color="danger" outline onClick={(e) => { e.stopPropagation(); clearVideoFile(); }}>
-                                                            Supprimer
-                                                        </Button>
-                                                    </div>
+                                                <div className="upload-zone p-3" style={{ borderColor: 'var(--pubcash-green)', flexDirection: 'column', height: 'auto' }}>
+        
+                                                {/* Lecteur Vidéo */}
+                                                <div style={{ width: '100%', maxWidth: '400px', borderRadius: '12px', overflow: 'hidden', marginBottom: '15px' }}>
+                                                    <video 
+                                                        controls 
+                                                        src={videoPreview} 
+                                                        style={{ width: '100%', display: 'block' }}
+                                                    >
+                                                        Votre navigateur ne supporte pas la lecture de vidéos.
+                                                    </video>
                                                 </div>
+
+                                            {/* Informations et Bouton Supprimer */}
+                                            <div className="text-center">
+                                                <div className="d-flex align-items-center justify-content-center mb-2">
+                                                    <i className="ni ni-check-bold text-success mr-2"></i>
+                                                    <span className="font-weight-bold">{videoFile.name}</span>
+                                                </div>
+                                                
+                                                <Button size="sm" color="danger" outline onClick={(e) => { e.stopPropagation(); clearVideoFile(); }}>
+                                                    <i className="ni ni-fat-remove mr-1"></i> Supprimer / Changer
+                                                </Button>
+                                            </div>
+                                        </div>
                                             )}
                                         </div>
 
