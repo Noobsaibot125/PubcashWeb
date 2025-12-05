@@ -151,8 +151,15 @@ const handleImageChange = (e, type) => {
 };
   return (
     <>
+      {/* --- SOLUTION CORRIGÉE : Espaceur invisible --- */}
+      {/* On garde juste un padding pour que le contenu ne passe pas sous la barre de menu */}
+      <div className="header pt-5 pt-lg-8 d-flex align-items-center" style={{ minHeight: '50px' }}>
+        {/* Pas de background image ici, juste de l'espace */}
+      </div>
+      {/* ----------------------------- */}
 
-      <Container className="mt--5" fluid>
+      {/* On enlève le "mt--5" pour que la carte ne remonte pas, on met mt-3 pour un petit espace propre */}
+      <Container className="mt-3" fluid>
         
         {/* --- 1. Header Card (Banner + Avatar + Info) --- */}
         <Card className="profile-header-card shadow">
