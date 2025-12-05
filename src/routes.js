@@ -41,6 +41,9 @@ import ForgotPassword from "views/examples/ForgotPassword.js";
 import Choice from "views/examples/Choice.js";
 import GameHub from "views/Games/GameHub.js";
 import GameManagement from "views/admin/GameManagement.js";
+import Messagerie from "views/examples/Messagerie.js";
+import Abonnement from "views/examples/Abonnement.js";
+
 var routes = [
   {
     path: "/index",
@@ -49,13 +52,29 @@ var routes = [
     component: <Index />,
     layout: "/client", // IMPORTANT : Le layout est maintenant /client
     role: "client",
-    
+
+  },
+  {
+    path: "/messagerie",
+    name: "Messagerie",
+    icon: "ni ni-chat-round text-orange",
+    component: <Messagerie />,
+    layout: "/client",
+    role: "client",
   },
   {
     path: "/creer-promotion",
     name: "Créer une Promotion",
     icon: "ni ni-send text-blue",
     component: <CreerPromotion />,
+    layout: "/client",
+    role: "client",
+  },
+  {
+    path: "/abonnement",
+    name: "Abonnement Premium",
+    icon: "ni ni-diamond text-red",
+    component: <Abonnement />,
     layout: "/client",
     role: "client",
   },

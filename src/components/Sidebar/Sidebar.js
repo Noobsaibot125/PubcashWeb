@@ -20,19 +20,43 @@ const Sidebar = (props) => {
   const [collapseOpen, setCollapseOpen] = useState(false);
   const [userRole, setUserRole] = useState(null);
 
+  const [unreadCount, setUnreadCount] = useState(0);
+
   // --- VERSION CORRIGÉE DU useEffect ---
   useEffect(() => {
     // On lit directement la nouvelle clé 'userRole'. La valeur est déjà le rôle (ex: "client").
-    // Plus besoin de parser du JSON. C'est plus simple et plus robuste.
     const roleFromStorage = localStorage.getItem('userRole');
     setUserRole(roleFromStorage);
-  }, [location]); // La dépendance reste la même, c'est parfait.
+
+    if (roleFromStorage === 'client') {
+      fetchUnreadCount();
+      const interval = setInterval(fetchUnreadCount, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [location]);
+
+  const fetchUnreadCount = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      // Import dynamique ou axios global si possible, sinon on suppose qu'il est dispo ou on l'importe en haut
+      // Comme je ne peux pas ajouter l'import en haut facilement avec replace_file_content sur un bloc, 
+      // je vais supposer que je dois ajouter l'import séparément ou utiliser fetch.
+      // Je vais utiliser fetch pour éviter les problèmes d'import manquant si je ne remplace pas tout le fichier.
+      const res = await fetch("http://localhost:5000/api/subscriptions/unread-count", {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (data.unreadCount !== undefined) {
+        setUnreadCount(data.unreadCount);
+      }
+    } catch (error) {
+      console.error("Erreur fetchUnreadCount:", error);
+    }
+  };
 
   const toggleCollapse = () => setCollapseOpen((data) => !data);
   const closeCollapse = () => setCollapseOpen(false);
 
-  // Le reste de votre logique est déjà parfait et n'a pas besoin de changer.
-  // Elle fonctionnera correctement dès que `userRole` aura la bonne valeur.
   const createLinks = (routes) => {
     if (!userRole) {
       return null;
@@ -50,12 +74,12 @@ const Sidebar = (props) => {
     }
 
     return routes.map((prop, key) => {
-      
+
       const hasAccess = Array.isArray(prop.role)
         ? prop.role.includes(userRole)
         : prop.role === userRole;
 
-      const layoutTypeMatch = 
+      const layoutTypeMatch =
         (prop.layout === '/admin' && (userRole === 'admin' || userRole === 'superadmin')) ||
         (prop.layout === '/client' && userRole === 'client') ||
         (prop.layout === '/user' && userRole === 'utilisateur');
@@ -70,6 +94,11 @@ const Sidebar = (props) => {
             >
               <i className={prop.icon} />
               {prop.name}
+              {prop.path === '/messagerie' && unreadCount > 0 && (
+                <span className="badge badge-success badge-pill ml-2">
+                  {unreadCount}
+                </span>
+              )}
             </NavLink>
           </NavItem>
         );
@@ -101,7 +130,7 @@ const Sidebar = (props) => {
             <img alt={logo.imgAlt} className="navbar-brand-img" src={logo.imgSrc} />
           </NavbarBrand>
         ) : null}
-        
+
         <Nav className="align-items-center d-md-none">
         </Nav>
 

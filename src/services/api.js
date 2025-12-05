@@ -32,7 +32,7 @@ api.interceptors.request.use(
       method: config.method
     });
 
-    if (accessToken && typeof accessToken === 'string' && accessToken.trim() !== '') {
+    if (accessToken && typeof accessToken === 'string' && accessToken.trim() !== '' && accessToken !== 'undefined' && accessToken !== 'null') {
       const cleanToken = accessToken.trim().replace(/^Bearer\s+/i, '');
       config.headers = config.headers || {};
       config.headers['Authorization'] = `Bearer ${cleanToken}`;
