@@ -1,5 +1,3 @@
-
-
 import React, { useState, useEffect, useRef } from "react";
 import {
     Card,
@@ -18,7 +16,7 @@ import {
     InputGroupAddon,
     Spinner
 } from "reactstrap";
-// import Header from "components/Headers/Header.js"; // On peut utiliser un header simple ou vide
+// import Header from "components/Headers/Header.js"; 
 import api, { getMediaUrl } from "../../services/api";
 
 const Messagerie = () => {
@@ -118,8 +116,6 @@ const Messagerie = () => {
                 formData.append("media", file);
             }
 
-            // L'intercepteur gère le token, mais on doit spécifier le content-type pour FormData si nécessaire
-            // Axios le gère souvent automatiquement, mais on peut le forcer
             await api.post("/messages/send", formData, {
                 headers: {
                     "Content-Type": "multipart/form-data"
@@ -129,7 +125,7 @@ const Messagerie = () => {
             setNewMessage("");
             setFile(null);
             fetchMessages(selectedContact.contactId, selectedContact.contactType);
-            fetchConversations(); // Pour mettre à jour le dernier message dans la liste
+            fetchConversations(); 
         } catch (error) {
             console.error("Erreur sendMessage:", error);
             alert("Erreur lors de l'envoi du message. Vérifiez votre abonnement.");
@@ -142,9 +138,18 @@ const Messagerie = () => {
         setFile(e.target.files[0]);
     };
 
-    // Si pas d'abonnement ou abonnement expiré (sauf si 'free' mais on veut bloquer l'accès complet ou juste griser ?)
-    // Le cahier des charges dit : "Pour les promoteurs n’ayant pas d’abonnement... l’onglet sera grisée"
-    // Ici on est DANS l'onglet, donc on peut afficher un overlay ou un message.
+    // --- CORRECTION : Fonction utilitaire pour l'image ---
+    const getAvatarSrc = (photoName) => {
+        if (!photoName) {
+            return require("assets/img/theme/team-4-800x800.jpg");
+        }
+        // Si c'est un lien http (Google/FB/etc), on le retourne direct
+        if (photoName.startsWith('http')) {
+            return photoName;
+        }
+        // Sinon c'est un fichier local, on ajoute le chemin
+        return getMediaUrl(`/uploads/profile/${photoName}`);
+    };
 
     const isPremium = subscription && subscription.hasSubscription;
 
@@ -190,9 +195,11 @@ const Messagerie = () => {
                                                 >
                                                     <div className="d-flex align-items-center">
                                                         <div className="avatar avatar-sm rounded-circle mr-3">
+                                                            {/* --- CORRECTION APPLIQUÉE ICI --- */}
                                                             <img
-                                                                alt="..."
-                                                                src={conv.contactPhoto ? getMediaUrl(`/uploads/profile/${conv.contactPhoto}`) : require("assets/img/theme/team-4-800x800.jpg")}
+                                                                alt={conv.contactName}
+                                                                src={getAvatarSrc(conv.contactPhoto)}
+                                                                style={{ objectFit: 'cover', width: '100%', height: '100%' }}
                                                             />
                                                         </div>
                                                         <div className="flex-grow-1 overflow-hidden">
@@ -221,13 +228,21 @@ const Messagerie = () => {
                                             <>
                                                 {/* Header Chat */}
                                                 <div className="p-3 border-bottom bg-secondary d-flex align-items-center">
+                                                    {/* On ajoute l'avatar aussi dans le header du chat pour faire joli */}
+                                                    <div className="avatar avatar-sm rounded-circle mr-2">
+                                                        <img 
+                                                            alt="" 
+                                                            src={getAvatarSrc(selectedContact.contactPhoto)} 
+                                                            style={{ objectFit: 'cover', width: '100%', height: '100%' }}
+                                                        />
+                                                    </div>
                                                     <h4 className="mb-0">{selectedContact.contactName}</h4>
                                                 </div>
 
                                                 {/* Messages */}
                                                 <div className="flex-grow-1 p-3 overflow-auto" style={{ backgroundColor: '#f8f9fe' }}>
                                                     {messages.map((msg) => {
-                                                        const isMe = msg.type_expediteur === 'client'; // Je suis le client (promoteur)
+                                                        const isMe = msg.type_expediteur === 'client'; 
                                                         return (
                                                             <div key={msg.id} className={`d-flex mb-3 ${isMe ? 'justify-content-end' : 'justify-content-start'}`}>
                                                                 <div
