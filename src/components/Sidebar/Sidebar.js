@@ -1,5 +1,3 @@
-// src/components/Sidebar/Sidebar.js
-
 import { useState, useEffect } from "react";
 import { NavLink as NavLinkRRD, Link, useLocation } from "react-router-dom";
 import { PropTypes } from "prop-types";
@@ -15,39 +13,38 @@ import {
   Col,
 } from "reactstrap";
 
+// 1. IMPORTANT : On importe ton instance API configurée
+import api from "../../services/api";
+
 const Sidebar = (props) => {
   const location = useLocation();
   const [collapseOpen, setCollapseOpen] = useState(false);
   const [userRole, setUserRole] = useState(null);
-
   const [unreadCount, setUnreadCount] = useState(0);
 
-  // --- VERSION CORRIGÉE DU useEffect ---
   useEffect(() => {
-    // On lit directement la nouvelle clé 'userRole'. La valeur est déjà le rôle (ex: "client").
     const roleFromStorage = localStorage.getItem('userRole');
     setUserRole(roleFromStorage);
 
+    // Si c'est un client, on lance le compteur
     if (roleFromStorage === 'client') {
       fetchUnreadCount();
+      // Rafraîchir toutes les 30 secondes
       const interval = setInterval(fetchUnreadCount, 30000);
       return () => clearInterval(interval);
     }
   }, [location]);
 
+  // 2. VERSION CORRIGÉE : Utilise api.get au lieu de fetch
   const fetchUnreadCount = async () => {
     try {
-      const token = localStorage.getItem("token");
-      // Import dynamique ou axios global si possible, sinon on suppose qu'il est dispo ou on l'importe en haut
-      // Comme je ne peux pas ajouter l'import en haut facilement avec replace_file_content sur un bloc, 
-      // je vais supposer que je dois ajouter l'import séparément ou utiliser fetch.
-      // Je vais utiliser fetch pour éviter les problèmes d'import manquant si je ne remplace pas tout le fichier.
-      const res = await fetch("http://localhost:5000/api/subscriptions/unread-count", {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      const data = await res.json();
-      if (data.unreadCount !== undefined) {
-        setUnreadCount(data.unreadCount);
+      // Pas besoin de mettre l'URL complète ni le header Authorization manuellement.
+      // api.js le fait déjà pour toi grâce aux interceptors.
+      // NOTE : J'ai corrigé la route vers '/messages/unread-count' car c'est celle définie dans ton messageRoutes.js
+      const res = await api.get("/messages/unread-count");
+      
+      if (res.data && res.data.unreadCount !== undefined) {
+        setUnreadCount(res.data.unreadCount);
       }
     } catch (error) {
       console.error("Erreur fetchUnreadCount:", error);
@@ -74,7 +71,6 @@ const Sidebar = (props) => {
     }
 
     return routes.map((prop, key) => {
-
       const hasAccess = Array.isArray(prop.role)
         ? prop.role.includes(userRole)
         : prop.role === userRole;
@@ -91,11 +87,14 @@ const Sidebar = (props) => {
               to={layoutPrefix + prop.path}
               tag={NavLinkRRD}
               onClick={closeCollapse}
+              activeClassName="active"
             >
               <i className={prop.icon} />
               {prop.name}
+              
+              {/* Badge pour la messagerie */}
               {prop.path === '/messagerie' && unreadCount > 0 && (
-                <span className="badge badge-success badge-pill ml-2">
+                <span className="badge badge-danger badge-pill ml-2" style={{ backgroundColor: '#f5365c', color: 'white' }}>
                   {unreadCount}
                 </span>
               )}

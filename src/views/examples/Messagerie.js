@@ -14,9 +14,7 @@ import {
     Form,
     InputGroup,
     InputGroupAddon,
-    Spinner
 } from "reactstrap";
-// import Header from "components/Headers/Header.js"; 
 import api, { getMediaUrl } from "../../services/api";
 
 const Messagerie = () => {
@@ -25,7 +23,6 @@ const Messagerie = () => {
     const [selectedContact, setSelectedContact] = useState(null);
     const [messages, setMessages] = useState([]);
     const [newMessage, setNewMessage] = useState("");
-    const [loading, setLoading] = useState(true);
     const [sending, setSending] = useState(false);
     const [subscription, setSubscription] = useState(null);
     const [file, setFile] = useState(null);
@@ -43,6 +40,8 @@ const Messagerie = () => {
         const interval = setInterval(() => {
             fetchConversations();
             if (selectedContact) {
+                // true au début pour fetcher, false pour éviter de scroller si on lit l'historique
+                // ici on laisse false pour le polling pour ne pas gêner la lecture
                 fetchMessages(selectedContact.contactId, selectedContact.contactType, false);
             }
         }, 10000);
@@ -64,10 +63,8 @@ const Messagerie = () => {
         try {
             const res = await api.get("/messages/conversations");
             setConversations(res.data);
-            setLoading(false);
         } catch (error) {
             console.error("Erreur fetchConversations:", error);
-            setLoading(false);
         }
     };
 
@@ -76,7 +73,7 @@ const Messagerie = () => {
             const res = await api.get(`/messages/${contactType}/${contactId}`);
             setMessages(res.data);
             if (scrollToBottom) {
-                scrollToBottomFunc();
+                setTimeout(scrollToBottomFunc, 100);
             }
         } catch (error) {
             console.error("Erreur fetchMessages:", error);
@@ -124,14 +121,14 @@ const Messagerie = () => {
         }
     };
 
-    // --- Helpers & Handlers ---
+    // --- Helpers ---
     const scrollToBottomFunc = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     };
 
     const handleContactClick = (contact) => {
         setSelectedContact(contact);
-        fetchMessages(contact.contactId, contact.contactType);
+        fetchMessages(contact.contactId, contact.contactType, true);
         markAsRead(contact.contactId, contact.contactType);
     };
 
@@ -139,25 +136,14 @@ const Messagerie = () => {
         setFile(e.target.files[0]);
     };
 
-    /**
-     * Gère l'affichage de l'avatar de manière sécurisée.
-     * Gère : NULL, URL Google/FB (http...), Fichier local, et évite le crash 'startsWith'.
-     */
+    // La fonction magique pour les avatars
     const getAvatarSrc = (photoName) => {
-        // 1. Si vide, image par défaut
-        if (!photoName) {
-            return require("assets/img/theme/team-4-800x800.jpg");
-        }
+        if (!photoName) return require("assets/img/theme/team-4-800x800.jpg");
         
-        // 2. Sécurité : Force la conversion en chaîne de caractères
         const strPhotoName = String(photoName);
-
-        // 3. Si c'est une URL externe (Google / Facebook)
         if (strPhotoName.startsWith('http') || strPhotoName.startsWith('https')) {
             return strPhotoName;
         }
-        
-        // 4. Sinon c'est un fichier local dans notre dossier uploads
         return getMediaUrl(`/uploads/profile/${strPhotoName}`);
     };
 
@@ -192,7 +178,7 @@ const Messagerie = () => {
                             <CardBody className="p-0">
                                 <Row className="h-100 no-gutters">
                                     
-                                    {/* COLONNE GAUCHE : LISTE CONTACTS */}
+                                    {/* LISTE CONTACTS */}
                                     <Col md="4" className="border-right h-100 overflow-auto" style={{ maxHeight: '70vh' }}>
                                         <ListGroup flush>
                                             {conversations.map((conv) => (
@@ -209,11 +195,7 @@ const Messagerie = () => {
                                                                 alt={conv.contactName}
                                                                 src={getAvatarSrc(conv.contactPhoto)}
                                                                 style={{ objectFit: 'cover', width: '100%', height: '100%' }}
-                                                                onError={(e) => {
-                                                                    // Fallback si l'image ne charge pas (404)
-                                                                    e.target.onerror = null; 
-                                                                    e.target.src = require("assets/img/theme/team-4-800x800.jpg");
-                                                                }}
+                                                                onError={(e) => { e.target.onerror = null; e.target.src = require("assets/img/theme/team-4-800x800.jpg"); }}
                                                             />
                                                         </div>
                                                         <div className="flex-grow-1 overflow-hidden">
@@ -236,27 +218,22 @@ const Messagerie = () => {
                                         </ListGroup>
                                     </Col>
 
-                                    {/* COLONNE DROITE : CHAT */}
+                                    {/* CHAT */}
                                     <Col md="8" className="d-flex flex-column h-100" style={{ maxHeight: '70vh' }}>
                                         {selectedContact ? (
                                             <>
-                                                {/* Header Chat */}
                                                 <div className="p-3 border-bottom bg-secondary d-flex align-items-center">
                                                     <div className="avatar avatar-sm rounded-circle mr-2">
                                                         <img 
                                                             alt="" 
                                                             src={getAvatarSrc(selectedContact.contactPhoto)} 
                                                             style={{ objectFit: 'cover', width: '100%', height: '100%' }}
-                                                            onError={(e) => {
-                                                                e.target.onerror = null; 
-                                                                e.target.src = require("assets/img/theme/team-4-800x800.jpg");
-                                                            }}
+                                                            onError={(e) => { e.target.onerror = null; e.target.src = require("assets/img/theme/team-4-800x800.jpg"); }}
                                                         />
                                                     </div>
                                                     <h4 className="mb-0">{selectedContact.contactName}</h4>
                                                 </div>
 
-                                                {/* Messages Area */}
                                                 <div className="flex-grow-1 p-3 overflow-auto" style={{ backgroundColor: '#f8f9fe' }}>
                                                     {messages.map((msg) => {
                                                         const isMe = msg.type_expediteur === 'client'; 
@@ -284,7 +261,6 @@ const Messagerie = () => {
                                                     <div ref={messagesEndRef} />
                                                 </div>
 
-                                                {/* Input Zone */}
                                                 <div className="p-3 border-top bg-white">
                                                     {isPremium ? (
                                                         <Form onSubmit={handleSendMessage}>
