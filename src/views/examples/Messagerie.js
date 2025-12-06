@@ -20,6 +20,7 @@ import {
 import api, { getMediaUrl } from "../../services/api";
 
 const Messagerie = () => {
+    // --- State ---
     const [conversations, setConversations] = useState([]);
     const [selectedContact, setSelectedContact] = useState(null);
     const [messages, setMessages] = useState([]);
@@ -28,15 +29,17 @@ const Messagerie = () => {
     const [sending, setSending] = useState(false);
     const [subscription, setSubscription] = useState(null);
     const [file, setFile] = useState(null);
+    
+    // --- Refs ---
     const messagesEndRef = useRef(null);
     const fileInputRef = useRef(null);
 
-    // Vérifier l'abonnement et charger les conversations
+    // --- Effects ---
     useEffect(() => {
         checkSubscription();
         fetchConversations();
 
-        // Polling pour les nouveaux messages (toutes les 10s)
+        // Rafraîchir toutes les 10 secondes
         const interval = setInterval(() => {
             fetchConversations();
             if (selectedContact) {
@@ -47,6 +50,7 @@ const Messagerie = () => {
         return () => clearInterval(interval);
     }, [selectedContact]);
 
+    // --- API Calls ---
     const checkSubscription = async () => {
         try {
             const res = await api.get("/subscriptions/status");
@@ -79,21 +83,9 @@ const Messagerie = () => {
         }
     };
 
-    const scrollToBottomFunc = () => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    };
-
-    const handleContactClick = (contact) => {
-        setSelectedContact(contact);
-        fetchMessages(contact.contactId, contact.contactType);
-        // Marquer comme lu
-        markAsRead(contact.contactId, contact.contactType);
-    };
-
     const markAsRead = async (contactId, contactType) => {
         try {
             await api.put(`/messages/${contactType}/${contactId}/read`);
-            // Mettre à jour le compteur localement
             setConversations(prev => prev.map(c =>
                 c.contactId === contactId ? { ...c, unreadCount: 0 } : c
             ));
@@ -117,9 +109,7 @@ const Messagerie = () => {
             }
 
             await api.post("/messages/send", formData, {
-                headers: {
-                    "Content-Type": "multipart/form-data"
-                }
+                headers: { "Content-Type": "multipart/form-data" }
             });
 
             setNewMessage("");
@@ -128,38 +118,57 @@ const Messagerie = () => {
             fetchConversations(); 
         } catch (error) {
             console.error("Erreur sendMessage:", error);
-            alert("Erreur lors de l'envoi du message. Vérifiez votre abonnement.");
+            alert("Erreur lors de l'envoi. Vérifiez votre abonnement.");
         } finally {
             setSending(false);
         }
+    };
+
+    // --- Helpers & Handlers ---
+    const scrollToBottomFunc = () => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    };
+
+    const handleContactClick = (contact) => {
+        setSelectedContact(contact);
+        fetchMessages(contact.contactId, contact.contactType);
+        markAsRead(contact.contactId, contact.contactType);
     };
 
     const handleFileChange = (e) => {
         setFile(e.target.files[0]);
     };
 
-    // --- CORRECTION : Fonction utilitaire pour l'image ---
+    /**
+     * Gère l'affichage de l'avatar de manière sécurisée.
+     * Gère : NULL, URL Google/FB (http...), Fichier local, et évite le crash 'startsWith'.
+     */
     const getAvatarSrc = (photoName) => {
+        // 1. Si vide, image par défaut
         if (!photoName) {
             return require("assets/img/theme/team-4-800x800.jpg");
         }
-        // Si c'est un lien http (Google/FB/etc), on le retourne direct
-        if (photoName.startsWith('http')) {
-            return photoName;
+        
+        // 2. Sécurité : Force la conversion en chaîne de caractères
+        const strPhotoName = String(photoName);
+
+        // 3. Si c'est une URL externe (Google / Facebook)
+        if (strPhotoName.startsWith('http') || strPhotoName.startsWith('https')) {
+            return strPhotoName;
         }
-        // Sinon c'est un fichier local, on ajoute le chemin
-        return getMediaUrl(`/uploads/profile/${photoName}`);
+        
+        // 4. Sinon c'est un fichier local dans notre dossier uploads
+        return getMediaUrl(`/uploads/profile/${strPhotoName}`);
     };
 
     const isPremium = subscription && subscription.hasSubscription;
 
+    // --- Render ---
     return (
         <>
             <div className="header bg-gradient-info pb-8 pt-5 pt-md-8">
                 <Container fluid>
-                    <div className="header-body">
-                        {/* Card stats could go here */}
-                    </div>
+                    <div className="header-body"></div>
                 </Container>
             </div>
             <Container className="mt--7" fluid>
@@ -182,7 +191,8 @@ const Messagerie = () => {
                             </CardHeader>
                             <CardBody className="p-0">
                                 <Row className="h-100 no-gutters">
-                                    {/* LISTE DES CONVERSATIONS (GAUCHE) */}
+                                    
+                                    {/* COLONNE GAUCHE : LISTE CONTACTS */}
                                     <Col md="4" className="border-right h-100 overflow-auto" style={{ maxHeight: '70vh' }}>
                                         <ListGroup flush>
                                             {conversations.map((conv) => (
@@ -195,11 +205,15 @@ const Messagerie = () => {
                                                 >
                                                     <div className="d-flex align-items-center">
                                                         <div className="avatar avatar-sm rounded-circle mr-3">
-                                                            {/* --- CORRECTION APPLIQUÉE ICI --- */}
                                                             <img
                                                                 alt={conv.contactName}
                                                                 src={getAvatarSrc(conv.contactPhoto)}
                                                                 style={{ objectFit: 'cover', width: '100%', height: '100%' }}
+                                                                onError={(e) => {
+                                                                    // Fallback si l'image ne charge pas (404)
+                                                                    e.target.onerror = null; 
+                                                                    e.target.src = require("assets/img/theme/team-4-800x800.jpg");
+                                                                }}
                                                             />
                                                         </div>
                                                         <div className="flex-grow-1 overflow-hidden">
@@ -222,24 +236,27 @@ const Messagerie = () => {
                                         </ListGroup>
                                     </Col>
 
-                                    {/* ZONE DE CHAT (DROITE) */}
+                                    {/* COLONNE DROITE : CHAT */}
                                     <Col md="8" className="d-flex flex-column h-100" style={{ maxHeight: '70vh' }}>
                                         {selectedContact ? (
                                             <>
                                                 {/* Header Chat */}
                                                 <div className="p-3 border-bottom bg-secondary d-flex align-items-center">
-                                                    {/* On ajoute l'avatar aussi dans le header du chat pour faire joli */}
                                                     <div className="avatar avatar-sm rounded-circle mr-2">
                                                         <img 
                                                             alt="" 
                                                             src={getAvatarSrc(selectedContact.contactPhoto)} 
                                                             style={{ objectFit: 'cover', width: '100%', height: '100%' }}
+                                                            onError={(e) => {
+                                                                e.target.onerror = null; 
+                                                                e.target.src = require("assets/img/theme/team-4-800x800.jpg");
+                                                            }}
                                                         />
                                                     </div>
                                                     <h4 className="mb-0">{selectedContact.contactName}</h4>
                                                 </div>
 
-                                                {/* Messages */}
+                                                {/* Messages Area */}
                                                 <div className="flex-grow-1 p-3 overflow-auto" style={{ backgroundColor: '#f8f9fe' }}>
                                                     {messages.map((msg) => {
                                                         const isMe = msg.type_expediteur === 'client'; 
