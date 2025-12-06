@@ -17,14 +17,13 @@ const Profile = () => {
   const [updateSuccess, setUpdateSuccess] = useState('');
   const [isUpdating, setIsUpdating] = useState(false);
   
-  // Cette partie existait, mais la modale visuelle manquait
+  // Modale de confirmation MDP
   const [isPasswordConfirmModalOpen, setIsPasswordConfirmModalOpen] = useState(false);
   const [confirmPassword, setConfirmPassword] = useState("");
   
   const [previewAvatar, setPreviewAvatar] = useState(null);
   const [previewBanner, setPreviewBanner] = useState(null);
   
-  // Refs for file inputs
   const profileImageRef = useRef(null);
   const backgroundImageRef = useRef(null);
 
@@ -74,7 +73,6 @@ const Profile = () => {
     setUpdateError('');
     setUpdateSuccess('');
     setPasswordData({ currentPassword: '', newPassword: '' });
-    // Reset previews
     setPreviewAvatar(null);
     setPreviewBanner(null);
     if (profile) setEditData(profile);
@@ -88,9 +86,7 @@ const Profile = () => {
     setPasswordData({ ...passwordData, [e.target.name]: e.target.value });
   };
 
-  // C'est ici que la logique s'exécute, appelée par la Modale de Confirmation
   const handleUpdateProfile = async () => {
-    // On utilise confirmPassword (le state de la petite modale)
     if (!confirmPassword) {
         setUpdateError("Veuillez entrer votre mot de passe actuel pour confirmer.");
         return;
@@ -103,7 +99,7 @@ const Profile = () => {
     try {
       const updatePayload = {
         ...editData,
-        currentPassword: confirmPassword, // On envoie le mdp saisi dans la modale de confirmation
+        currentPassword: confirmPassword,
         newPassword: passwordData.newPassword || null
       };
 
@@ -123,8 +119,8 @@ const Profile = () => {
       await fetchProfile();
 
       setTimeout(() => {
-        setIsPasswordConfirmModalOpen(false); // Fermer la petite modale
-        setIsModalOpen(false); // Fermer la grande modale
+        setIsPasswordConfirmModalOpen(false);
+        setIsModalOpen(false);
         setConfirmPassword('');
         setPasswordData({ currentPassword: '', newPassword: '' });
         setUpdateSuccess('');
@@ -133,8 +129,6 @@ const Profile = () => {
     } catch (err) {
       const errorMessage = err.response?.data?.message || "Une erreur est survenue lors de la mise à jour.";
       setUpdateError(errorMessage);
-      // En cas d'erreur, on laisse la petite modale ouverte pour réessayer ou on la ferme
-      // Ici on la ferme pour voir l'erreur sur la grande modale, ou on affiche l'erreur dans la petite.
       setIsPasswordConfirmModalOpen(false);
     } finally {
       setIsUpdating(false);
@@ -159,14 +153,15 @@ const Profile = () => {
     );
   }
 
-  // --- RENDER ---
   const defaultBanner = require("../../assets/img/theme/profile-cover.jpg");
   const defaultAvatar = require("../../assets/img/theme/team-4-800x800.jpg");
 
+  // Helper pour savoir si c'est une entreprise
+  const isEntreprise = profile?.type_compte === 'entreprise';
+
   return (
     <>
-      <div className="header pt-5 pt-lg-8 d-flex align-items-center" style={{ minHeight: '50px' }}>
-      </div>
+      <div className="header pt-5 pt-lg-8 d-flex align-items-center" style={{ minHeight: '50px' }}></div>
 
       <Container className="mt-3" fluid>
         {/* --- 1. Header Card --- */}
@@ -190,25 +185,24 @@ const Profile = () => {
 
             <div className="profile-text-container">
               <h3 className="profile-name">
-                {profile?.prenom} {profile?.nom}
+                {/* AFFICHER NOM ENTREPRISE SI ENTREPRISE, SINON PRENOM NOM */}
+                {isEntreprise 
+                    ? profile?.nom_entreprise 
+                    : `${profile?.prenom} ${profile?.nom}`
+                }
               </h3>
               <div className="profile-location">
                 {profile?.commune || 'Localisation non définie'}
               </div>
+              {/* Petit badge pour indiquer le type */}
+              {isEntreprise && <span className="badge badge-pill badge-primary text-uppercase mt-1">Entreprise</span>}
             </div>
 
             <div className="profile-action-btn">
-              <Button
-                className="btn-pubcash"
-                onClick={toggleModal}
-              >
+              <Button className="btn-pubcash" onClick={toggleModal}>
                 Modifier votre profil
               </Button>
-              <Button
-                className="btn-pubcash ml-2"
-                color="warning"
-                href="/client/abonnement"
-              >
+              <Button className="btn-pubcash ml-2" color="warning" href="/client/abonnement">
                 <i className="ni ni-diamond mr-2" />
                 Abonnement Premium
               </Button>
@@ -223,9 +217,64 @@ const Profile = () => {
               <h6 className="heading-small text-muted mb-4">Informations Personnelles</h6>
               <div className="pl-lg-4">
                 <Row>
+                  {/* Affichage conditionnel selon le type de compte */}
+                  {isEntreprise ? (
+                    <>
+                         <Col lg="6">
+                            <FormGroup>
+                            <label className="form-control-label">Nom de l'Entreprise</label>
+                            <Input
+                                className="pubcash-input-readonly"
+                                value={profile?.nom_entreprise || ''}
+                                type="text"
+                                readOnly
+                            />
+                            </FormGroup>
+                        </Col>
+                        <Col lg="6">
+                            <FormGroup>
+                            <label className="form-control-label">N° RCCM</label>
+                            <Input
+                                className="pubcash-input-readonly"
+                                value={profile?.rccm || ''}
+                                type="text"
+                                readOnly
+                            />
+                            </FormGroup>
+                        </Col>
+                    </>
+                  ) : (
+                    <>
+                        <Col lg="6">
+                            <FormGroup>
+                            <label className="form-control-label">Prénom</label>
+                            <Input
+                                className="pubcash-input-readonly"
+                                value={profile?.prenom || ''}
+                                type="text"
+                                readOnly
+                            />
+                            </FormGroup>
+                        </Col>
+                        <Col lg="6">
+                            <FormGroup>
+                            <label className="form-control-label">Nom</label>
+                            <Input
+                                className="pubcash-input-readonly"
+                                value={profile?.nom || ''}
+                                type="text"
+                                readOnly
+                            />
+                            </FormGroup>
+                        </Col>
+                    </>
+                  )}
+                </Row>
+                
+                <Row>
                   <Col lg="6">
                     <FormGroup>
-                      <label className="form-control-label">Nom d'utilisateur</label>
+                      <label className="form-control-label">Nom d'utilisateur (Pseudo)</label>
                       <Input
                         className="pubcash-input-readonly"
                         value={profile?.nom_utilisateur || ''}
@@ -241,30 +290,6 @@ const Profile = () => {
                         className="pubcash-input-readonly"
                         value={profile?.email || ''}
                         type="email"
-                        readOnly
-                      />
-                    </FormGroup>
-                  </Col>
-                </Row>
-                <Row>
-                  <Col lg="6">
-                    <FormGroup>
-                      <label className="form-control-label">Prénom</label>
-                      <Input
-                        className="pubcash-input-readonly"
-                        value={profile?.prenom || ''}
-                        type="text"
-                        readOnly
-                      />
-                    </FormGroup>
-                  </Col>
-                  <Col lg="6">
-                    <FormGroup>
-                      <label className="form-control-label">Nom</label>
-                      <Input
-                        className="pubcash-input-readonly"
-                        value={profile?.nom || ''}
-                        type="text"
                         readOnly
                       />
                     </FormGroup>
@@ -289,13 +314,8 @@ const Profile = () => {
         </Card>
       </Container>
 
-      {/* --- Modale d'Édition Principale --- */}
-      <Modal
-        isOpen={isModalOpen}
-        toggle={toggleModal}
-        size="lg"
-        contentClassName="bg-secondary border-0"
-      >
+      {/* --- Modale d'Édition --- */}
+      <Modal isOpen={isModalOpen} toggle={toggleModal} size="lg" contentClassName="bg-secondary border-0">
         <div className="modal-header bg-white pb-3">
           <h4 className="modal-title mb-0 font-weight-bold text-uppercase ls-1 text-primary">
             Modifier mon profil
@@ -306,19 +326,16 @@ const Profile = () => {
         </div>
 
         <ModalBody className="p-0">
-          {/* ZONE 1 : IMAGES */}
+          {/* Images Upload (Pas de changement ici) */}
           <div className="position-relative" style={{ height: '200px' }}>
             <input type="file" ref={backgroundImageRef} className="d-none" accept="image/*" onChange={(e) => handleImageChange(e, 'banner')} />
             <input type="file" ref={profileImageRef} className="d-none" accept="image/*" onChange={(e) => handleImageChange(e, 'avatar')} />
 
-            {/* Banner Cliquable */}
             <div
               className="w-100 h-100 position-absolute"
               style={{
                 backgroundImage: `url(${previewBanner || editData.background_image_url || defaultBanner})`,
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
-                cursor: 'pointer'
+                backgroundSize: 'cover', backgroundPosition: 'center', cursor: 'pointer'
               }}
               onClick={() => backgroundImageRef.current.click()}
             >
@@ -327,7 +344,6 @@ const Profile = () => {
               </div>
             </div>
 
-            {/* Avatar Cliquable */}
             <div
               className="position-absolute shadow rounded-circle overflow-hidden bg-white"
               style={{
@@ -338,51 +354,80 @@ const Profile = () => {
             >
               <img
                 src={previewAvatar || editData.profile_image_url || defaultAvatar}
-                alt="avatar"
-                className="w-100 h-100"
-                style={{ objectFit: 'cover' }}
+                alt="avatar" className="w-100 h-100" style={{ objectFit: 'cover' }}
               />
               <div className="position-absolute w-100 h-100 d-flex justify-content-center align-items-center bg-dark" style={{ top: 0, left: 0, opacity: 0, transition: '0.3s' }} onMouseEnter={e => e.target.style.opacity = 0.6} onMouseLeave={e => e.target.style.opacity = 0}>
                 <i className="ni ni-camera-compact text-white"></i>
               </div>
             </div>
           </div>
-
           <div style={{ height: '70px' }}></div>
 
-          {/* ZONE 2 : FORMULAIRE */}
+          {/* Formulaire Édition */}
           <div className="px-4 py-4">
             <Form onSubmit={(e) => e.preventDefault()}>
               <h6 className="heading-small text-muted mb-4">Informations personnelles</h6>
               <div className="pl-lg-2">
                 <Row>
-                  <Col lg="6">
-                    <FormGroup>
-                      <Label className="form-control-label font-weight-bold">Prénom</Label>
-                      <Input
-                        type="text"
-                        name="prenom"
-                        value={editData.prenom || ''}
-                        onChange={handleInputChange}
-                      />
-                    </FormGroup>
-                  </Col>
-                  <Col lg="6">
-                    <FormGroup>
-                      <Label className="form-control-label font-weight-bold">Nom</Label>
-                      <Input
-                        type="text"
-                        name="nom"
-                        value={editData.nom || ''}
-                        onChange={handleInputChange}
-                      />
-                    </FormGroup>
-                  </Col>
+                  {/* AFFICHAGE CONDITIONNEL DANS LA MODALE AUSSI */}
+                  {isEntreprise ? (
+                    <>
+                         <Col lg="6">
+                            <FormGroup>
+                            <Label className="form-control-label font-weight-bold">Nom de l'Entreprise</Label>
+                            <Input
+                                type="text"
+                                name="nom_entreprise"
+                                value={editData.nom_entreprise || ''}
+                                onChange={handleInputChange}
+                            />
+                            </FormGroup>
+                        </Col>
+                        <Col lg="6">
+                            <FormGroup>
+                            <Label className="form-control-label font-weight-bold">N° RCCM</Label>
+                            <Input
+                                type="text"
+                                name="rccm"
+                                value={editData.rccm || ''}
+                                onChange={handleInputChange}
+                                // Si tu ne veux pas qu'ils modifient le RCCM, ajoute readOnly
+                            />
+                            </FormGroup>
+                        </Col>
+                    </>
+                  ) : (
+                    <>
+                        <Col lg="6">
+                            <FormGroup>
+                            <Label className="form-control-label font-weight-bold">Prénom</Label>
+                            <Input
+                                type="text"
+                                name="prenom"
+                                value={editData.prenom || ''}
+                                onChange={handleInputChange}
+                            />
+                            </FormGroup>
+                        </Col>
+                        <Col lg="6">
+                            <FormGroup>
+                            <Label className="form-control-label font-weight-bold">Nom</Label>
+                            <Input
+                                type="text"
+                                name="nom"
+                                value={editData.nom || ''}
+                                onChange={handleInputChange}
+                            />
+                            </FormGroup>
+                        </Col>
+                    </>
+                  )}
                 </Row>
+
                 <Row>
                   <Col lg="6">
                      <FormGroup>
-                      <Label className="form-control-label font-weight-bold">Pseudo</Label>
+                      <Label className="form-control-label font-weight-bold">Pseudo / Nom d'utilisateur</Label>
                       <Input
                         type="text"
                         name="nom_utilisateur"
@@ -416,7 +461,6 @@ const Profile = () => {
               </div>
 
               <hr className="my-4 border-light" />
-
               <h6 className="heading-small text-muted mb-4">Sécurité <small>(Pour changer le mot de passe)</small></h6>
               <div className="bg-white p-3 rounded shadow-sm border">
                 <Row>
@@ -452,63 +496,33 @@ const Profile = () => {
         </ModalBody>
 
         <ModalFooter className="bg-secondary border-top-0 pt-0 pb-4 justify-content-between px-4">
-          <Button color="link" className="text-muted" onClick={toggleModal}>
-            Annuler
-          </Button>
-          <Button
-            className="btn-icon shadow"
-            color="primary"
-            onClick={() => setIsPasswordConfirmModalOpen(true)} // Ouvre la 2eme modale
-            disabled={isUpdating}
-          >
+          <Button color="link" className="text-muted" onClick={toggleModal}>Annuler</Button>
+          <Button className="btn-icon shadow" color="primary" onClick={() => setIsPasswordConfirmModalOpen(true)} disabled={isUpdating}>
             <span className="btn-inner--icon"><i className="ni ni-check-bold mr-2"></i></span>
             <span className="btn-inner--text">Enregistrer</span>
           </Button>
         </ModalFooter>
       </Modal>
 
-      {/* --- SOLUTION AJOUTÉE : LA MODALE DE CONFIRMATION --- */}
-      {/* C'est ce qui manquait pour que le bouton Enregistrer fonctionne */}
-      <Modal 
-        isOpen={isPasswordConfirmModalOpen} 
-        toggle={() => setIsPasswordConfirmModalOpen(!isPasswordConfirmModalOpen)}
-        className="modal-dialog-centered modal-sm"
-      >
-        <ModalHeader toggle={() => setIsPasswordConfirmModalOpen(false)}>
-            Confirmation requise
-        </ModalHeader>
+      {/* --- Modale Confirmation --- */}
+      <Modal isOpen={isPasswordConfirmModalOpen} toggle={() => setIsPasswordConfirmModalOpen(!isPasswordConfirmModalOpen)} className="modal-dialog-centered modal-sm">
+        <ModalHeader toggle={() => setIsPasswordConfirmModalOpen(false)}>Confirmation requise</ModalHeader>
         <ModalBody>
             <div className="text-center mb-3">
                 <i className="ni ni-lock-circle-open fa-3x text-primary"></i>
-                <p className="mt-2 text-muted text-sm">
-                    Pour valider les modifications de votre profil, veuillez saisir votre mot de passe <strong>actuel</strong>.
-                </p>
+                <p className="mt-2 text-muted text-sm">Pour valider les modifications, veuillez saisir votre mot de passe <strong>actuel</strong>.</p>
             </div>
             <FormGroup>
-                <Input
-                    type="password"
-                    placeholder="Votre mot de passe actuel"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    autoFocus
-                />
+                <Input type="password" placeholder="Votre mot de passe actuel" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} autoFocus />
             </FormGroup>
         </ModalBody>
         <ModalFooter>
-            <Button color="secondary" size="sm" onClick={() => setIsPasswordConfirmModalOpen(false)}>
-                Annuler
-            </Button>
-            <Button 
-                color="primary" 
-                size="sm" 
-                onClick={handleUpdateProfile}
-                disabled={isUpdating || !confirmPassword}
-            >
+            <Button color="secondary" size="sm" onClick={() => setIsPasswordConfirmModalOpen(false)}>Annuler</Button>
+            <Button color="primary" size="sm" onClick={handleUpdateProfile} disabled={isUpdating || !confirmPassword}>
                 {isUpdating ? <Spinner size="sm"/> : "Confirmer"}
             </Button>
         </ModalFooter>
       </Modal>
-
     </>
   );
 };
