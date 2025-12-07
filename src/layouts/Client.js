@@ -1,14 +1,9 @@
-// src/layouts/Client.js
-
 import React from "react";
 import { useLocation, Route, Routes, Navigate } from "react-router-dom";
-// reactstrap components
 import { Container } from "reactstrap";
-// core components
 import AdminNavbar from "components/Navbars/AdminNavbar.js";
 import AdminFooter from "components/Footers/AdminFooter.js";
 import Sidebar from "components/Sidebar/Sidebar.js";
-
 import routes from "routes.js";
 
 const Client = (props) => {
@@ -23,11 +18,14 @@ const Client = (props) => {
 
   const getRoutes = (routes) => {
     return routes.map((prop, key) => {
-      // *** MODIFICATION CRUCIALE ICI ***
-      // On charge uniquement les routes qui ont le layout "/client"
       if (prop.layout === "/client") {
         return (
-          <Route path={prop.path.replace(/^\//, "")} element={prop.component} key={key} exact />
+          <Route
+            path={prop.path.replace(/^\//, "")}
+            element={prop.component}
+            key={key}
+            exact
+          />
         );
       } else {
         return null;
@@ -35,16 +33,13 @@ const Client = (props) => {
     });
   };
 
-  const getBrandText = (path) => {
+  const getBrandText = () => {
     for (let i = 0; i < routes.length; i++) {
-      if (
-        props?.location?.pathname.indexOf(routes[i].layout + routes[i].path) !==
-        -1
-      ) {
+      if (location.pathname.indexOf(routes[i].layout + routes[i].path) !== -1) {
         return routes[i].name;
       }
     }
-    return "Brand";
+    return "PubCash";
   };
 
   return (
@@ -58,15 +53,19 @@ const Client = (props) => {
           imgAlt: "...",
         }}
       />
+      
       <div className="main-content" ref={mainContent}>
+        {/* AdminNavbar gère l'affichage du titre (caché sur mobile) et du profil */}
         <AdminNavbar
           {...props}
-          brandText={getBrandText(props?.location?.pathname)}
+          brandText={getBrandText()}
         />
+        
         <Routes>
           {getRoutes(routes)}
           <Route path="*" element={<Navigate to="/client/index" replace />} />
         </Routes>
+        
         <Container fluid>
           <AdminFooter />
         </Container>

@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import {
     Card,
-    CardHeader,
     CardBody,
     Container,
     Row,
@@ -14,7 +13,9 @@ import {
     Form,
     InputGroup,
     InputGroupAddon,
+    UncontrolledTooltip
 } from "reactstrap";
+import Picker from 'emoji-picker-react'; // Import du picker d'emojis
 import api, { getMediaUrl } from "../../services/api";
 
 const Messagerie = () => {
@@ -26,6 +27,7 @@ const Messagerie = () => {
     const [sending, setSending] = useState(false);
     const [subscription, setSubscription] = useState(null);
     const [file, setFile] = useState(null);
+    const [showEmojiPicker, setShowEmojiPicker] = useState(false); // State pour les emojis
     
     // --- Refs ---
     const messagesEndRef = useRef(null);
@@ -35,60 +37,43 @@ const Messagerie = () => {
     useEffect(() => {
         checkSubscription();
         fetchConversations();
-
-        // Rafraîchir toutes les 10 secondes
         const interval = setInterval(() => {
             fetchConversations();
             if (selectedContact) {
-                // true au début pour fetcher, false pour éviter de scroller si on lit l'historique
-                // ici on laisse false pour le polling pour ne pas gêner la lecture
                 fetchMessages(selectedContact.contactId, selectedContact.contactType, false);
             }
         }, 10000);
-
         return () => clearInterval(interval);
     }, [selectedContact]);
 
-    // --- API Calls ---
+    // --- API Calls (Inchangés) ---
     const checkSubscription = async () => {
         try {
             const res = await api.get("/subscriptions/status");
             setSubscription(res.data);
-        } catch (error) {
-            console.error("Erreur checkSubscription:", error);
-        }
+        } catch (error) { console.error(error); }
     };
 
     const fetchConversations = async () => {
         try {
             const res = await api.get("/messages/conversations");
             setConversations(res.data);
-        } catch (error) {
-            console.error("Erreur fetchConversations:", error);
-        }
+        } catch (error) { console.error(error); }
     };
 
     const fetchMessages = async (contactId, contactType, scrollToBottom = true) => {
         try {
             const res = await api.get(`/messages/${contactType}/${contactId}`);
             setMessages(res.data);
-            if (scrollToBottom) {
-                setTimeout(scrollToBottomFunc, 100);
-            }
-        } catch (error) {
-            console.error("Erreur fetchMessages:", error);
-        }
+            if (scrollToBottom) setTimeout(scrollToBottomFunc, 100);
+        } catch (error) { console.error(error); }
     };
 
     const markAsRead = async (contactId, contactType) => {
         try {
             await api.put(`/messages/${contactType}/${contactId}/read`);
-            setConversations(prev => prev.map(c =>
-                c.contactId === contactId ? { ...c, unreadCount: 0 } : c
-            ));
-        } catch (error) {
-            console.error("Erreur markAsRead:", error);
-        }
+            setConversations(prev => prev.map(c => c.contactId === contactId ? { ...c, unreadCount: 0 } : c));
+        } catch (error) { console.error(error); }
     };
 
     const handleSendMessage = async (e) => {
@@ -96,55 +81,45 @@ const Messagerie = () => {
         if ((!newMessage.trim() && !file) || !selectedContact) return;
 
         setSending(true);
+        setShowEmojiPicker(false); // Fermer le picker après envoi
         try {
             const formData = new FormData();
             formData.append("destinataireId", selectedContact.contactId);
             formData.append("destinataireType", selectedContact.contactType);
             formData.append("contenu", newMessage);
-            if (file) {
-                formData.append("media", file);
-            }
+            if (file) formData.append("media", file);
 
-            await api.post("/messages/send", formData, {
-                headers: { "Content-Type": "multipart/form-data" }
-            });
+            await api.post("/messages/send", formData, { headers: { "Content-Type": "multipart/form-data" } });
 
             setNewMessage("");
             setFile(null);
             fetchMessages(selectedContact.contactId, selectedContact.contactType);
             fetchConversations(); 
         } catch (error) {
-            console.error("Erreur sendMessage:", error);
-            alert("Erreur lors de l'envoi. Vérifiez votre abonnement.");
+            alert("Erreur ou abonnement requis.");
         } finally {
             setSending(false);
         }
     };
 
     // --- Helpers ---
-    const scrollToBottomFunc = () => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    };
+    const scrollToBottomFunc = () => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
 
     const handleContactClick = (contact) => {
         setSelectedContact(contact);
         fetchMessages(contact.contactId, contact.contactType, true);
         markAsRead(contact.contactId, contact.contactType);
+        // Sur mobile, on pourrait ajouter une logique pour scroller vers la vue chat
     };
 
-    const handleFileChange = (e) => {
-        setFile(e.target.files[0]);
+    const onEmojiClick = (emojiObject) => {
+        setNewMessage(prevInput => prevInput + emojiObject.emoji);
     };
 
-    // La fonction magique pour les avatars
     const getAvatarSrc = (photoName) => {
         if (!photoName) return require("assets/img/theme/team-4-800x800.jpg");
-        
-        const strPhotoName = String(photoName);
-        if (strPhotoName.startsWith('http') || strPhotoName.startsWith('https')) {
-            return strPhotoName;
-        }
-        return getMediaUrl(`/uploads/profile/${strPhotoName}`);
+        const str = String(photoName);
+        return (str.startsWith('http')) ? str : getMediaUrl(`/uploads/profile/${str}`);
     };
 
     const isPremium = subscription && subscription.hasSubscription;
@@ -152,164 +127,235 @@ const Messagerie = () => {
     // --- Render ---
     return (
         <>
-            <div className="header bg-gradient-info pb-8 pt-5 pt-md-8">
+            {/* Header plus compact */}
+            <div className="header bg-gradient-info pb-6 pt-5 pt-md-8">
                 <Container fluid>
                     <div className="header-body"></div>
                 </Container>
             </div>
-            <Container className="mt--7" fluid>
-                <Row>
-                    <Col className="mb-5 mb-xl-0" xl="12">
-                        <Card className="shadow" style={{ height: '80vh' }}>
-                            <CardHeader className="border-0">
-                                <Row className="align-items-center">
-                                    <div className="col">
-                                        <h3 className="mb-0">Messagerie</h3>
+
+          <Container className="mt--6" fluid>
+                <Row className="justify-content-center">
+                    <Col xl="12">
+                        <Card className="shadow overflow-hidden" style={{ borderRadius: '15px', height: '85vh', border: 'none' }}>
+                            <Row className="h-100 no-gutters">
+                                
+                                {/* --- SIDEBAR CONTACTS --- */}
+                                <Col md="4" lg="3" className="border-right bg-white h-100 d-flex flex-column">
+                                    <div className="p-3 border-bottom bg-secondary">
+                                        <h4 className="mb-0 text-uppercase text-muted ls-1" style={{fontSize: '0.8rem'}}>Vos échanges</h4>
                                     </div>
-                                    {!isPremium && (
-                                        <div className="col text-right">
-                                            <Button color="warning" href="/client/abonnement" size="sm">
-                                                Passer Premium pour répondre
-                                            </Button>
-                                        </div>
-                                    )}
-                                </Row>
-                            </CardHeader>
-                            <CardBody className="p-0">
-                                <Row className="h-100 no-gutters">
-                                    
-                                    {/* LISTE CONTACTS */}
-                                    <Col md="4" className="border-right h-100 overflow-auto" style={{ maxHeight: '70vh' }}>
-                                        <ListGroup flush>
-                                            {conversations.map((conv) => (
+                                    <ListGroup flush className="flex-grow-1 overflow-auto custom-scrollbar">
+                                        {conversations.map((conv) => {
+                                            const isActive = selectedContact?.contactId === conv.contactId;
+                                            return (
                                                 <ListGroupItem
                                                     key={`${conv.contactType}_${conv.contactId}`}
                                                     action
-                                                    active={selectedContact?.contactId === conv.contactId}
                                                     onClick={() => handleContactClick(conv)}
-                                                    style={{ cursor: 'pointer' }}
+                                                    className={`border-0 py-3 ${isActive ? 'bg-secondary' : ''}`}
+                                                    style={{ 
+                                                        cursor: 'pointer', 
+                                                        borderLeft: isActive ? '4px solid #f36c21' : '4px solid transparent', // Bordure orange active
+                                                        transition: 'all 0.2s ease'
+                                                    }}
                                                 >
                                                     <div className="d-flex align-items-center">
-                                                        <div className="avatar avatar-sm rounded-circle mr-3">
-                                                            <img
-                                                                alt={conv.contactName}
-                                                                src={getAvatarSrc(conv.contactPhoto)}
-                                                                style={{ objectFit: 'cover', width: '100%', height: '100%' }}
-                                                                onError={(e) => { e.target.onerror = null; e.target.src = require("assets/img/theme/team-4-800x800.jpg"); }}
-                                                            />
+                                                        <div className="position-relative">
+                                                            <span className="avatar avatar-sm rounded-circle shadow-sm">
+                                                                <img 
+                                                                    alt={conv.contactName} 
+                                                                    src={getAvatarSrc(conv.contactPhoto)} 
+                                                                    style={{ objectFit: 'cover', width:'100%', height:'100%'}}
+                                                                    onError={(e) => { e.target.onerror = null; e.target.src = require("assets/img/theme/team-4-800x800.jpg"); }}
+                                                                />
+                                                            </span>
+                                                            {conv.unreadCount > 0 && (
+                                                                <span className="position-absolute badge badge-circle badge-success border-white border" 
+                                                                      style={{top: -5, right: -5, width: '18px', height:'18px', fontSize:'10px'}}>
+                                                                    {conv.unreadCount}
+                                                                </span>
+                                                            )}
                                                         </div>
-                                                        <div className="flex-grow-1 overflow-hidden">
-                                                            <h5 className="mb-0 text-truncate">{conv.contactName}</h5>
-                                                            <small className="text-muted text-truncate d-block">
-                                                                {conv.lastMessageType !== 'texte' ? `[${conv.lastMessageType}]` : conv.lastMessage}
+                                                        <div className="ml-3 text-truncate">
+                                                            <h5 className={`mb-0 ${isActive ? 'font-weight-bold' : 'text-dark'}`} style={{ color: isActive ? '#f36c21' : '' }}>
+                                                                {conv.contactName}
+                                                            </h5>
+                                                            <small className="text-muted text-truncate d-block" style={{maxWidth: '180px'}}>
+                                                                {conv.lastMessageType !== 'texte' ? 
+                                                                    <i className="ni ni-image text-muted mr-1"/> : null}
+                                                                {conv.lastMessage}
                                                             </small>
                                                         </div>
-                                                        {conv.unreadCount > 0 && (
-                                                            <Badge color="success" pill>{conv.unreadCount}</Badge>
-                                                        )}
                                                     </div>
                                                 </ListGroupItem>
-                                            ))}
-                                            {conversations.length === 0 && (
-                                                <div className="text-center p-4 text-muted">
-                                                    Aucune conversation
-                                                </div>
-                                            )}
-                                        </ListGroup>
-                                    </Col>
+                                            );
+                                        })}
+                                        {conversations.length === 0 && (
+                                            <div className="text-center p-5 text-muted">
+                                                <i className="ni ni-chat-round display-4 mb-3"></i><br/>
+                                                Aucune conversation
+                                            </div>
+                                        )}
+                                    </ListGroup>
+                                </Col>
 
-                                    {/* CHAT */}
-                                    <Col md="8" className="d-flex flex-column h-100" style={{ maxHeight: '70vh' }}>
-                                        {selectedContact ? (
-                                            <>
-                                                <div className="p-3 border-bottom bg-secondary d-flex align-items-center">
-                                                    <div className="avatar avatar-sm rounded-circle mr-2">
+                                {/* --- ZONE DE CHAT --- */}
+                                <Col md="8" lg="9" className="d-flex flex-column h-100 bg-secondary">
+                                    {selectedContact ? (
+                                        <>
+                                            {/* Header du Chat */}
+                                            <div className="p-3 bg-white border-bottom shadow-sm d-flex align-items-center justify-content-between z-index-1">
+                                                <div className="d-flex align-items-center">
+                                                    <div className="avatar avatar-sm rounded-circle mr-3">
                                                         <img 
                                                             alt="" 
                                                             src={getAvatarSrc(selectedContact.contactPhoto)} 
-                                                            style={{ objectFit: 'cover', width: '100%', height: '100%' }}
+                                                            style={{objectFit: 'cover', width:'100%', height:'100%'}}
                                                             onError={(e) => { e.target.onerror = null; e.target.src = require("assets/img/theme/team-4-800x800.jpg"); }}
                                                         />
                                                     </div>
-                                                    <h4 className="mb-0">{selectedContact.contactName}</h4>
+                                                    <div>
+                                                        <h4 className="mb-0 text-dark">{selectedContact.contactName}</h4>
+                                                        <small className="text-muted">En ligne</small>
+                                                    </div>
                                                 </div>
+                                                {!isPremium && <Badge color="warning">Mode Gratuit</Badge>}
+                                            </div>
 
-                                                <div className="flex-grow-1 p-3 overflow-auto" style={{ backgroundColor: '#f8f9fe' }}>
-                                                    {messages.map((msg) => {
-                                                        const isMe = msg.type_expediteur === 'client'; 
-                                                        return (
-                                                            <div key={msg.id} className={`d-flex mb-3 ${isMe ? 'justify-content-end' : 'justify-content-start'}`}>
-                                                                <div
-                                                                    className={`p-3 rounded shadow-sm ${isMe ? 'bg-primary text-white' : 'bg-white'}`}
-                                                                    style={{ maxWidth: '70%', borderRadius: '15px' }}
-                                                                >
-                                                                    {msg.type_contenu === 'texte' && <p className="mb-0">{msg.contenu}</p>}
-                                                                    {msg.type_contenu === 'image' && (
-                                                                        <img src={getMediaUrl(msg.url_media)} alt="media" className="img-fluid rounded" />
-                                                                    )}
-                                                                    {msg.type_contenu === 'video' && (
-                                                                        <video src={getMediaUrl(msg.url_media)} controls className="img-fluid rounded" />
-                                                                    )}
-                                                                    <small className={`d-block mt-1 ${isMe ? 'text-light' : 'text-muted'}`} style={{ fontSize: '0.7em' }}>
-                                                                        {new Date(msg.date_envoi).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                                                        {isMe && (msg.lu ? ' • Lu' : ' • Envoyé')}
-                                                                    </small>
+                                            {/* Messages */}
+                                            <div className="flex-grow-1 p-4 overflow-auto custom-scrollbar" style={{ backgroundColor: '#f4f5f7' }}>
+                                                {messages.map((msg) => {
+                                                    const isMe = msg.type_expediteur === 'client'; 
+                                                    return (
+                                                        <div key={msg.id} className={`d-flex mb-3 ${isMe ? 'justify-content-end' : 'justify-content-start'}`}>
+                                                            <div 
+                                                                className={`p-3 shadow-sm position-relative ${isMe ? 'text-white' : 'bg-white text-dark'}`}
+                                                                style={{ 
+                                                                    // MODIFICATION ICI : Background Orange pour moi
+                                                                    backgroundColor: isMe ? '#f36c21' : '#fff',
+                                                                    maxWidth: '75%', 
+                                                                    borderRadius: isMe ? '18px 18px 0 18px' : '18px 18px 18px 0',
+                                                                    minWidth: '100px'
+                                                                }}
+                                                            >
+                                                                {msg.type_contenu === 'texte' && <p className="mb-0" style={{fontSize: '0.95rem'}}>{msg.contenu}</p>}
+                                                                {msg.type_contenu === 'image' && <img src={getMediaUrl(msg.url_media)} alt="media" className="img-fluid rounded mb-2" />}
+                                                                {msg.type_contenu === 'video' && <video src={getMediaUrl(msg.url_media)} controls className="img-fluid rounded mb-2" />}
+                                                                
+                                                                {/* Date et statut de lecture en blanc pur pour être visible sur le orange */}
+                                                                <div className={`text-right mt-1 ${isMe ? 'text-white' : 'text-muted'}`} style={{ fontSize: '0.65em', opacity: isMe ? 0.8 : 1 }}>
+                                                                    {new Date(msg.date_envoi).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                                    {isMe && <i className={`ni ni-check-bold ml-1 ${msg.lu ? 'text-white' : ''}`}></i>}
                                                                 </div>
                                                             </div>
-                                                        );
-                                                    })}
-                                                    <div ref={messagesEndRef} />
-                                                </div>
-
-                                                <div className="p-3 border-top bg-white">
-                                                    {isPremium ? (
-                                                        <Form onSubmit={handleSendMessage}>
-                                                            <InputGroup>
-                                                                <InputGroupAddon addonType="prepend">
-                                                                    <Button color="secondary" onClick={() => fileInputRef.current.click()}>
-                                                                        <i className="ni ni-image"></i>
-                                                                    </Button>
-                                                                    <input
-                                                                        type="file"
-                                                                        ref={fileInputRef}
-                                                                        style={{ display: 'none' }}
-                                                                        onChange={handleFileChange}
-                                                                        accept="image/*,video/*,application/pdf"
-                                                                    />
-                                                                </InputGroupAddon>
-                                                                <Input
-                                                                    placeholder={file ? `Fichier sélectionné: ${file.name}` : "Écrivez votre message..."}
-                                                                    value={newMessage}
-                                                                    onChange={(e) => setNewMessage(e.target.value)}
-                                                                    disabled={sending}
-                                                                />
-                                                                <InputGroupAddon addonType="append">
-                                                                    <Button color="primary" type="submit" disabled={sending || (!newMessage.trim() && !file)}>
-                                                                        <i className="ni ni-send"></i>
-                                                                    </Button>
-                                                                </InputGroupAddon>
-                                                            </InputGroup>
-                                                        </Form>
-                                                    ) : (
-                                                        <div className="text-center text-muted">
-                                                            <i className="ni ni-lock-circle-open mr-2"></i>
-                                                            Abonnez-vous pour répondre à ce message.
                                                         </div>
-                                                    )}
-                                                </div>
-                                            </>
-                                        ) : (
-                                            <div className="d-flex align-items-center justify-content-center h-100 text-muted">
-                                                Sélectionnez une conversation pour commencer
+                                                    );
+                                                })}
+                                                <div ref={messagesEndRef} />
                                             </div>
-                                        )}
-                                    </Col>
-                                </Row>
-                            </CardBody>
+
+                                            {/* Zone de saisie */}
+                                            <div className="p-3 bg-white border-top">
+                                                {isPremium ? (
+                                                    <Form onSubmit={handleSendMessage} className="position-relative">
+                                                        
+                                                        {file && (
+                                                            <div className="mb-2 p-2 bg-secondary rounded d-inline-block position-relative">
+                                                                <span className="text-sm mr-2"><i className="ni ni-cloud-upload-96 mr-1"/>{file.name}</span>
+                                                                <button type="button" className="close float-none" onClick={() => setFile(null)}>&times;</button>
+                                                            </div>
+                                                        )}
+
+                                                        {showEmojiPicker && (
+                                                            <div className="position-absolute" style={{ bottom: '60px', left: '0', zIndex: 10 }}>
+                                                                <Picker onEmojiClick={onEmojiClick} height={350} width={300} />
+                                                            </div>
+                                                        )}
+
+                                                        <InputGroup className="input-group-alternative shadow-sm rounded-pill" style={{border: '1px solid #e9ecef'}}>
+                                                            <InputGroupAddon addonType="prepend">
+                                                                <Button 
+                                                                    className="btn-icon rounded-circle ml-1 my-1" 
+                                                                    color="secondary" 
+                                                                    type="button"
+                                                                    onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                                                                >
+                                                                    <i className="ni ni-satisfied text-warning" style={{fontSize: '1.2rem'}}></i>
+                                                                </Button>
+                                                            </InputGroupAddon>
+
+                                                            <InputGroupAddon addonType="prepend">
+                                                                <Button 
+                                                                    className="btn-icon rounded-circle my-1 mr-2" 
+                                                                    color="secondary" 
+                                                                    onClick={() => fileInputRef.current.click()}
+                                                                    id="tooltipFile"
+                                                                >
+                                                                    <i className="ni ni-paper-diploma text-info" style={{fontSize: '1.1rem'}}></i>
+                                                                </Button>
+                                                                <UncontrolledTooltip target="tooltipFile">Joindre un fichier</UncontrolledTooltip>
+                                                                <input
+                                                                    type="file"
+                                                                    ref={fileInputRef}
+                                                                    style={{ display: 'none' }}
+                                                                    onChange={(e) => setFile(e.target.files[0])}
+                                                                    accept="image/*,video/*"
+                                                                />
+                                                            </InputGroupAddon>
+
+                                                            <Input
+                                                                placeholder="Écrivez votre message..."
+                                                                value={newMessage}
+                                                                onChange={(e) => setNewMessage(e.target.value)}
+                                                                disabled={sending}
+                                                                className="border-0 pl-2"
+                                                                onFocus={() => setShowEmojiPicker(false)}
+                                                            />
+                                                            
+                                                            <InputGroupAddon addonType="append">
+                                                                <Button 
+                                                                    className="btn-icon rounded-circle mr-1 my-1 text-white border-0" 
+                                                                    // MODIFICATION ICI : Bouton envoi orange aussi
+                                                                    style={{ backgroundColor: '#f36c21' }}
+                                                                    type="submit" 
+                                                                    disabled={sending || (!newMessage.trim() && !file)}
+                                                                >
+                                                                    <i className="ni ni-send"></i>
+                                                                </Button>
+                                                            </InputGroupAddon>
+                                                        </InputGroup>
+                                                    </Form>
+                                                ) : (
+                                                    <div className="alert alert-warning mb-0 text-center shadow-sm">
+                                                        <i className="ni ni-lock-circle-open mr-2"></i>
+                                                        <strong>Premium requis</strong> : Abonnez-vous pour débloquer la réponse.
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </>
+                                    ) : (
+                                        <div className="d-flex flex-column align-items-center justify-content-center h-100 text-muted bg-white">
+                                            <div className="icon icon-shape bg-gradient-light text-primary rounded-circle shadow mb-4">
+                                                <i className="ni ni-send" style={{fontSize: '2rem'}}></i>
+                                            </div>
+                                            <h3>Vos Messages</h3>
+                                            <p>Sélectionnez une conversation pour commencer à discuter.</p>
+                                        </div>
+                                    )}
+                                </Col>
+                            </Row>
                         </Card>
                     </Col>
                 </Row>
             </Container>
+
+            <style>{`
+                .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+                .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; }
+                .custom-scrollbar::-webkit-scrollbar-thumb { background: #ccc; border-radius: 4px; }
+                .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #bbb; }
+            `}</style>
         </>
     );
 };
