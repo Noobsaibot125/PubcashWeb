@@ -49,9 +49,24 @@ body {
   }
 }
 
+/* Dans pubcash-custom.css */
+
 .navbar-vertical .navbar-brand-img {
-  max-height: 60px !important;
-  margin-bottom: 1rem;
+  max-height: none !important;    /* Aucune limite de hauteur */
+  height: auto !important;        /* La hauteur s'adapte à la largeur */
+  width: 100% !important;         /* Prend 100% de la largeur disponible */
+  max-width: 100% !important;     /* J'ai retiré la limite de 200px */
+  padding: 0 !important;          /* J'ai retiré le padding pour coller aux bords */
+  margin: 0 !important;           /* Retire les marges externes */
+  object-fit: contain;
+  display: block;
+}
+
+/* Ajoute ceci pour s'assurer que le conteneur parent ne bloque pas */
+.navbar-vertical .navbar-brand {
+  padding-top: 1rem !important;
+  padding-bottom: 0 !important;
+  margin-bottom: 0 !important;
 }
 
 .navbar-vertical .nav-link {
@@ -687,10 +702,24 @@ Let's make it simple: Light grey circle, dark grey plus. */
     font-weight: 800;
 }
 
-.card-stats-orange { background-color: #f58e1c !important; }
-.card-stats-blue { background-color: #0081cf !important; }
-.card-stats-purple { background-color: #8965e0 !important; }
-.card-stats-green { background-color: #2dce89 !important; }
+.card-stats-orange { 
+    background: linear-gradient(135deg, #f58e1c 0%, #ffba42 100%) !important; 
+}
+
+/* Carte Vues (Bleu vers Cyan) */
+.card-stats-blue { 
+    background: linear-gradient(135deg, #0081cf 0%, #20c9ff 100%) !important; 
+}
+
+/* Carte Likes (Violet vers Lilas) */
+.card-stats-purple { 
+    background: linear-gradient(135deg, #8965e0 0%, #b389fe 100%) !important; 
+}
+
+/* Carte Partages (Vert vers Émeraude/Turquoise) */
+.card-stats-green { 
+    background: linear-gradient(135deg, #2dce89 0%, #26e7a6 100%) !important; 
+}
 
 /* --- MISSING CLASSES FIXES --- */
 
@@ -735,4 +764,158 @@ Let's make it simple: Light grey circle, dark grey plus. */
     font-weight: 600;
     font-size: 0.9rem;
     color: #525f7f;
+}
+/* ==========================================================================
+   MOBILE RESPONSIVENESS (ANDROID / IOS) - VERSION CORRIGÉE
+   Remplace tout le bloc précédent à la fin du fichier
+   ========================================================================== */
+
+@media (max-width: 768px) {
+
+  /* 1. Navbar Verticale (Sidebar) : On la remet dans le flux normal */
+  .navbar-vertical.navbar-light {
+    position: relative !important; /* Important : empêche de flotter sur le texte */
+    width: 100% !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 15px 0 !important;
+    border-radius: 0 !important;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    z-index: 1000;
+  }
+  
+  /* 2. LOGO : On lui donne de la place pour grandir */
+  .navbar-vertical .navbar-brand-img {
+     width: auto !important;       /* On laisse la largeur s'adapter à la hauteur */
+     height: auto !important;
+     max-height: 120px !important; /* On augmente la hauteur max (avant c'était 80px) */
+     max-width: 80% !important;    /* On l'empêche juste de toucher les bords de l'écran */
+     margin: 0 auto !important;    /* On le centre */
+     display: block;
+  }
+
+  /* 3. Navbar du haut (Titre "Mon Tableau de Bord") */
+  .header-navbar {
+    margin: 0 !important;
+    width: 100% !important;
+    border-radius: 0 !important;
+    padding: 1rem !important;
+    background: transparent !important; /* Fond transparent pour alléger */
+    box-shadow: none !important;
+  }
+  
+  .header-navbar .h4 {
+    font-size: 1.2rem; /* Titre un peu plus petit sur mobile */
+    text-align: center; /* Titre centré */
+    width: 100%;
+    display: block;
+  }
+
+  /* 4. Ajustement global des espacements (Le Header Orange) */
+  .header {
+    /* Comme la sidebar est maintenant en 'relative' (au-dessus), 
+       on n'a plus besoin d'un padding géant de 120px. 
+       On met juste assez pour espacer du titre. */
+    padding-top: 20px !important; 
+    padding-bottom: 2rem !important; 
+  }
+
+  .header-body {
+    padding-top: 0 !important;
+  }
+  
+  .container-fluid {
+    padding-left: 15px !important;
+    padding-right: 15px !important;
+  }
+
+  /* 5. Cartes de Statistiques */
+  .card-stats-solid {
+    min-height: auto !important;
+    margin-bottom: 15px !important;
+  }
+
+  .card-stats-solid .card-body {
+    padding: 1.5rem !important;
+    flex-direction: row !important; /* Icône à gauche, texte à droite */
+    align-items: center;
+    justify-content: flex-start;
+  }
+
+  .card-stats-solid .icon-large {
+    position: relative !important;
+    top: 0 !important;
+    left: 0 !important;
+    margin-bottom: 0 !important;
+    margin-right: 15px;
+    width: 50px;
+    height: 50px;
+    font-size: 1.5rem;
+  }
+
+  .card-stats-solid .content-bottom {
+    margin-top: 0 !important;
+    text-align: left;
+  }
+
+  .card-stats-solid .stat-value {
+    font-size: 1.5rem !important;
+  }
+
+  .card-stats-solid .stat-label {
+    font-size: 0.75rem;
+  }
+
+  /* 6. Page Profil & Autres */
+  .profile-user-info-row {
+    margin-top: 0 !important;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding-bottom: 10px;
+  }
+
+  .profile-avatar-container {
+    margin-right: 0 !important;
+    margin-top: -60px;
+  }
+  
+  .profile-avatar-img {
+    width: 100px;
+    height: 100px;
+  }
+
+  .profile-text-container {
+    padding-top: 10px !important;
+    width: 100%;
+  }
+
+  .profile-action-btn {
+    width: 100%;
+    margin-top: 10px;
+  }
+
+  .chart-big-number {
+    font-size: 1.8rem;
+  }
+  
+  .analytics-container {
+    padding: 1rem !important;
+  }
+
+  .form-control-pubcash {
+    font-size: 16px !important;
+    height: 50px;
+  }
+  /* 7. FIX FINAL DU CHEVAUCHEMENT (Overlap) */
+  /* On annule la marge négative qui fait remonter le contenu blanc sur les stats */
+  .mt--7 {
+    margin-top: 0 !important;
+  }
+  
+  /* On s'assure que le conteneur principal a un peu d'espace en haut */
+  .main-content .container-fluid {
+    margin-top: 0 !important;
+    padding-top: 30px !important; /* Ajoute de l'espace entre le card vert et le card blanc */
+  }
 }
