@@ -1,183 +1,284 @@
 import React, { useState, useEffect } from "react";
 import {
-    Button,
-    Card,
-    CardHeader,
-    CardBody,
-    CardFooter,
-    Container,
-    Row,
-    Col,
-    Badge,
-    Alert
+  Button,
+  Card,
+  CardBody,
+  Container,
+  Row,
+  Col
 } from "reactstrap";
 import api from "../../services/api";
 
 const Abonnement = () => {
-    const [plans, setPlans] = useState({});
-    const [currentSubscription, setCurrentSubscription] = useState(null);
-    const [loading, setLoading] = useState(false);
+  const [plans, setPlans] = useState({});
+  const [currentSubscription, setCurrentSubscription] = useState(null);
+  const [loading, setLoading] = useState(false);
 
-    useEffect(() => {
-        fetchPlans();
-        fetchStatus();
-    }, []);
+  useEffect(() => {
+    fetchPlans();
+    fetchStatus();
+  }, []);
 
-    const fetchPlans = async () => {
-        try {
-            const res = await api.get("/subscriptions/plans");
-            setPlans(res.data);
-        } catch (error) {
-            console.error("Erreur fetchPlans:", error);
+  const fetchPlans = async () => {
+    try {
+      const res = await api.get("/subscriptions/plans");
+      setPlans(res.data);
+    } catch (e) {
+      console.error(e);
+      // MOCK DATA (A SUPPRIMER EN PROD)
+      setPlans({
+        super_promoteur: { 
+          name: "Super Promoteur", 
+          price: 1000, 
+          features: ["Discussions avec les abonnés", "Discussions avec les abonnés", "Discussions avec les abonnés"] 
+        },
+        promoteur_ultra: { 
+          name: "Ultra Promoteur", 
+          price: 1500, 
+          features: ["Discussions avec les abonnés", "Discussions avec les abonnés", "Discussions avec les abonnés"] 
         }
-    };
+      });
+    }
+  };
 
-    const fetchStatus = async () => {
-        try {
-            const res = await api.get("/subscriptions/status");
-            setCurrentSubscription(res.data);
-        } catch (error) {
-            console.error("Erreur fetchStatus:", error);
-        }
-    };
+  const fetchStatus = async () => {
+    try {
+      const res = await api.get("/subscriptions/status");
+      setCurrentSubscription(res.data);
+    } catch (e) {
+      console.error(e);
+      // MOCK DATA (A SUPPRIMER EN PROD)
+      setCurrentSubscription({ hasSubscription: true, plan: { name: "Super Promoteur" }, dateFin: "2026-03-05" });
+    }
+  };
 
-    const handleSubscribe = async (planType) => {
-        if (!window.confirm(`Confirmer la souscription au plan ${plans[planType].name} ?`)) return;
+  const handleSubscribe = async (planType) => {
+    if (!window.confirm(`Confirmer l'abonnement ?`)) return;
 
-        setLoading(true);
-        try {
-            const res = await api.post("/subscriptions/subscribe", { planType });
-            alert(res.data.message);
-            fetchStatus();
-        } catch (error) {
-            console.error("Erreur subscribe:", error);
-            alert(error.response?.data?.message || "Erreur lors de la souscription");
-        } finally {
-            setLoading(false);
-        }
-    };
+    setLoading(true);
+    try {
+      const res = await api.post("/subscriptions/subscribe", { planType });
+      alert(res.data.message);
+      fetchStatus();
+    } catch (e) {
+      alert("Erreur lors de la souscription");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    return (
-        <>
-            {/* Header modifié avec le fond orange #f36c21 */}
+  return (
+    <div style={{ backgroundColor: "#eef2f5", minHeight: "100vh", paddingBottom: "50px" }}>
+      <Container fluid className="pt-4 px-4">
+        
+        {/* --- 1. EN-TÊTE SÉPARÉ (Titre Vert) --- */}
+        <div className="d-flex justify-content-between align-items-center mb-5">
+          <h2 style={{ 
+            color: "#006837", 
+            fontWeight: "900", 
+            textTransform: "uppercase", 
+            margin: 0,
+            letterSpacing: "0.5px"
+          }}>
+            Abonnement Premium
+          </h2>
+          {/* Section Profil / Notif (Simulation) */}
+          <div className="d-flex align-items-center">
+             <i className="fa fa-bell text-warning mr-3" style={{fontSize: '1.5rem', cursor: 'pointer'}}></i>
+             {/* Avatar ou Nom ici si nécessaire */}
+          </div>
+        </div>
+
+        {/* --- 2. HERO BLOCK ORANGE (Indépendant) --- */}
+        <div 
+          style={{
+            background: "linear-gradient(135deg, #ff9f00 0%, #ff6a00 100%)", // Dégradé Orange
+            borderRadius: "20px",
+            padding: "40px 20px", // Padding réduit pour être moins "gros"
+            color: "#ffffff",
+            textAlign: "center",
+            marginBottom: "50px", 
+            boxShadow: "0 10px 25px rgba(255, 106, 0, 0.2)"
+          }}
+        >
+          <h2 className="font-weight-bold mb-3" style={{ color: "#fff" }}>
+            Passez au niveau supérieur
+          </h2>
+          <p style={{ maxWidth: "800px", margin: "0 auto 30px", fontSize: "1.05rem", opacity: 0.95, lineHeight: "1.6" }}>
+            Débloquez la messagerie, boostez vos promotions et maximisez vos gains sur
+            PubCash. Choisissez le plan qui correspond à vos ambitions.
+          </p>
+
+          {/* Carte Blanche Interne (Abonnement Actif) */}
+          {currentSubscription?.hasSubscription && (
             <div 
-                className="header pb-8 pt-5 pt-md-8" 
-                style={{ backgroundColor: '#f36c21' }}
+              className="bg-white shadow"
+              style={{
+                maxWidth: "450px",
+                margin: "0 auto",
+                borderRadius: "20px",
+                padding: "25px",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center"
+              }}
             >
-                <Container fluid>
-                    <div className="header-body text-center mb-5">
-                        <Row className="justify-content-center">
-                            <Col lg="8" md="10">
-                                <h1 className="text-white display-3">Passez au niveau supérieur</h1>
-                                {/* CORRECTION ICI : text-white au lieu de text-white-50 et ajout de 'lead' */}
-                                <p className="text-white mt-3 lead">
-                                    Débloquez la messagerie, boostez vos promotions et maximisez vos gains sur PubCash.
-                                    Choisissez le plan qui correspond à vos ambitions.
-                                </p>
-                            </Col>
-                        </Row>
-                    </div>
-                </Container>
+              {/* Cercle Vert avec Coche */}
+              <div style={{
+                width: "55px",
+                height: "55px",
+                background: "linear-gradient(135deg, #2dce89 0%, #2dcecc 100%)", // Dégradé Vert
+                borderRadius: "50%",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                marginBottom: "15px",
+                boxShadow: "0 4px 10px rgba(45, 206, 137, 0.3)"
+              }}>
+                <span style={{ color: "white", fontSize: "28px", fontWeight: "bold" }}>✓</span>
+              </div>
+              
+              <h5 style={{ color: "#00c851", fontWeight: "bold", margin: "5px 0" }}>
+                Abonnement Actif : {currentSubscription.plan?.name}
+              </h5>
+              <span className="text-muted" style={{ fontSize: "0.9rem" }}>
+                Expire le : {new Date(currentSubscription.dateFin).toLocaleDateString()}
+              </span>
             </div>
+          )}
+        </div>
 
-            <Container className="mt--9" fluid>
-                {/* SECTION ABONNEMENT ACTUEL (Si existant) */}
-                {currentSubscription && currentSubscription.hasSubscription && (
-                    <Row className="justify-content-center mb-5">
-                        <Col lg="8">
-                            <Alert color="success" className="shadow-lg border-0 bg-white text-center p-4">
-                                <div className="icon icon-shape bg-gradient-success text-white rounded-circle mb-3 shadow">
-                                    <i className="ni ni-check-bold" />
-                                </div>
-                                <h3 className="text-success mb-1">Abonnement Actif : {currentSubscription.plan?.name}</h3>
-                                <p className="text-muted mb-0">
-                                    Expire le : <strong>{new Date(currentSubscription.dateFin).toLocaleDateString()}</strong>
-                                </p>
-                            </Alert>
-                        </Col>
-                    </Row>
-                )}
+        {/* --- 3. CARTES DE PRIX (PRICING) --- */}
+        <Row className="justify-content-center">
+          {Object.entries(plans).map(([key, plan]) => {
+            const isUltra = key.includes("ultra") || plan.name.toLowerCase().includes("ultra");
+            
+            // DÉGRADÉS POUR LES CARTES
+            const gradientBlue = "linear-gradient(135deg, #2b589f 0%, #5a8dee 100%)";
+            const gradientRed = "linear-gradient(135deg, #e71212ff 0%, #ff4c4cff 100%)";
+            
+            const currentGradient = isUltra ? gradientRed : gradientBlue;
+            const themeColor = isUltra ? "#ff4c4c" : "#5a8dee";
 
-                {/* GRILLE DES PRIX */}
-                <Row className="justify-content-center align-items-center">
-                    {Object.entries(plans).map(([key, plan]) => {
-                        // On détecte si c'est le plan "premium" pour le mettre en avant
-                        const isPremium = key === 'promoteur_ultra';
-                        
-                        return (
-                            <Col lg="4" md="6" xs="12" key={key} className="mb-4">
-                                <Card className={`card-pricing border-0 text-center shadow-lg ${isPremium ? 'transform-scale-110 z-index-2' : ''}`}
-                                      style={{ transition: 'all 0.3s ease', transform: isPremium ? 'scale(1.05)' : 'scale(1)' }}>
-                                    
-                                    {isPremium && (
-                                        <div className="ribbon-container text-center mt-2">
-                                            <Badge color="warning" pill className="text-uppercase px-3 py-1 shadow-sm">Recommandé</Badge>
-                                        </div>
-                                    )}
+            const isCurrentPlan = currentSubscription?.plan?.name === plan.name;
 
-                                    <CardHeader className="bg-transparent border-0 pb-0">
-                                        <h4 className={`text-uppercase ls-1 py-3 mb-0 ${isPremium ? 'text-warning' : 'text-primary'}`}>
-                                            {plan.name}
-                                        </h4>
-                                    </CardHeader>
+            return (
+              <Col md="6" lg="4" key={key} className="mb-4">
+                <Card 
+                  className="border-0 shadow"
+                  style={{
+                    borderRadius: "20px",
+                    overflow: "hidden",
+                    height: "100%",
+                    transition: "transform 0.2s",
+                  }}
+                >
+                  {/* EN-TÊTE AVEC DÉGRADÉ */}
+                  <div style={{
+                    background: currentGradient,
+                    color: "white",
+                    padding: "20px",
+                    textAlign: "center",
+                    fontWeight: "800",
+                    fontSize: "1.2rem",
+                    textTransform: "uppercase",
+                    letterSpacing: "1px"
+                  }}>
+                    {plan.name}
+                  </div>
 
-                                    <CardBody className="px-lg-7">
-                                        <div className="display-2 font-weight-bold">
-                                            {new Intl.NumberFormat('fr-FR').format(plan.price)} 
-                                            <span className="text-lg text-muted font-weight-normal"> FCFA</span>
-                                        </div>
-                                        <span className="text-muted text-sm text-uppercase">
-                                            / {plan.duration_months > 1 ? `${plan.duration_months} mois` : 'mois'}
-                                        </span>
-                                        
-                                        <div className="my-4 border-top opacity-2"></div>
+                  <CardBody className="text-center p-4 d-flex flex-column">
+                    
+                    {/* PRIX SOULIGNÉ */}
+                    <div className="mb-4 mt-2">
+                      <h1 style={{ 
+                        fontWeight: "bold", 
+                        display: "inline-block", 
+                        borderBottom: "3px solid #1f2937", 
+                        paddingBottom: "5px",
+                        fontSize: "2.5rem",
+                        color: "#1f2937"
+                      }}>
+                        {new Intl.NumberFormat("fr-FR").format(plan.price)} <span style={{fontSize: "1.2rem"}}>FCFA</span>
+                      </h1>
+                      <div className="text-muted font-weight-bold" style={{ fontSize: "1rem" }}>/Mois</div>
+                    </div>
 
-                                        <ul className="list-unstyled my-4 text-left">
-                                            {plan.features.map((feature, idx) => (
-                                                <li key={idx} className="d-flex align-items-center mb-3">
-                                                    <div className={`icon icon-xs icon-shape rounded-circle shadow-sm mr-3 ${isPremium ? 'bg-gradient-warning text-white' : 'bg-gradient-primary text-white'}`}>
-                                                        <i className="ni ni-check-bold" />
-                                                    </div>
-                                                    <span className="text-sm text-muted">{feature}</span>
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    </CardBody>
+                    {/* LISTE DES AVANTAGES */}
+                    <div className="flex-grow-1 px-2">
+                      <ul className="list-unstyled text-left">
+                        {plan.features.map((f, i) => (
+                          <li key={i} className="d-flex align-items-center mb-3">
+                            <div style={{
+                              minWidth: "28px",
+                              height: "28px",
+                              background: currentGradient, // Puce colorée dégradée
+                              borderRadius: "50%",
+                              color: "white",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              marginRight: "12px",
+                              fontWeight: "bold",
+                              fontSize: "14px"
+                            }}>
+                              ✓
+                            </div>
+                            <span style={{ fontSize: "1rem", color: "#525f7f" }}>{f}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
 
-                                    <CardFooter className="bg-transparent border-0 pt-0">
-                                        <Button
-                                            block
-                                            size="lg"
-                                            className="btn-round shadow hover-translate-y-n3"
-                                            color={isPremium ? "warning" : "primary"}
-                                            outline={!isPremium}
-                                            onClick={() => handleSubscribe(key)}
-                                            disabled={loading || (currentSubscription?.hasSubscription)}
-                                        >
-                                            {loading ? "Traitement..." : (currentSubscription?.hasSubscription ? "Déjà Abonné" : "Choisir ce plan")}
-                                        </Button>
-                                    </CardFooter>
-                                </Card>
-                            </Col>
-                        );
-                    })}
-                </Row>
-            </Container>
+                    {/* BOUTON D'ACTION */}
+                    <div className="mt-4">
+                      {isCurrentPlan ? (
+                         <Button
+                         block
+                         style={{
+                           backgroundColor: "transparent",
+                           color: "#5a8dee",
+                           border: "2px solid #5a8dee",
+                           borderRadius: "30px",
+                           fontWeight: "bold",
+                           padding: "12px",
+                           fontSize: "1rem"
+                         }}
+                         disabled
+                       >
+                         Déjà abonné
+                       </Button>
+                      ) : (
+                        <Button
+                          block
+                          onClick={() => handleSubscribe(key)}
+                          disabled={loading}
+                          style={{
+                            background: currentGradient, // Bouton avec dégradé
+                            border: "none",
+                            color: "white",
+                            borderRadius: "30px",
+                            fontWeight: "bold",
+                            padding: "12px",
+                            fontSize: "1rem",
+                            boxShadow: "0 4px 6px rgba(0,0,0,0.15)"
+                          }}
+                        >
+                          S'abonner
+                        </Button>
+                      )}
+                    </div>
 
-            {/* Ajout de style inline pour l'effet de scale si non présent dans ton CSS global */}
-            <style jsx>{`
-                .transform-scale-110 {
-                    z-index: 10;
-                }
-                @media (max-width: 991px) {
-                    .transform-scale-110 {
-                        transform: scale(1) !important;
-                        margin-bottom: 2rem;
-                    }
-                }
-            `}</style>
-        </>
-    );
+                  </CardBody>
+                </Card>
+              </Col>
+            );
+          })}
+        </Row>
+      </Container>
+    </div>
+  );
 };
 
 export default Abonnement;

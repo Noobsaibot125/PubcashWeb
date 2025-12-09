@@ -109,7 +109,6 @@ const Messagerie = () => {
         setSelectedContact(contact);
         fetchMessages(contact.contactId, contact.contactType, true);
         markAsRead(contact.contactId, contact.contactType);
-        // Sur mobile, on pourrait ajouter une logique pour scroller vers la vue chat
     };
 
     const onEmojiClick = (emojiObject) => {
@@ -156,7 +155,7 @@ const Messagerie = () => {
                                                     className={`border-0 py-3 ${isActive ? 'bg-secondary' : ''}`}
                                                     style={{ 
                                                         cursor: 'pointer', 
-                                                        borderLeft: isActive ? '4px solid #f36c21' : '4px solid transparent', // Bordure orange active
+                                                        borderLeft: isActive ? '4px solid #f36c21' : '4px solid transparent', 
                                                         transition: 'all 0.2s ease'
                                                     }}
                                                 >
@@ -223,8 +222,11 @@ const Messagerie = () => {
                                                 {!isPremium && <Badge color="warning">Mode Gratuit</Badge>}
                                             </div>
 
-                                            {/* Messages */}
-                                            <div className="flex-grow-1 p-4 overflow-auto custom-scrollbar" style={{ backgroundColor: '#f4f5f7' }}>
+                                            {/* Messages - MODIFICATION ICI : COULEUR #DFF3DF */}
+                                            <div 
+                                                className="flex-grow-1 p-4 overflow-auto custom-scrollbar" 
+                                                style={{ backgroundColor: '#DFF3DF' }}
+                                            >
                                                 {messages.map((msg) => {
                                                     const isMe = msg.type_expediteur === 'client'; 
                                                     return (
@@ -232,7 +234,6 @@ const Messagerie = () => {
                                                             <div 
                                                                 className={`p-3 shadow-sm position-relative ${isMe ? 'text-white' : 'bg-white text-dark'}`}
                                                                 style={{ 
-                                                                    // MODIFICATION ICI : Background Orange pour moi
                                                                     backgroundColor: isMe ? '#f36c21' : '#fff',
                                                                     maxWidth: '75%', 
                                                                     borderRadius: isMe ? '18px 18px 0 18px' : '18px 18px 18px 0',
@@ -243,7 +244,6 @@ const Messagerie = () => {
                                                                 {msg.type_contenu === 'image' && <img src={getMediaUrl(msg.url_media)} alt="media" className="img-fluid rounded mb-2" />}
                                                                 {msg.type_contenu === 'video' && <video src={getMediaUrl(msg.url_media)} controls className="img-fluid rounded mb-2" />}
                                                                 
-                                                                {/* Date et statut de lecture en blanc pur pour être visible sur le orange */}
                                                                 <div className={`text-right mt-1 ${isMe ? 'text-white' : 'text-muted'}`} style={{ fontSize: '0.65em', opacity: isMe ? 0.8 : 1 }}>
                                                                     {new Date(msg.date_envoi).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                                                     {isMe && <i className={`ni ni-check-bold ml-1 ${msg.lu ? 'text-white' : ''}`}></i>}
@@ -316,7 +316,6 @@ const Messagerie = () => {
                                                             <InputGroupAddon addonType="append">
                                                                 <Button 
                                                                     className="btn-icon rounded-circle mr-1 my-1 text-white border-0" 
-                                                                    // MODIFICATION ICI : Bouton envoi orange aussi
                                                                     style={{ backgroundColor: '#f36c21' }}
                                                                     type="submit" 
                                                                     disabled={sending || (!newMessage.trim() && !file)}
@@ -335,7 +334,11 @@ const Messagerie = () => {
                                             </div>
                                         </>
                                     ) : (
-                                        <div className="d-flex flex-column align-items-center justify-content-center h-100 text-muted bg-white">
+                                        // MODIFICATION ICI : Écran d'accueil vide avec la couleur #DFF3DF
+                                        <div 
+                                            className="d-flex flex-column align-items-center justify-content-center h-100 text-muted"
+                                            style={{ backgroundColor: '#DFF3DF' }}
+                                        >
                                             <div className="icon icon-shape bg-gradient-light text-primary rounded-circle shadow mb-4">
                                                 <i className="ni ni-send" style={{fontSize: '2rem'}}></i>
                                             </div>
