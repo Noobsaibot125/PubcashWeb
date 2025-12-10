@@ -5,219 +5,166 @@ import api from '../../services/api';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import {
-  Button,
-  Card,
-  CardBody,
-  FormGroup,
-  Form,
-  Input,
-  InputGroupAddon,
-  InputGroupText,
-  InputGroup,
-  Row,
-  Col,
+  Button, Card, CardBody, Form, Input,
+  InputGroupAddon, InputGroupText, InputGroup, Row, Col,
 } from "reactstrap";
 
 const ForgotPassword = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const returnPath = location.state?.from || "/auth/login-client";
-  // États
-  const [step, setStep] = useState(1); // 1: email, 2: code, 3: new password
+  
+  const [step, setStep] = useState(1); 
   const [email, setEmail] = useState("");
   const [resetCode, setResetCode] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // --- NOUVEAUX ÉTATS : Visibilité des mots de passe ---
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  // Effet pour nettoyer les classes du body si nécessaire
   useEffect(() => {
     document.body.classList.add('hide-navbar');
     return () => document.body.classList.remove('hide-navbar');
   }, []);
 
-  // --- NOUVELLES FONCTIONS : Basculer la visibilité ---
   const toggleNewPasswordVisibility = () => setShowNewPassword(!showNewPassword);
   const toggleConfirmPasswordVisibility = () => setShowConfirmPassword(!showConfirmPassword);
 
-
-  // ÉTAPE 1 : Envoyer le code
   const handleSendCode = async (e) => {
     e.preventDefault();
     setLoading(true);
-
     try {
       await api.post('/auth/forgot-password', { email });
-      toast.success('Code envoyé avec succès à votre email');
+      toast.success('Code envoyé avec succès');
       setStep(2);
     } catch (err) {
-      const errorMessage = err.response?.data?.message || "Erreur lors de l'envoi du code.";
-      toast.error(errorMessage);
+      toast.error(err.response?.data?.message || "Erreur lors de l'envoi.");
     } finally {
       setLoading(false);
     }
   };
 
-  // ÉTAPE 2 : Vérifier le code
   const handleVerifyCode = async (e) => {
     e.preventDefault();
     setLoading(true);
-
     try {
       const cleanResetCode = resetCode.replace(/\s/g, '');
       await api.post('/auth/verify-reset-code', { email, resetCode: cleanResetCode });
-      toast.success('Code vérifié avec succès');
+      toast.success('Code vérifié');
       setStep(3);
     } catch (err) {
-      const errorMessage = err.response?.data?.message || "Code invalide ou expiré.";
-      toast.error(errorMessage);
+      toast.error(err.response?.data?.message || "Code invalide.");
     } finally {
       setLoading(false);
     }
   };
 
-  // ÉTAPE 3 : Réinitialiser le mot de passe
   const handleResetPassword = async (e) => {
     e.preventDefault();
-    
-    if (newPassword.length < 6) {
-      toast.error('Le mot de passe doit contenir au moins 6 caractères');
-      return;
-    }
-
-    if (newPassword !== confirmPassword) {
-      toast.error('Les mots de passe ne correspondent pas');
-      return;
-    }
+    if (newPassword.length < 6) { return toast.error('Minimum 6 caractères'); }
+    if (newPassword !== confirmPassword) { return toast.error('Mots de passe différents'); }
 
     setLoading(true);
-
     try {
       const cleanResetCode = resetCode.replace(/\s/g, '');
-      await api.post('/auth/reset-password', { 
-        email, 
-        resetCode: cleanResetCode, 
-        newPassword 
-      });
-      toast.success('Mot de passe réinitialisé avec succès !');
-      
-      // Redirection après 2 secondes
-      setTimeout(() => {
-        navigate(returnPath); 
-      }, 2000);
+      await api.post('/auth/reset-password', { email, resetCode: cleanResetCode, newPassword });
+      toast.success('Mot de passe modifié !');
+      setTimeout(() => navigate(returnPath), 2000);
     } catch (err) {
-      const errorMessage = err.response?.data?.message || "Erreur lors de la réinitialisation.";
-      toast.error(errorMessage);
+      toast.error(err.response?.data?.message || "Erreur réinitialisation.");
     } finally {
       setLoading(false);
     }
-  };
-
-  // Utilitaires pour le formatage du code (ex: 123 456)
-  const formatResetCode = (value) => {
-    const cleaned = value.replace(/\s/g, '').replace(/\D/g, '');
-    if (cleaned.length <= 3) return cleaned;
-    return `${cleaned.slice(0, 3)} ${cleaned.slice(3, 6)}`;
   };
 
   const handleCodeChange = (e) => {
-    const formattedCode = formatResetCode(e.target.value);
-    setResetCode(formattedCode);
+    const val = e.target.value.replace(/\s/g, '').replace(/\D/g, '');
+    const formatted = val.length > 3 ? `${val.slice(0, 3)} ${val.slice(3, 6)}` : val;
+    setResetCode(formatted);
   };
 
   return (
     <>
       <ToastContainer position="top-right" autoClose={5000} />
       
-      <Col lg="5" md="7">
-        <Card className="bg-secondary shadow border-0">
-          <CardBody className="px-lg-5 py-lg-5">
-            <div className="text-center text-muted mb-4">
-              <small className='MM' style={{fontWeight: 'bold', fontSize: '1rem'}}>
-                Réinitialisation du mot de passe
-              </small>
-            </div>
-
+      <Col lg="5" md="7" className="mx-auto">
+        <Card className="auth-card border-0">
+          <CardBody className="card-body-auth">
+            
             <div className="text-center mb-4">
-              <small className="text-muted">
+              <h6 className="auth-header-subtitle">RÉINITIALISATION DU MOT DE PASSE</h6>
+              <div className="header-underline"></div>
+              
+              <p className="text-muted small">
                 {step === 1 && "Étape 1 : Saisissez votre email"}
                 {step === 2 && "Étape 2 : Saisissez le code reçu"}
                 {step === 3 && "Étape 3 : Créez votre nouveau mot de passe"}
-              </small>
+              </p>
             </div>
 
-            {/* --- FORMULAIRE ÉTAPE 1 --- */}
+            {/* STEP 1 */}
             {step === 1 && (
               <Form role="form" onSubmit={handleSendCode}>
-                <FormGroup className="mb-3">
-                  <InputGroup className="input-group-alternative">
+                <div className="mb-3">
+                  <InputGroup className="custom-input-group">
                     <InputGroupAddon addonType="prepend">
                       <InputGroupText><i className="ni ni-email-83" /></InputGroupText>
                     </InputGroupAddon>
                     <Input 
                       placeholder="Votre adresse email" 
-                      type="email" 
-                      value={email} 
+                      type="email" value={email} 
                       onChange={(e) => setEmail(e.target.value)} 
-                      required
-                      autoFocus
+                      className="form-control-auth" required autoFocus
                     />
                   </InputGroup>
-                </FormGroup>
+                </div>
                 <div className="text-center">
-                  <Button className="my-4 btn-pubcash-primary" type="submit" disabled={loading} style={{width: '100%'}}>
+                  <Button className="btn-pubcash mt-4" type="submit" disabled={loading}>
                     {loading ? 'Envoi...' : 'Envoyer le code'}
                   </Button>
                 </div>
               </Form>
             )}
 
-            {/* --- FORMULAIRE ÉTAPE 2 --- */}
+            {/* STEP 2 */}
             {step === 2 && (
               <Form role="form" onSubmit={handleVerifyCode}>
-                <FormGroup className="mb-3">
-                  <InputGroup className="input-group-alternative">
+                <div className="mb-3">
+                  <InputGroup className="custom-input-group">
                     <InputGroupAddon addonType="prepend">
                       <InputGroupText><i className="ni ni-key-25" /></InputGroupText>
                     </InputGroupAddon>
                     <Input 
                       placeholder="000 000" 
-                      type="text" 
-                      value={resetCode} 
+                      type="text" value={resetCode} 
                       onChange={handleCodeChange}
-                      required
-                      maxLength="7"
-                      autoFocus
+                      className="form-control-auth" required maxLength="7" autoFocus
                     />
                   </InputGroup>
                   <div className="text-center mt-2">
                     <small className="text-muted">Code envoyé à {email}</small>
                   </div>
-                </FormGroup>
+                </div>
                 <div className="text-center">
-                  <Button className="my-4 btn-pubcash-primary" type="submit" disabled={loading} style={{width: '100%'}}>
+                  <Button className="btn-pubcash mt-4" type="submit" disabled={loading}>
                     {loading ? 'Vérification...' : 'Vérifier le code'}
                   </Button>
                 </div>
-                <div className="text-center">
-                  <button type="button" className="btn btn-link text-muted" onClick={handleSendCode}>
-                    <small>Renvoyer le code</small>
+                <div className="text-center mt-3">
+                  <button type="button" className="btn btn-link text-muted small p-0" onClick={handleSendCode}>
+                    Renvoyer le code
                   </button>
                 </div>
               </Form>
             )}
 
-            {/* --- FORMULAIRE ÉTAPE 3 (MODIFIÉ) --- */}
+            {/* STEP 3 */}
             {step === 3 && (
               <Form role="form" onSubmit={handleResetPassword}>
-                
-                {/* Champ: Nouveau mot de passe */}
-                <FormGroup className="mb-3">
-                  <InputGroup className="input-group-alternative">
+                <div className="mb-3">
+                  <InputGroup className="custom-input-group">
                     <InputGroupAddon addonType="prepend">
                       <InputGroupText><i className="ni ni-lock-circle-open" /></InputGroupText>
                     </InputGroupAddon>
@@ -226,8 +173,7 @@ const ForgotPassword = () => {
                       type={showNewPassword ? "text" : "password"} 
                       value={newPassword} 
                       onChange={(e) => setNewPassword(e.target.value)} 
-                      required
-                      minLength="6"
+                      className="form-control-auth" required minLength="6"
                     />
                     <InputGroupAddon addonType="append">
                       <InputGroupText onClick={toggleNewPasswordVisibility} style={{ cursor: 'pointer' }}>
@@ -235,11 +181,10 @@ const ForgotPassword = () => {
                       </InputGroupText>
                     </InputGroupAddon>
                   </InputGroup>
-                </FormGroup>
+                </div>
 
-                {/* Champ: Confirmer mot de passe */}
-                <FormGroup>
-                  <InputGroup className="input-group-alternative">
+                <div className="mb-3">
+                  <InputGroup className="custom-input-group">
                     <InputGroupAddon addonType="prepend">
                       <InputGroupText><i className="ni ni-lock-circle-open" /></InputGroupText>
                     </InputGroupAddon>
@@ -248,8 +193,7 @@ const ForgotPassword = () => {
                       type={showConfirmPassword ? "text" : "password"} 
                       value={confirmPassword} 
                       onChange={(e) => setConfirmPassword(e.target.value)} 
-                      required
-                      minLength="6"
+                      className="form-control-auth" required minLength="6"
                     />
                     <InputGroupAddon addonType="append">
                       <InputGroupText onClick={toggleConfirmPasswordVisibility} style={{ cursor: 'pointer' }}>
@@ -257,24 +201,21 @@ const ForgotPassword = () => {
                       </InputGroupText>
                     </InputGroupAddon>
                   </InputGroup>
-                </FormGroup>
+                </div>
 
                 <div className="text-center">
-                  <Button className="my-4 btn-pubcash-primary" type="submit" disabled={loading} style={{width: '100%'}}>
+                  <Button className="btn-pubcash mt-4" type="submit" disabled={loading}>
                     {loading ? 'Modification...' : 'Changer le mot de passe'}
                   </Button>
                 </div>
               </Form>
             )}
 
-           <Row className="mt-3">
-              <Col xs="12" className="text-center">
-                
-                <Link to={returnPath} className="text-muted">
-                  <small>Retour à la connexion</small>
+           <div className="text-center mt-4 separator-line">
+                <Link to={returnPath} className="link-create small">
+                  Retour à la connexion
                 </Link>
-              </Col>
-            </Row>
+            </div>
 
           </CardBody>
         </Card>

@@ -60,7 +60,74 @@ const CHART_COLORS = {
 };
 
 const CUSTOM_STYLES = {};
+// --- COMPOSANT INTERNE : STATS QUIZ (Copié pour réutilisation) ---
+const QuizStatsDisplay = ({ promotionId }) => {
+    const [stats, setStats] = useState(null);
+    const [loading, setLoading] = useState(true);
 
+    useEffect(() => {
+        const fetchStats = async () => {
+            try {
+                // On utilise le même endpoint que pour l'historique
+                const res = await api.get(`/games/stats/promotion/${promotionId}`);
+                if (res.data.hasGame) {
+                    setStats(res.data.stats);
+                }
+            } catch (e) {
+                console.error("Erreur stats quiz", e);
+            } finally {
+                setLoading(false);
+            }
+        };
+        if(promotionId) fetchStats();
+    }, [promotionId]);
+
+    if (loading) return <div className="text-center py-2"><small className="text-muted">Chargement des stats quiz...</small></div>;
+    if (!stats || stats.total === 0) return null; // Pas de jeu ou pas de joueurs
+
+    // Calcul des pourcentages
+    const successRate = stats.total > 0 ? Math.round((stats.bonnes / stats.total) * 100) : 0;
+
+    return (
+        <div className="mt-4 pt-4 border-top">
+            <div className="d-flex justify-content-between align-items-center mb-3">
+                <h5 className="mb-0 text-dark font-weight-bold">
+                    <i className="ni ni-controller mr-2 text-primary"></i>
+                    Performance du Quiz
+                </h5>
+                <Badge color="primary" pill className="px-2 py-1">{stats.total} Joueurs</Badge>
+            </div>
+            
+            {/* Barre de succès */}
+            <div className="mb-2">
+                <div className="d-flex justify-content-between text-xs text-muted mb-1">
+                    <span>Bonnes réponses ({stats.bonnes})</span>
+                    <span className="font-weight-bold text-success">{successRate}%</span>
+                </div>
+                <Progress color="success" value={successRate} style={{ height: '6px' }} />
+            </div>
+
+            {/* Barre d'échec */}
+            {stats.mauvaises > 0 && (
+                <div className="mb-2">
+                    <div className="d-flex justify-content-between text-xs text-muted mb-1">
+                        <span>Mauvaises réponses ({stats.mauvaises})</span>
+                        <span className="font-weight-bold text-danger">{100 - successRate}%</span>
+                    </div>
+                    <Progress color="danger" value={100 - successRate} style={{ height: '6px' }} />
+                </div>
+            )}
+            
+            <div className="text-center mt-3">
+                <small className="text-muted font-italic" style={{fontSize:'0.75rem'}}>
+                    {successRate > 50 
+                        ? "🎉 Le message de la vidéo a été bien compris !" 
+                        : "⚠️ Attention : Le message semble difficile à retenir."}
+                </small>
+            </div>
+        </div>
+    );
+};
 // --- Petit composant ImageWithPlaceholder ---
 const LOCAL_FALLBACK = `${process.env.PUBLIC_URL}/img/placeholder-320x180.jpg`;
 
@@ -763,7 +830,8 @@ const Index = () => {
                              Basé sur les interactions par rapport aux vues.
                           </p>
                        </div>
-
+{/* --- NOUVEAUTÉ ICI : Stats Quiz --- */}
+                        <QuizStatsDisplay promotionId={selectedPromo.id} />
                     </div>
                   </CardBody>
                 </Card>

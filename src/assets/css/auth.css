@@ -1,0 +1,175 @@
+/* assets/css/auth.css */
+:root {
+  --pubcash-orange: #ea580c;
+  --pubcash-orange-hover: #c2410c;
+  --input-bg: #f9fafb;
+  --input-border: #e5e7eb;
+  --text-dark: #1f2937;
+  --text-muted: #9ca3af;
+}
+
+body, .bg-default {
+  background-color: #f8fafc !important;
+  font-family: 'Open Sans', sans-serif;
+  color: var(--text-dark);
+}
+
+/* --- LAYOUT & VAGUE --- */
+.main-content-auth {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding-bottom: 50px;
+  overflow-x: hidden;
+}
+
+.wave-bg {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 100%;
+  transform: translateY(-50%);
+  z-index: 0; 
+  pointer-events: none;
+}
+
+/* --- CARTE --- */
+.auth-card {
+  border: 1px solid rgba(0,0,0,0.05) !important;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04) !important;
+  border-radius: 16px !important;
+  background: white;
+  position: relative;
+  z-index: 10;
+}
+
+.card-body-auth {
+  padding: 3rem 2.5rem !important;
+}
+
+/* --- HEADERS (TITRES) --- */
+.auth-header-subtitle {
+  color: #6b7280;
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.5rem;
+}
+
+/* Le trait orange souligné */
+.header-underline {
+  width: 40px;
+  height: 3px;
+  background-color: var(--pubcash-orange);
+  margin: 0 auto 25px auto;
+  border-radius: 2px;
+}
+
+/* --- TOGGLE SWITCH (C'est ce qui manquait !) --- */
+.account-type-toggle {
+  display: inline-flex;
+  background-color: #f3f4f6; /* Fond gris clair du conteneur */
+  padding: 4px;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  margin-bottom: 2rem;
+}
+
+.toggle-btn {
+  border: none;
+  background: transparent;
+  padding: 8px 24px;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #6b7280; /* Texte gris par défaut */
+  transition: all 0.2s ease;
+  cursor: pointer;
+  outline: none !important;
+}
+
+.toggle-btn:hover {
+  color: var(--pubcash-orange);
+}
+
+.toggle-btn.active {
+  background-color: var(--pubcash-orange); /* Fond Orange pour l'actif */
+  color: white; /* Texte Blanc */
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+/* --- INPUTS --- */
+.custom-input-group {
+  background-color: var(--input-bg);
+  border: 1px solid var(--input-border);
+  border-radius: 8px;
+  transition: all 0.2s;
+  overflow: hidden;
+  margin-bottom: 0;
+}
+
+.custom-input-group:focus-within {
+  border-color: var(--pubcash-orange);
+  box-shadow: 0 0 0 1px var(--pubcash-orange);
+  background-color: #fff;
+}
+
+.custom-input-group .input-group-text {
+  background-color: transparent !important;
+  border: none !important;
+  color: var(--text-muted) !important;
+  padding-left: 1rem;
+}
+
+.custom-input-group .form-control-auth {
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  color: var(--text-dark);
+  height: 50px !important;
+  font-size: 0.95rem;
+}
+
+.custom-input-group .form-control-auth:focus {
+  background-color: transparent !important;
+  box-shadow: none !important;
+}
+
+/* --- BOUTONS --- */
+.btn-pubcash {
+  background-color: var(--pubcash-orange) !important;
+  border-color: var(--pubcash-orange) !important;
+  color: white !important;
+  font-weight: 700;
+  padding: 14px;
+  border-radius: 8px !important;
+  width: 100%;
+  box-shadow: 0 4px 6px -1px rgba(234, 88, 12, 0.4);
+  transition: transform 0.2s;
+}
+
+.btn-pubcash:hover {
+  background-color: var(--pubcash-orange-hover) !important;
+  transform: translateY(-1px);
+}
+
+/* --- LIENS --- */
+.link-forgot {
+  color: #9ca3af;
+  font-size: 0.9rem;
+  text-decoration: none;
+}
+.link-create {
+  color: var(--pubcash-orange);
+  font-weight: 600;
+  text-decoration: none;
+  font-size: 0.95rem;
+}
+.separator-line {
+  border-top: 1px solid #f3f4f6;
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+}

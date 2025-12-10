@@ -1,33 +1,10 @@
-/*!
-
-=========================================================
-* Argon Dashboard React - v1.2.4
-=========================================================
-
-* Product Page: https://www.creative-tim.com/product/argon-dashboard-react
-* Copyright 2024 Creative Tim (https://www.creative-tim.com)
-* Licensed under MIT (https://github.com/creativetimofficial/argon-dashboard-react/blob/master/LICENSE.md)
-
-* Coded by Creative Tim
-
-=========================================================
-
-* The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
-
-*/
 import React from "react";
 import { useLocation, Route, Routes, Navigate } from "react-router-dom";
-// reactstrap components
 import { Container, Row, Col } from "reactstrap";
-
-// core components
-import AuthNavbar from "components/Navbars/AuthNavbar.js";
-import AuthFooter from "components/Footers/AuthFooter.js";
-
 import routes from "routes.js";
+import "assets/css/auth.css"; 
 
 const Auth = (props) => {
-  const mainContent = React.useRef(null);
   const location = useLocation();
 
   React.useEffect(() => {
@@ -36,11 +13,6 @@ const Auth = (props) => {
       document.body.classList.remove("bg-default");
     };
   }, []);
-  React.useEffect(() => {
-    document.documentElement.scrollTop = 0;
-    document.scrollingElement.scrollTop = 0;
-    mainContent.current.scrollTop = 0;
-  }, [location]);
 
   const getRoutes = (routes) => {
     return routes.map((prop, key) => {
@@ -55,40 +27,46 @@ const Auth = (props) => {
   };
 
   return (
-    <>
-      <div className="main-content" ref={mainContent}>
-        <AuthNavbar />
-        <div className="header bg-gradient-info py-7 py-lg-8">
-          <Container>
-            <div className="header-body text-center mb-7">
-              <Row className="justify-content-center">
-                <Col lg="5" md="6">
-                  <h1 className="text-whites"  >Bienvenue Sur Pubcash</h1>
-                  <p className="text-lead text-light">
-                    Veuillez vous connecter en tant que promoteur ou Client ou cree un nouveau compte.
+    <div className="main-content-auth">
+        
+        {/* --- FOND SVG VAGUE --- */}
+        <svg 
+          className="wave-bg"
+          viewBox="0 0 1440 320" 
+          preserveAspectRatio="none"
+          fill="none" 
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path 
+            d="M0,160 C320,300 420,100 1440,220 L1440,260 C800,100 600,320 0,220 Z" 
+            fill="#ea580c" opacity="0.9"
+          />
+          <path 
+            d="M-100,200 C200,350 500,150 1500,250 L1500,260 C600,180 400,380 -100,240 Z" 
+            fill="#c2410c" opacity="0.8"
+          />
+        </svg>
+
+        {/* --- HEADER TEXT CENTRÉ --- */}
+        <div className="text-center mb-5 w-100" style={{zIndex: 2, position: 'relative'}}>
+           <Container>
+             <Row className="justify-content-center">
+                <Col md="8" lg="6">
+                  {/* Titre Principal */}
+                  <h1 className="font-weight-bold mb-3 text-dark display-4">
+                    Bienvenue Sur Pubcash
+                  </h1>
+                  {/* Sous-titre */}
+                  <p className="text-muted mb-0" style={{fontSize: '1.1rem'}}>
+                    Veuillez vous connecter en tant que promoteur ou Client ou créez un nouveau compte.
                   </p>
                 </Col>
-              </Row>
-            </div>
-          </Container>
-          <div className="separator separator-bottom separator-skew zindex-100">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              preserveAspectRatio="none"
-              version="1.1"
-              viewBox="0 0 2560 100"
-              x="0"
-              y="0"
-            >
-              <polygon
-                className="fill-default"
-                points="2560 0 2560 100 0 100"
-              />
-            </svg>
-          </div>
+             </Row>
+           </Container>
         </div>
-        {/* Page content */}
-        <Container className="mt--8 pb-5">
+
+        {/* --- CONTENU DE LA PAGE (Login/Register) --- */}
+        <Container style={{zIndex: 2, position: 'relative'}}>
           <Row className="justify-content-center">
             <Routes>
               {getRoutes(routes)}
@@ -96,9 +74,12 @@ const Auth = (props) => {
             </Routes>
           </Row>
         </Container>
-      </div>
-      <AuthFooter />
-    </>
+        
+        {/* --- FOOTER COPYRIGHT --- */}
+        <div className="mt-5 text-center text-muted small" style={{zIndex: 2, position:'relative'}}>
+            &copy; {new Date().getFullYear()} PubCash. Tous droits réservés.
+        </div>
+    </div>
   );
 };
 

@@ -23,6 +23,74 @@ const formatDate = (dateString) => {
     return date.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
 };
 
+// --- Composant Interne pour les Stats Quiz ---
+const QuizStatsDisplay = ({ promotionId }) => {
+    const [stats, setStats] = useState(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchStats = async () => {
+            try {
+                const res = await api.get(`/games/stats/promotion/${promotionId}`);
+                if (res.data.hasGame) {
+                    setStats(res.data.stats);
+                }
+            } catch (e) {
+                console.error("Erreur stats quiz", e);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchStats();
+    }, [promotionId]);
+
+    if (loading) return <small className="text-muted"><i className="fas fa-circle-notch fa-spin mr-1"></i> Chargement Quiz...</small>;
+    if (!stats || stats.total === 0) return null; // Pas de jeu ou pas de joueurs
+
+    // Calcul des pourcentages
+    const successRate = stats.total > 0 ? Math.round((stats.bonnes / stats.total) * 100) : 0;
+
+    return (
+        <div className="mt-3 p-3 bg-secondary rounded border border-light">
+            <div className="d-flex justify-content-between align-items-center mb-2">
+                <h5 className="mb-0 text-dark font-weight-bold">
+                    <i className="ni ni-controller mr-2 text-primary"></i>
+                    Statistiques du Quiz
+                </h5>
+                <Badge color="primary" pill>{stats.total} Participants</Badge>
+            </div>
+            
+            {/* Barre de succès */}
+            <div className="mb-1">
+                <div className="d-flex justify-content-between text-xs text-muted mb-1">
+                    <span>Bonnes réponses ({stats.bonnes})</span>
+                    <span>{successRate}%</span>
+                </div>
+                <Progress color="success" value={successRate} style={{ height: '8px' }} />
+            </div>
+
+            {/* Barre d'échec */}
+            {stats.mauvaises > 0 && (
+                <div className="mt-2">
+                    <div className="d-flex justify-content-between text-xs text-muted mb-1">
+                        <span>Mauvaises réponses ({stats.mauvaises})</span>
+                        <span>{100 - successRate}%</span>
+                    </div>
+                    <Progress color="danger" value={100 - successRate} style={{ height: '8px' }} />
+                </div>
+            )}
+            
+            <div className="text-center mt-2">
+                <small className="text-muted font-italic" style={{fontSize:'0.75rem'}}>
+                    {successRate > 50 
+                        ? "🎉 La majorité a bien regardé la vidéo !" 
+                        : "⚠️ Taux d'erreur élevé, vidéo peut-être complexe."}
+                </small>
+            </div>
+        </div>
+    );
+};
+
 // --- Main Component ---
 const HistoriquePromotions = () => {
     const [history, setHistory] = useState([]);
@@ -50,7 +118,6 @@ const HistoriquePromotions = () => {
 
     const getThumbnailUrl = (promo) => {
         if (promo.thumbnail_url) return getMediaUrl(promo.thumbnail_url);
-        // Basic YouTube Fallback
         if (promo.url_video && (promo.url_video.includes('youtube') || promo.url_video.includes('youtu.be'))) {
              try {
                  const url = new URL(promo.url_video);
@@ -90,21 +157,22 @@ const HistoriquePromotions = () => {
                                     </div>
                                 ) : (
                                     history.map((promo, index) => (
-                                        <div className="campaign-row" key={promo.id || index}>
+                                        <div className="campaign-row border-bottom p-4" key={promo.id || index}>
                                             <Row>
                                                 {/* Left Column: Video Thumbnail */}
                                                 <Col lg="3" md="4" className="mb-4 mb-md-0 d-flex flex-column justify-content-center">
                                                     <div
-                                                        className="campaign-video-wrapper"
+                                                        className="campaign-video-wrapper position-relative rounded overflow-hidden shadow-sm"
                                                         onClick={() => setSelectedVideo(promo)}
-                                                        style={{ cursor: 'pointer' }}
+                                                        style={{ cursor: 'pointer', maxHeight: '160px' }}
                                                     >
                                                         <img
                                                             src={getThumbnailUrl(promo)}
                                                             alt={promo.titre}
-                                                            className="campaign-video-thumb"
+                                                            className="campaign-video-thumb w-100 h-100"
+                                                            style={{ objectFit: 'cover' }}
                                                         />
-                                                        <div className="campaign-video-overlay">
+                                                        <div className="campaign-video-overlay position-absolute w-100 h-100 d-flex align-items-center justify-content-center" style={{top:0, left:0, background: 'rgba(0,0,0,0.3)'}}>
                                                             <i className="fas fa-play-circle fa-3x text-white"></i>
                                                         </div>
                                                     </div>
@@ -121,104 +189,68 @@ const HistoriquePromotions = () => {
                                                     <h3 className="mb-1 text-dark text-truncate" title={promo.titre}>
                                                         {promo.titre || "Campagne Sans Titre"}
                                                     </h3>
-                                                    <p className="text-sm text-muted mb-4">
+                                                    <p className="text-sm text-muted mb-3">
                                                         Budget Total: <span className="font-weight-bold text-dark">{parseFloat(promo.budget_initial || 0).toLocaleString('fr-FR')} FCFA</span>
                                                     </p>
 
-                                                    {/* Progress Bars for Stats */}
-                                                    <div className="stat-row">
-                                                        <span className="stat-label-text">Vues</span>
-                                                        <div className="stat-progress-wrapper">
-                                                            <Progress
-                                                                max={(promo.vues || 0) + 100}
-                                                                value={promo.vues}
-                                                                color="info"
-                                                                style={{ height: '6px', marginBottom: 0 }}
-                                                            />
+                                                    {/* --- VUES --- */}
+                                                    <div className="mb-3">
+                                                        <div className="d-flex justify-content-between align-items-center mb-1">
+                                                            <span className="text-sm text-muted"><i className="fas fa-eye mr-1"></i> Vues</span>
+                                                            <span className="text-sm font-weight-bold text-info">{promo.vues || 0}</span>
                                                         </div>
-                                                        <span className="stat-value-text text-info">{promo.vues || 0}</span>
+                                                        <Progress value={promo.vues} max={(promo.vues || 0) + 100} color="info" style={{ height: '5px' }} />
                                                     </div>
 
-                                                    <div className="stat-row">
-                                                        <span className="stat-label-text">Likes</span>
-                                                        <div className="stat-progress-wrapper">
-                                                            <Progress
-                                                                max={promo.vues || 100}
-                                                                value={promo.likes}
-                                                                barClassName="bg-purple"
-                                                                style={{ height: '6px', marginBottom: 0 }}
-                                                            />
+                                                    {/* --- LIKES --- */}
+                                                    <div className="mb-3">
+                                                        <div className="d-flex justify-content-between align-items-center mb-1">
+                                                            <span className="text-sm text-muted"><i className="fas fa-thumbs-up mr-1"></i> Likes</span>
+                                                            <span className="text-sm font-weight-bold" style={{color: '#8965e0'}}>{promo.likes || 0}</span>
                                                         </div>
-                                                        <span className="stat-value-text" style={{color: '#8965e0'}}>{promo.likes || 0}</span>
+                                                        <Progress value={promo.likes} max={promo.vues || 100} barClassName="bg-purple" style={{ height: '5px' }} />
                                                     </div>
 
-                                                    <div className="stat-row">
-                                                        <span className="stat-label-text">Partages</span>
-                                                        <div className="stat-progress-wrapper">
-                                                            <Progress
-                                                                max={promo.vues || 100}
-                                                                value={promo.partages}
-                                                                color="success"
-                                                                style={{ height: '6px', marginBottom: 0 }}
-                                                            />
+                                                    {/* --- PARTAGES (RESTAURÉ ICI) --- */}
+                                                    <div className="mb-3">
+                                                        <div className="d-flex justify-content-between align-items-center mb-1">
+                                                            <span className="text-sm text-muted"><i className="fas fa-share mr-1"></i> Partages</span>
+                                                            {/* Compteur affiché ici */}
+                                                            <span className="text-sm font-weight-bold text-success">{promo.partages || 0}</span>
                                                         </div>
-                                                        <span className="stat-value-text text-success">{promo.partages || 0}</span>
+                                                        <Progress value={promo.partages} max={promo.vues || 100} color="success" style={{ height: '5px' }} />
                                                     </div>
+
+                                                    {/* --- STATS QUIZ --- */}
+                                                    <QuizStatsDisplay promotionId={promo.id} />
+                                                    
                                                 </Col>
 
                                                 {/* Right Column: Comments */}
                                                 <Col lg="4" className="d-none d-lg-block">
-                                                    <span className="comments-section-title">
+                                                    <span className="text-uppercase text-muted font-weight-bold text-xs mb-3 d-block">
                                                         Commentaires ({promo.commentaires ? promo.commentaires.length : 0})
                                                     </span>
-                                                    <div className="comments-box custom-scrollbar">
+                                                    <div className="custom-scrollbar pr-2" style={{maxHeight: '250px', overflowY: 'auto'}}>
                                                         {promo.commentaires && promo.commentaires.length > 0 ? (
                                                             promo.commentaires.map((comment, i) => (
-                                                                <div className="comment-item" key={i}>
-                                                                    <div className="comment-header">
-                                                                        <span className="comment-author">{comment.nom_utilisateur || 'Utilisateur'}</span>
-                                                                        <span className="comment-date">{formatDate(comment.date_commentaire)}</span>
+                                                                <div className="mb-3 pb-2 border-bottom" key={i}>
+                                                                    <div className="d-flex justify-content-between">
+                                                                        <span className="font-weight-bold text-sm text-dark">{comment.nom_utilisateur || 'Utilisateur'}</span>
+                                                                        <span className="text-xs text-muted">{formatDate(comment.date_commentaire)}</span>
                                                                     </div>
-                                                                    <p className="comment-text">
-                                                                        {comment.commentaire}
+                                                                    <p className="text-sm text-muted mt-1 mb-0 font-italic">
+                                                                        "{comment.commentaire}"
                                                                     </p>
                                                                 </div>
                                                             ))
                                                         ) : (
-                                                            <div className="h-100 d-flex align-items-center justify-content-center text-muted text-sm font-italic">
+                                                            <div className="text-center text-muted text-sm py-4 bg-light rounded">
                                                                 Aucun commentaire
                                                             </div>
                                                         )}
                                                     </div>
                                                 </Col>
-                                            </Row>
-
-                                            {/* Mobile View for Comments */}
-                                            <Row className="d-lg-none mt-3">
-                                                 <Col>
-                                                    <span className="comments-section-title">
-                                                        Commentaires ({promo.commentaires ? promo.commentaires.length : 0})
-                                                    </span>
-                                                     <div className="comments-box">
-                                                         {promo.commentaires && promo.commentaires.length > 0 ? (
-                                                            promo.commentaires.map((comment, i) => (
-                                                                <div className="comment-item" key={i}>
-                                                                    <div className="comment-header">
-                                                                        <span className="comment-author">{comment.nom_utilisateur || 'Utilisateur'}</span>
-                                                                        <span className="comment-date">{formatDate(comment.date_commentaire)}</span>
-                                                                    </div>
-                                                                    <p className="comment-text">
-                                                                        {comment.commentaire}
-                                                                    </p>
-                                                                </div>
-                                                            ))
-                                                        ) : (
-                                                            <div className="h-100 d-flex align-items-center justify-content-center text-muted text-sm font-italic">
-                                                                Aucun commentaire
-                                                            </div>
-                                                        )}
-                                                     </div>
-                                                 </Col>
                                             </Row>
                                         </div>
                                     ))

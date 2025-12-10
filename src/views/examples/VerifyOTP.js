@@ -2,9 +2,8 @@
 import React, { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { 
-    Button, Card, CardBody, FormGroup, Form, Input, InputGroup, Col,
-    // --- MODIFICATION : Importer les composants pour le popup ---
-    Modal, ModalHeader, ModalBody 
+    Button, Card, CardBody, Form, Input, InputGroup, Col,
+    Modal, ModalHeader, ModalBody, InputGroupAddon, InputGroupText 
 } from 'reactstrap';
 
 const VerifyOTP = () => {
@@ -13,20 +12,17 @@ const VerifyOTP = () => {
     const email = location.state?.email;
     
     const [otp, setOtp] = useState('');
-    // --- MODIFICATION : Remplacer les états 'error' et 'success' par des états pour les popups ---
     const [showSuccessModal, setShowSuccessModal] = useState(false);
     const [showErrorModal, setShowErrorModal] = useState(false);
     
-    // Si l'email n'est pas trouvé, on affiche une erreur.
     if (!email) {
         return (
-            <Col lg="6" md="8">
-                <p>Erreur : Email non trouvé. Veuillez recommencer l'inscription.</p>
+            <Col lg="6" md="8" className="mx-auto text-center mt-5">
+                <div className="alert alert-warning">Erreur : Email non trouvé. Veuillez recommencer l'inscription.</div>
             </Col>
         );
     }
 
-    // --- MODIFICATION : Fonctions pour gérer la fermeture des popups ---
     const handleCloseSuccessModal = () => {
         setShowSuccessModal(false);
         navigate('/auth/login-client');
@@ -38,7 +34,6 @@ const VerifyOTP = () => {
 
     const handleVerify = async (e) => {
         e.preventDefault();
-
         try {
             const apiUrl = `${process.env.REACT_APP_API_URL}/auth/verify-otp`;
             const response = await fetch(apiUrl, {
@@ -49,72 +44,74 @@ const VerifyOTP = () => {
 
             const data = await response.json();
             if (!response.ok) throw new Error(data.message);
-
-            // --- MODIFICATION : Afficher le popup de succès ---
             setShowSuccessModal(true);
-
         } catch (err) {
-            // --- MODIFICATION : Afficher le popup d'erreur ---
             setShowErrorModal(true);
         }
     };
 
     return (
         <>
-            <Col lg="5" md="7">
-                <Card className="bg-secondary shadow border-0">
-                    <CardBody className="px-lg-5 py-lg-5">
-                        <div className="text-center text-muted mb-4">
+            <Col lg="5" md="7" className="mx-auto">
+                <Card className="auth-card border-0">
+                    <CardBody className="card-body-auth text-center">
+                        <h6 className="auth-header-subtitle">VÉRIFICATION OTP</h6>
+                        <div className="header-underline"></div>
+                        
+                        <div className="text-muted mb-4">
                             <small>Veuillez entrer le code à 5 chiffres envoyé à <b>{email}</b></small>
                         </div>
+                        
                         <Form role="form" onSubmit={handleVerify}>
-                            <FormGroup>
-                                <InputGroup className="input-group-alternative">
-                                    <Input placeholder="Code OTP" type="text" value={otp} onChange={(e) => setOtp(e.target.value)} maxLength="5" required />
+                            <div className="mb-3">
+                                <InputGroup className="custom-input-group justify-content-center">
+                                     {/* Input centré pour le code OTP */}
+                                    <Input 
+                                        placeholder="X X X X X" 
+                                        type="text" 
+                                        value={otp} 
+                                        onChange={(e) => setOtp(e.target.value)} 
+                                        maxLength="5" 
+                                        required 
+                                        className="form-control-auth text-center"
+                                        style={{letterSpacing: '5px', fontSize: '1.2rem', fontWeight: 'bold'}}
+                                    />
                                 </InputGroup>
-                            </FormGroup>
-                            {/* --- MODIFICATION : Les anciens messages d'erreur et de succès sont retirés --- */}
+                            </div>
+                            
                             <div className="text-center">
-                                <Button className="my-4" color="primary" type="submit">Vérifier mon compte</Button>
+                                <Button className="btn-pubcash mt-4" type="submit">Vérifier mon compte</Button>
                             </div>
                         </Form>
                     </CardBody>
                 </Card>
             </Col>
 
-            {/* --- MODIFICATION : Le code du Popup de SUCCÈS --- */}
+            {/* POPUP SUCCÈS */}
             <Modal isOpen={showSuccessModal} toggle={handleCloseSuccessModal} centered>
-                <ModalHeader toggle={handleCloseSuccessModal} className="text-success">
-                    <span style={{ fontWeight: 'bold' }}>Vérification Réussie !</span>
-                </ModalHeader>
-                <ModalBody>
-                    <div className="text-center">
-                        <i className="ni ni-check-bold ni-3x text-success mb-3"></i>
-                        <p style={{ color: 'black' }}>
-                            Votre mail a été confirmé, vous pouvez vous connecter dès à présent.
-                        </p>
-                        <Button color="success" onClick={handleCloseSuccessModal}>
-                            Se connecter
-                        </Button>
+                <ModalBody className="text-center pt-5 pb-5">
+                    <div className="rounded-circle bg-success text-white d-inline-flex align-items-center justify-content-center mb-3 shadow-lg" style={{width: '60px', height: '60px'}}>
+                        <i className="ni ni-check-bold" style={{fontSize: '2rem'}}></i>
                     </div>
+                    <h3 className="mt-3 font-weight-bold text-dark">Vérification Réussie !</h3>
+                    <p className="text-muted">Votre mail a été confirmé.</p>
+                    <Button className="btn-pubcash mt-3 px-5" onClick={handleCloseSuccessModal}>
+                        Se connecter
+                    </Button>
                 </ModalBody>
             </Modal>
 
-            {/* --- MODIFICATION : Le code du Popup d'ERREUR --- */}
+            {/* POPUP ERREUR */}
             <Modal isOpen={showErrorModal} toggle={handleCloseErrorModal} centered>
-                <ModalHeader toggle={handleCloseErrorModal} className="text-danger">
-                    <span style={{ fontWeight: 'bold' }}>Code Incorrect</span>
-                </ModalHeader>
-                <ModalBody>
-                    <div className="text-center">
-                        <i className="ni ni-fat-remove ni-3x text-danger mb-3"></i>
-                        <p style={{ color: 'black' }}>
-                            Mauvais code entré, veuillez rentrer le code envoyé dans votre boite mail.
-                        </p>
-                        <Button color="danger" onClick={handleCloseErrorModal}>
-                            Réessayer
-                        </Button>
+                <ModalBody className="text-center pt-5 pb-5">
+                    <div className="rounded-circle bg-danger text-white d-inline-flex align-items-center justify-content-center mb-3 shadow-lg" style={{width: '60px', height: '60px'}}>
+                        <i className="ni ni-fat-remove" style={{fontSize: '2rem'}}></i>
                     </div>
+                    <h3 className="mt-3 font-weight-bold text-dark">Code Incorrect</h3>
+                    <p className="text-muted">Le code est invalide, veuillez vérifier votre boîte mail.</p>
+                    <Button color="danger" className="mt-3 px-5" onClick={handleCloseErrorModal}>
+                        Réessayer
+                    </Button>
                 </ModalBody>
             </Modal>
         </>

@@ -1,77 +1,56 @@
 // views/examples/LoginClient.js
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import api from '../../services/api';
+import api from '../../services/api'; 
 import { jwtDecode } from 'jwt-decode';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import {
   Button, Card, CardBody, FormGroup, Form, Input,
-  InputGroupAddon, InputGroupText, InputGroup, Row, Col,
+  InputGroupAddon, InputGroupText, InputGroup, Col, Spinner
 } from "reactstrap";
+// Assurez-vous que Auth.css est importé dans le layout parent (Auth.js)
 
 const LoginClient = () => {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-
-  // --- NOUVEAU : État pour l'œil ---
   const [showPassword, setShowPassword] = useState(false);
 
-  useEffect(() => {
-    document.body.classList.add('hide-navbar');
-    return () => document.body.classList.remove('hide-navbar');
-  }, []);
+  const togglePasswordVisibility = () => setShowPassword(!showPassword);
 
-  const togglePasswordVisibility = () => {
-    setShowPassword(!showPassword);
-  };
-
-  // --- Configuration du Popup Stylisé ---
   const toastOptions = {
     position: "top-center",
-    autoClose: 5000,
-    hideProgressBar: false,
-    closeOnClick: true,
-    pauseOnHover: true,
-    draggable: true,
-    progress: undefined,
+    autoClose: 3000,
     theme: "colored",
-    style: { fontSize: '16px', fontWeight: 'bold' }
   };
 
   const handleLogin = async (e) => {
     e.preventDefault();
-
-    // 1. VÉRIFICATION LOCALE
     if (!email.trim() || !password.trim()) {
-      toast.error("Email et mot de passe requis.", toastOptions);
+      toast.error("Veuillez remplir tous les champs.", toastOptions);
       return;
     }
-
     setLoading(true);
 
     try {
-      // API endpoint pour CLIENT
       const response = await api.post('/auth/client/login', { email, password });
       const { accessToken, refreshToken } = response.data;
 
       localStorage.setItem('accessToken', accessToken);
       localStorage.setItem('refreshToken', refreshToken);
+      
+      try {
+        const decodedToken = jwtDecode(accessToken);
+        localStorage.setItem('userRole', decodedToken.role);
+      } catch (e) {
+        console.error("Token decode error", e);
+      }
 
-      const decodedToken = jwtDecode(accessToken);
-      localStorage.setItem('userRole', decodedToken.role);
-
-      // Redirection vers CLIENT
       navigate("/client/index", { replace: true });
-
     } catch (err) {
-      // 2. ERREUR API : Message générique sécurisé
-      // Note : Si tu veux garder la logique "Compte non vérifié", tu peux ajouter un if ici.
-      // Pour l'instant, je standardise comme demandé :
       toast.error('Email ou mot de passe incorrect.', toastOptions);
-
     } finally {
       setLoading(false);
     }
@@ -80,82 +59,92 @@ const LoginClient = () => {
   return (
     <>
       <ToastContainer />
-      <Col lg="5" md="7">
-        <Card className="bg-secondary shadow border-0">
-          <CardBody className="px-lg-5 py-lg-5">
-            <div className="text-center text-muted mb-4">
-              <small className='MM'>Connexion Promoteur (Client)</small>
+      <Col lg="5" md="7" className="mx-auto">
+        <Card className="auth-card border-0">
+          <CardBody className="card-body-auth">
+            
+            {/* --- HEADER CARTE IDENTIQUE MAQUETTE --- */}
+            <div className="text-center">
+              {/* Titre en majuscules gris */}
+              <h6 className="login-header-subtitle">
+                CONNEXION PROMOTEUR (CLIENT)
+              </h6>
+              {/* Le trait orange souligné */}
+              <div className="header-underline"></div>
             </div>
+
             <Form role="form" onSubmit={handleLogin}>
               <FormGroup className="mb-3">
-                <InputGroup className="input-group-alternative">
-                  <InputGroupAddon addonType="prepend"><InputGroupText><i className="ni ni-email-83" /></InputGroupText></InputGroupAddon>
+                {/* On utilise custom-input-group pour le style gris clair */}
+                <InputGroup className="custom-input-group">
+                  <InputGroupAddon addonType="prepend">
+                    <InputGroupText><i className="ni ni-email-83" /></InputGroupText>
+                  </InputGroupAddon>
                   <Input
                     placeholder="Email"
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    disabled={loading}
-                  // "required" retiré pour laisser le Toast gérer l'alerte
+                    className="form-control-auth"
                   />
                 </InputGroup>
               </FormGroup>
-              <FormGroup>
-                <InputGroup className="input-group-alternative">
-                  <InputGroupAddon addonType="prepend"><InputGroupText><i className="ni ni-lock-circle-open" /></InputGroupText></InputGroupAddon>
 
-                  {/* --- MODIFIÉ : Gestion Show/Hide Password --- */}
+              <FormGroup className="mb-4">
+                <InputGroup className="custom-input-group">
+                  <InputGroupAddon addonType="prepend">
+                    <InputGroupText><i className="ni ni-lock-circle-open" /></InputGroupText>
+                  </InputGroupAddon>
                   <Input
                     placeholder="Mot de passe"
                     type={showPassword ? "text" : "password"}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    disabled={loading}
+                    className="form-control-auth"
                   />
-
                   <InputGroupAddon addonType="append">
-                    <InputGroupText onClick={togglePasswordVisibility} style={{ cursor: 'pointer' }}>
+                    <InputGroupText 
+                      onClick={togglePasswordVisibility} 
+                      style={{ cursor: 'pointer' }}
+                    >
                       <i className={showPassword ? "fa fa-eye-slash" : "fa fa-eye"} />
                     </InputGroupText>
                   </InputGroupAddon>
-
                 </InputGroup>
               </FormGroup>
 
               <div className="text-center">
                 <Button
-                  className="my-4 btn-pubcash-primary"
+                  className="btn-pubcash my-2"
                   type="submit"
                   disabled={loading}
-                  style={{ width: '100%' }}
                 >
-                  {loading ? 'Connexion...' : 'Se connecter'}
+                  {loading ? <Spinner size="sm" color="light" /> : 'Se connecter'}
                 </Button>
               </div>
             </Form>
 
-           <div className="text-center mt-3">
-              {/* AJOUT DE LA PROP 'state' ICI */}
+            <div className="text-center mt-3">
               <Link 
                 to="/auth/forgot-password" 
-                state={{ from: "/auth/login-client" }} 
-                className="text-muted"
+                className="link-forgot"
               >
-                <small>Mot de passe oublié ?</small>
+                Mot de passe oublié ?
               </Link>
             </div>
 
-            <Row className="mt-3">
-              <Col className="text-right" xs="12">
-                <Link to="/auth/register" className="link-pubcash-secondary">
-                  <small>Créer un compte promoteur</small>
-                </Link>
-              </Col>
-            </Row>
+            {/* --- FOOTER AVEC LIGNE DE SÉPARATION --- */}
+            <div className="text-center separator-line">
+               <Link to="/auth/register" className="link-create">
+                  Créer un compte promoteur
+               </Link>
+            </div>
+
           </CardBody>
         </Card>
       </Col>
     </>
   );
 };
+
 export default LoginClient;

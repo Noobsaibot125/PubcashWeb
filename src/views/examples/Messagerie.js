@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom"; // AJOUT: Pour la redirection
 import {
     Card,
-    CardBody,
     Container,
     Row,
     Col,
@@ -13,12 +13,15 @@ import {
     Form,
     InputGroup,
     InputGroupAddon,
-    UncontrolledTooltip
+    UncontrolledTooltip,
+    Spinner // AJOUT: Pour le chargement
 } from "reactstrap";
-import Picker from 'emoji-picker-react'; // Import du picker d'emojis
+import Picker from 'emoji-picker-react';
 import api, { getMediaUrl } from "../../services/api";
 
 const Messagerie = () => {
+    const navigate = useNavigate(); // Hook de navigation
+
     // --- State ---
     const [conversations, setConversations] = useState([]);
     const [selectedContact, setSelectedContact] = useState(null);
@@ -26,8 +29,9 @@ const Messagerie = () => {
     const [newMessage, setNewMessage] = useState("");
     const [sending, setSending] = useState(false);
     const [subscription, setSubscription] = useState(null);
+    const [loadingSubscription, setLoadingSubscription] = useState(true); // État de chargement
     const [file, setFile] = useState(null);
-    const [showEmojiPicker, setShowEmojiPicker] = useState(false); // State pour les emojis
+    const [showEmojiPicker, setShowEmojiPicker] = useState(false);
     
     // --- Refs ---
     const messagesEndRef = useRef(null);
@@ -40,18 +44,28 @@ const Messagerie = () => {
         const interval = setInterval(() => {
             fetchConversations();
             if (selectedContact) {
-                fetchMessages(selectedContact.contactId, selectedContact.contactType, false);
+                // On rafraichit les messages seulement si l'utilisateur est abonné
+                // (Optionnel, mais économise des requêtes si bloqué)
+                if(subscription?.hasSubscription) {
+                    fetchMessages(selectedContact.contactId, selectedContact.contactType, false);
+                }
             }
         }, 10000);
         return () => clearInterval(interval);
-    }, [selectedContact]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [selectedContact, subscription?.hasSubscription]);
 
-    // --- API Calls (Inchangés) ---
+    // --- API Calls ---
     const checkSubscription = async () => {
         try {
+            setLoadingSubscription(true);
             const res = await api.get("/subscriptions/status");
             setSubscription(res.data);
-        } catch (error) { console.error(error); }
+        } catch (error) { 
+            console.error(error); 
+        } finally {
+            setLoadingSubscription(false);
+        }
     };
 
     const fetchConversations = async () => {
@@ -81,7 +95,7 @@ const Messagerie = () => {
         if ((!newMessage.trim() && !file) || !selectedContact) return;
 
         setSending(true);
-        setShowEmojiPicker(false); // Fermer le picker après envoi
+        setShowEmojiPicker(false);
         try {
             const formData = new FormData();
             formData.append("destinataireId", selectedContact.contactId);
@@ -96,7 +110,12 @@ const Messagerie = () => {
             fetchMessages(selectedContact.contactId, selectedContact.contactType);
             fetchConversations(); 
         } catch (error) {
-            alert("Erreur ou abonnement requis.");
+            // Si l'erreur vient du backend (ex: 403 Forbidden car pas abonné)
+            if(error.response && error.response.status === 403) {
+                 alert("Abonnement requis pour envoyer des messages.");
+            } else {
+                 alert("Erreur lors de l'envoi.");
+            }
         } finally {
             setSending(false);
         }
@@ -107,8 +126,12 @@ const Messagerie = () => {
 
     const handleContactClick = (contact) => {
         setSelectedContact(contact);
-        fetchMessages(contact.contactId, contact.contactType, true);
-        markAsRead(contact.contactId, contact.contactType);
+        // On ne fetch les messages que si l'utilisateur est Premium, 
+        // sinon on affichera le blocage.
+        if(isPremium) {
+            fetchMessages(contact.contactId, contact.contactType, true);
+            markAsRead(contact.contactId, contact.contactType);
+        }
     };
 
     const onEmojiClick = (emojiObject) => {
@@ -121,12 +144,12 @@ const Messagerie = () => {
         return (str.startsWith('http')) ? str : getMediaUrl(`/uploads/profile/${str}`);
     };
 
+    // Vérification sécurisée du statut premium
     const isPremium = subscription && subscription.hasSubscription;
 
     // --- Render ---
     return (
         <>
-            {/* Header plus compact */}
             <div className="header bg-gradient-info pb-6 pt-5 pt-md-8">
                 <Container fluid>
                     <div className="header-body"></div>
@@ -139,7 +162,8 @@ const Messagerie = () => {
                         <Card className="shadow overflow-hidden" style={{ borderRadius: '15px', height: '85vh', border: 'none' }}>
                             <Row className="h-100 no-gutters">
                                 
-                                {/* --- SIDEBAR CONTACTS --- */}
+                                {/* --- COLONNE GAUCHE : LISTE DES CONTACTS --- */}
+                                {/* On laisse la liste visible pour créer l'envie (Teaser) */}
                                 <Col md="4" lg="3" className="border-right bg-white h-100 d-flex flex-column">
                                     <div className="p-3 border-bottom bg-secondary">
                                         <h4 className="mb-0 text-uppercase text-muted ls-1" style={{fontSize: '0.8rem'}}>Vos échanges</h4>
@@ -180,9 +204,9 @@ const Messagerie = () => {
                                                             <h5 className={`mb-0 ${isActive ? 'font-weight-bold' : 'text-dark'}`} style={{ color: isActive ? '#f36c21' : '' }}>
                                                                 {conv.contactName}
                                                             </h5>
-                                                            <small className="text-muted text-truncate d-block" style={{maxWidth: '180px'}}>
-                                                                {conv.lastMessageType !== 'texte' ? 
-                                                                    <i className="ni ni-image text-muted mr-1"/> : null}
+                                                            {/* On floute le dernier message si pas premium pour teaser */}
+                                                            <small className={`text-muted text-truncate d-block ${!isPremium ? 'text-blur' : ''}`} style={{maxWidth: '180px', filter: !isPremium ? 'blur(3px)' : 'none'}}>
+                                                                {conv.lastMessageType !== 'texte' ? <i className="ni ni-image text-muted mr-1"/> : null}
                                                                 {conv.lastMessage}
                                                             </small>
                                                         </div>
@@ -199,9 +223,45 @@ const Messagerie = () => {
                                     </ListGroup>
                                 </Col>
 
-                                {/* --- ZONE DE CHAT --- */}
-                                <Col md="8" lg="9" className="d-flex flex-column h-100 bg-secondary">
-                                    {selectedContact ? (
+                                {/* --- COLONNE DROITE : ZONE DE CHAT OU PAYWALL --- */}
+                                <Col md="8" lg="9" className="d-flex flex-column h-100 bg-secondary position-relative">
+                                    
+                                    {/* CAS 1: Chargement de l'abonnement */}
+                                    {loadingSubscription ? (
+                                        <div className="d-flex h-100 align-items-center justify-content-center">
+                                            <Spinner color="primary" />
+                                        </div>
+                                    ) : !isPremium ? (
+                                        // CAS 2: PAS ABONNÉ -> AFFICHER LE PAYWALL
+                                        <div className="d-flex flex-column align-items-center justify-content-center h-100 text-center p-5" 
+                                             style={{ background: 'linear-gradient(135deg, #ffffff 0%, #f4f5f7 100%)' }}>
+                                            
+                                            <div className="icon icon-shape bg-gradient-warning text-white rounded-circle shadow mb-4" style={{width: '90px', height: '90px'}}>
+                                                <i className="ni ni-lock-circle-open" style={{fontSize: '3rem'}}></i>
+                                            </div>
+                                            
+                                            <h2 className="display-4 mb-2">Messagerie Verrouillée</h2>
+                                            <p className="lead text-muted mb-5" style={{maxWidth: '600px'}}>
+                                                Pour discuter avec vos clients, répondre aux opportunités et développer votre réseau, 
+                                                vous devez disposer d'un abonnement <strong>Promoteur Actif</strong>.
+                                            </p>
+                                            
+                                            <Button 
+                                                className="btn-pubcash btn-lg shadow-lg transform-on-hover" 
+                                                style={{ padding: '15px 40px', fontSize: '1.2rem' }}
+                                                onClick={() => navigate('/client/abonnement')}
+                                            >
+                                                <i className="ni ni-diamond mr-2"></i>
+                                                S'abonner maintenant
+                                            </Button>
+                                            
+                                            <p className="mt-4 text-sm text-muted">
+                                                Déjà abonné ? <a href="#refresh" onClick={(e) => {e.preventDefault(); window.location.reload();}}>Actualiser la page</a>
+                                            </p>
+                                        </div>
+
+                                    ) : selectedContact ? (
+                                        // CAS 3: ABONNÉ ET CONTACT SÉLECTIONNÉ -> AFFICHER LE CHAT
                                         <>
                                             {/* Header du Chat */}
                                             <div className="p-3 bg-white border-bottom shadow-sm d-flex align-items-center justify-content-between z-index-1">
@@ -219,10 +279,11 @@ const Messagerie = () => {
                                                         <small className="text-muted">En ligne</small>
                                                     </div>
                                                 </div>
-                                                {!isPremium && <Badge color="warning">Mode Gratuit</Badge>}
+                                                {/* Badge Premium discret */}
+                                                <Badge color="success" className="text-uppercase ls-1">Premium</Badge>
                                             </div>
 
-                                            {/* Messages - MODIFICATION ICI : COULEUR #DFF3DF */}
+                                            {/* Messages */}
                                             <div 
                                                 className="flex-grow-1 p-4 overflow-auto custom-scrollbar" 
                                                 style={{ backgroundColor: '#DFF3DF' }}
@@ -257,84 +318,77 @@ const Messagerie = () => {
 
                                             {/* Zone de saisie */}
                                             <div className="p-3 bg-white border-top">
-                                                {isPremium ? (
-                                                    <Form onSubmit={handleSendMessage} className="position-relative">
-                                                        
-                                                        {file && (
-                                                            <div className="mb-2 p-2 bg-secondary rounded d-inline-block position-relative">
-                                                                <span className="text-sm mr-2"><i className="ni ni-cloud-upload-96 mr-1"/>{file.name}</span>
-                                                                <button type="button" className="close float-none" onClick={() => setFile(null)}>&times;</button>
-                                                            </div>
-                                                        )}
+                                                <Form onSubmit={handleSendMessage} className="position-relative">
+                                                    
+                                                    {file && (
+                                                        <div className="mb-2 p-2 bg-secondary rounded d-inline-block position-relative">
+                                                            <span className="text-sm mr-2"><i className="ni ni-cloud-upload-96 mr-1"/>{file.name}</span>
+                                                            <button type="button" className="close float-none" onClick={() => setFile(null)}>&times;</button>
+                                                        </div>
+                                                    )}
 
-                                                        {showEmojiPicker && (
-                                                            <div className="position-absolute" style={{ bottom: '60px', left: '0', zIndex: 10 }}>
-                                                                <Picker onEmojiClick={onEmojiClick} height={350} width={300} />
-                                                            </div>
-                                                        )}
+                                                    {showEmojiPicker && (
+                                                        <div className="position-absolute" style={{ bottom: '60px', left: '0', zIndex: 10 }}>
+                                                            <Picker onEmojiClick={onEmojiClick} height={350} width={300} />
+                                                        </div>
+                                                    )}
 
-                                                        <InputGroup className="input-group-alternative shadow-sm rounded-pill" style={{border: '1px solid #e9ecef'}}>
-                                                            <InputGroupAddon addonType="prepend">
-                                                                <Button 
-                                                                    className="btn-icon rounded-circle ml-1 my-1" 
-                                                                    color="secondary" 
-                                                                    type="button"
-                                                                    onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                                                                >
-                                                                    <i className="ni ni-satisfied text-warning" style={{fontSize: '1.2rem'}}></i>
-                                                                </Button>
-                                                            </InputGroupAddon>
+                                                    <InputGroup className="input-group-alternative shadow-sm rounded-pill" style={{border: '1px solid #e9ecef'}}>
+                                                        <InputGroupAddon addonType="prepend">
+                                                            <Button 
+                                                                className="btn-icon rounded-circle ml-1 my-1" 
+                                                                color="secondary" 
+                                                                type="button"
+                                                                onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                                                            >
+                                                                <i className="ni ni-satisfied text-warning" style={{fontSize: '1.2rem'}}></i>
+                                                            </Button>
+                                                        </InputGroupAddon>
 
-                                                            <InputGroupAddon addonType="prepend">
-                                                                <Button 
-                                                                    className="btn-icon rounded-circle my-1 mr-2" 
-                                                                    color="secondary" 
-                                                                    onClick={() => fileInputRef.current.click()}
-                                                                    id="tooltipFile"
-                                                                >
-                                                                    <i className="ni ni-paper-diploma text-info" style={{fontSize: '1.1rem'}}></i>
-                                                                </Button>
-                                                                <UncontrolledTooltip target="tooltipFile">Joindre un fichier</UncontrolledTooltip>
-                                                                <input
-                                                                    type="file"
-                                                                    ref={fileInputRef}
-                                                                    style={{ display: 'none' }}
-                                                                    onChange={(e) => setFile(e.target.files[0])}
-                                                                    accept="image/*,video/*"
-                                                                />
-                                                            </InputGroupAddon>
-
-                                                            <Input
-                                                                placeholder="Écrivez votre message..."
-                                                                value={newMessage}
-                                                                onChange={(e) => setNewMessage(e.target.value)}
-                                                                disabled={sending}
-                                                                className="border-0 pl-2"
-                                                                onFocus={() => setShowEmojiPicker(false)}
+                                                        <InputGroupAddon addonType="prepend">
+                                                            <Button 
+                                                                className="btn-icon rounded-circle my-1 mr-2" 
+                                                                color="secondary" 
+                                                                onClick={() => fileInputRef.current.click()}
+                                                                id="tooltipFile"
+                                                            >
+                                                                <i className="ni ni-paper-diploma text-info" style={{fontSize: '1.1rem'}}></i>
+                                                            </Button>
+                                                            <UncontrolledTooltip target="tooltipFile">Joindre un fichier</UncontrolledTooltip>
+                                                            <input
+                                                                type="file"
+                                                                ref={fileInputRef}
+                                                                style={{ display: 'none' }}
+                                                                onChange={(e) => setFile(e.target.files[0])}
+                                                                accept="image/*,video/*"
                                                             />
-                                                            
-                                                            <InputGroupAddon addonType="append">
-                                                                <Button 
-                                                                    className="btn-icon rounded-circle mr-1 my-1 text-white border-0" 
-                                                                    style={{ backgroundColor: '#f36c21' }}
-                                                                    type="submit" 
-                                                                    disabled={sending || (!newMessage.trim() && !file)}
-                                                                >
-                                                                    <i className="ni ni-send"></i>
-                                                                </Button>
-                                                            </InputGroupAddon>
-                                                        </InputGroup>
-                                                    </Form>
-                                                ) : (
-                                                    <div className="alert alert-warning mb-0 text-center shadow-sm">
-                                                        <i className="ni ni-lock-circle-open mr-2"></i>
-                                                        <strong>Premium requis</strong> : Abonnez-vous pour débloquer la réponse.
-                                                    </div>
-                                                )}
+                                                        </InputGroupAddon>
+
+                                                        <Input
+                                                            placeholder="Écrivez votre message..."
+                                                            value={newMessage}
+                                                            onChange={(e) => setNewMessage(e.target.value)}
+                                                            disabled={sending}
+                                                            className="border-0 pl-2"
+                                                            onFocus={() => setShowEmojiPicker(false)}
+                                                        />
+                                                        
+                                                        <InputGroupAddon addonType="append">
+                                                            <Button 
+                                                                className="btn-icon rounded-circle mr-1 my-1 text-white border-0" 
+                                                                style={{ backgroundColor: '#f36c21' }}
+                                                                type="submit" 
+                                                                disabled={sending || (!newMessage.trim() && !file)}
+                                                            >
+                                                                <i className="ni ni-send"></i>
+                                                            </Button>
+                                                        </InputGroupAddon>
+                                                    </InputGroup>
+                                                </Form>
                                             </div>
                                         </>
                                     ) : (
-                                        // MODIFICATION ICI : Écran d'accueil vide avec la couleur #DFF3DF
+                                        // CAS 4: ABONNÉ MAIS AUCUN CONTACT SÉLECTIONNÉ
                                         <div 
                                             className="d-flex flex-column align-items-center justify-content-center h-100 text-muted"
                                             style={{ backgroundColor: '#DFF3DF' }}
@@ -358,6 +412,8 @@ const Messagerie = () => {
                 .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; }
                 .custom-scrollbar::-webkit-scrollbar-thumb { background: #ccc; border-radius: 4px; }
                 .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #bbb; }
+                .text-blur { user-select: none; }
+                .transform-on-hover:hover { transform: translateY(-2px); transition: transform 0.2s; }
             `}</style>
         </>
     );

@@ -1,3 +1,4 @@
+// Profile.js
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Button, Card, CardBody, FormGroup, Form, Input, Container, Row, Col,
@@ -174,7 +175,7 @@ const Profile = () => {
             />
           </div>
 
-          <div className="profile-user-info-row">
+          <div className="profile-user-info-row d-flex align-items-end">
             <div className="profile-avatar-container">
               <img
                 alt="Avatar"
@@ -183,44 +184,55 @@ const Profile = () => {
               />
             </div>
 
-            <div className="profile-text-container">
-              <h3 className="profile-name">
-                {/* AFFICHER NOM ENTREPRISE SI ENTREPRISE, SINON PRENOM NOM */}
+            <div className="profile-text-container flex-grow-1">
+              <h3 className="profile-name mb-0">
                 {isEntreprise 
                     ? profile?.nom_entreprise 
                     : `${profile?.prenom} ${profile?.nom}`
                 }
               </h3>
-              <div className="profile-location">
+              <div className="profile-location text-muted small">
                 {profile?.commune || 'Localisation non définie'}
               </div>
-              {/* Petit badge pour indiquer le type */}
               {isEntreprise && <span className="badge badge-pill badge-primary text-uppercase mt-1">Entreprise</span>}
             </div>
 
-            <div className="profile-action-btn">
-              <Button className="btn-pubcash" onClick={toggleModal}>
+            {/* --- MODIFICATION ICI : BOUTONS --- */}
+            <div className="profile-action-btn d-flex align-items-center">
+              {/* Bouton Modifier : Reste Orange */}
+              <Button 
+                className="btn-pubcash mr-2 shadow-sm" 
+                onClick={toggleModal}
+                size="sm"
+              >
                 Modifier votre profil
               </Button>
-              <Button className="btn-pubcash ml-2" color="warning" href="/client/abonnement">
-                <i className="ni ni-diamond mr-2" />
-                Abonnement Premium
+
+              {/* Bouton Premium : Devient Blanc/Gris */}
+              <Button 
+                className="shadow-sm border-0" 
+                style={{ backgroundColor: '#f3f4f6', color: '#1f2937' }}
+                href="/client/abonnement"
+                size="sm"
+              >
+                <i className="ni ni-diamond mr-1 text-orange" />
+                Premium
               </Button>
             </div>
+            {/* ---------------------------------- */}
           </div>
         </Card>
 
         {/* --- 2. Form Card (Read Only View) --- */}
-        <Card className="profile-form-card shadow bg-white">
+        <Card className="profile-form-card shadow bg-white mt-4">
           <CardBody>
             <Form>
               <h6 className="heading-small text-muted mb-4">Informations Personnelles</h6>
               <div className="pl-lg-4">
                 <Row>
-                  {/* Affichage conditionnel selon le type de compte */}
                   {isEntreprise ? (
                     <>
-                         <Col lg="6">
+                          <Col lg="6">
                             <FormGroup>
                             <label className="form-control-label">Nom de l'Entreprise</label>
                             <Input
@@ -296,7 +308,7 @@ const Profile = () => {
                   </Col>
                 </Row>
                 <Row>
-                   <Col lg="6">
+                    <Col lg="6">
                     <FormGroup>
                       <label className="form-control-label">Téléphone</label>
                       <Input
@@ -326,7 +338,6 @@ const Profile = () => {
         </div>
 
         <ModalBody className="p-0">
-          {/* Images Upload (Pas de changement ici) */}
           <div className="position-relative" style={{ height: '200px' }}>
             <input type="file" ref={backgroundImageRef} className="d-none" accept="image/*" onChange={(e) => handleImageChange(e, 'banner')} />
             <input type="file" ref={profileImageRef} className="d-none" accept="image/*" onChange={(e) => handleImageChange(e, 'avatar')} />
@@ -363,16 +374,14 @@ const Profile = () => {
           </div>
           <div style={{ height: '70px' }}></div>
 
-          {/* Formulaire Édition */}
           <div className="px-4 py-4">
             <Form onSubmit={(e) => e.preventDefault()}>
               <h6 className="heading-small text-muted mb-4">Informations personnelles</h6>
               <div className="pl-lg-2">
                 <Row>
-                  {/* AFFICHAGE CONDITIONNEL DANS LA MODALE AUSSI */}
                   {isEntreprise ? (
                     <>
-                         <Col lg="6">
+                          <Col lg="6">
                             <FormGroup>
                             <Label className="form-control-label font-weight-bold">Nom de l'Entreprise</Label>
                             <Input
@@ -391,7 +400,6 @@ const Profile = () => {
                                 name="rccm"
                                 value={editData.rccm || ''}
                                 onChange={handleInputChange}
-                                // Si tu ne veux pas qu'ils modifient le RCCM, ajoute readOnly
                             />
                             </FormGroup>
                         </Col>
@@ -426,7 +434,7 @@ const Profile = () => {
 
                 <Row>
                   <Col lg="6">
-                     <FormGroup>
+                      <FormGroup>
                       <Label className="form-control-label font-weight-bold">Pseudo / Nom d'utilisateur</Label>
                       <Input
                         type="text"
@@ -437,7 +445,7 @@ const Profile = () => {
                     </FormGroup>
                   </Col>
                   <Col lg="6">
-                     <FormGroup>
+                      <FormGroup>
                       <Label className="form-control-label font-weight-bold">Téléphone</Label>
                       <Input
                         type="tel"
