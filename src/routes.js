@@ -43,6 +43,7 @@ import GameHub from "views/Games/GameHub.js";
 import GameManagement from "views/admin/GameManagement.js";
 import Messagerie from "views/examples/Messagerie.js";
 import Abonnement from "views/examples/Abonnement.js";
+import AdminMessagerie from "views/admin/AdminMessagerie.js"; // Import de la vue
 
 var routes = [
   {
@@ -250,6 +251,14 @@ var routes = [
     name: "Gestion des Jeux",
     icon: "ni ni-controller text-info",
     component: <GameManagement />,
+    layout: "/admin",
+    role: ["superadmin", "admin"],
+  },
+  {
+    path: "/messagerie-admin",
+    name: "Messagerie & Support",
+    icon: "ni ni-email-83 text-purple",
+    component: <AdminMessagerie />,
     layout: "/admin",
     role: ["superadmin", "admin"],
   },
