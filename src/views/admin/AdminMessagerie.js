@@ -1,5 +1,5 @@
 // src/views/admin/AdminMessagerie.js
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
     Card, CardHeader, CardBody, CardTitle,
     Container, Row, Col, Spinner, Badge
@@ -7,6 +7,7 @@ import {
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import api from "../../services/api";
+import { getMediaUrl } from "../../utils/mediaUrl";
 
 // ---- HEADER ----
 const MessagerieHeader = () => (
@@ -50,6 +51,8 @@ const AdminMessagerie = () => {
     const [filter, setFilter] = useState("all");
     const [isLoading, setIsLoading] = useState(false);
     const [isSending, setIsSending] = useState(false);
+    const [adminFile, setAdminFile] = useState(null);
+    const adminFileRef = useRef(null);
 
     // Charger les feedbacks au montage
     useEffect(() => {
@@ -87,11 +90,19 @@ const AdminMessagerie = () => {
     };
 
     const handleSendMessage = async () => {
-        if (!newMessage.trim() || !selectedFeedback) return;
+        if ((!newMessage.trim() && !adminFile) || !selectedFeedback) return;
         setIsSending(true);
         try {
-            await api.post(`/feedback/admin/${selectedFeedback.id}/reply`, { message: newMessage });
+            const formData = new FormData();
+            formData.append('message', newMessage);
+            if (adminFile) formData.append('file', adminFile);
+
+            await api.post(`/feedback/admin/${selectedFeedback.id}/reply`, formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
             setNewMessage("");
+            setAdminFile(null);
+            if (adminFileRef.current) adminFileRef.current.value = '';
             fetchMessages(selectedFeedback.id);
         } catch (error) {
             console.error("Erreur envoi message:", error);
@@ -218,16 +229,30 @@ const AdminMessagerie = () => {
                                                 </div>
 
                                                 {/* Messages List */}
-                                                <div className="flex-grow-1 p-3" style={{ overflowY: 'auto', maxHeight: '350px', backgroundColor: '#f4f5f7' }}>
+                                                <div className="flex-grow-1 p-3" style={{ overflowY: 'auto', maxHeight: '320px', backgroundColor: '#f4f5f7' }}>
                                                     {messages.map((msg, index) => {
                                                         const isMe = msg.sender_type === 'admin';
+                                                        const fileUrl = msg.file_url ? getMediaUrl(msg.file_url) : null;
                                                         return (
                                                             <div key={index} className={`d-flex mb-3 ${isMe ? 'justify-content-end' : 'justify-content-start'}`}>
                                                                 <div
                                                                     className={`px-3 py-2 rounded shadow-sm ${isMe ? 'chat-message-admin' : 'chat-message-user'}`}
                                                                     style={{ maxWidth: '70%' }}
                                                                 >
-                                                                    <p className="mb-1" style={{ fontSize: '14px' }}>{msg.message}</p>
+                                                                    {msg.message && <p className="mb-1" style={{ fontSize: '14px' }}>{msg.message}</p>}
+                                                                    {fileUrl && (
+                                                                        <div className="mt-1">
+                                                                            {msg.file_type === 'image' ? (
+                                                                                <a href={fileUrl} target="_blank" rel="noopener noreferrer">
+                                                                                    <img src={fileUrl} alt="Pièce jointe" style={{ maxWidth: '180px', borderRadius: '4px' }} />
+                                                                                </a>
+                                                                            ) : (
+                                                                                <a href={fileUrl} target="_blank" rel="noopener noreferrer" className={isMe ? 'text-white-50' : 'text-primary'}>
+                                                                                    <i className="fas fa-file mr-1" />{msg.file_name || 'Fichier'}
+                                                                                </a>
+                                                                            )}
+                                                                        </div>
+                                                                    )}
                                                                     <small className={isMe ? 'text-white-50' : 'text-muted'} style={{ fontSize: '11px' }}>
                                                                         {msg.created_at ? format(new Date(msg.created_at), 'HH:mm', { locale: fr }) : ''}
                                                                     </small>
@@ -237,9 +262,31 @@ const AdminMessagerie = () => {
                                                     })}
                                                 </div>
 
-                                                {/* Input Zone */}
+                                                {/* Input Zone avec fichier */}
                                                 <div className="p-3 border-top bg-white">
-                                                    <div className="d-flex">
+                                                    {adminFile && (
+                                                        <div className="mb-2 p-2 bg-light rounded d-flex justify-content-between align-items-center">
+                                                            <small><i className="fas fa-paperclip mr-1" />{adminFile.name}</small>
+                                                            <button className="btn btn-sm btn-link text-danger p-0" onClick={() => { setAdminFile(null); if (adminFileRef.current) adminFileRef.current.value = ''; }}>
+                                                                <i className="fas fa-times" />
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                                    <div className="d-flex align-items-center">
+                                                        <input
+                                                            type="file"
+                                                            ref={adminFileRef}
+                                                            className="d-none"
+                                                            accept="image/*,.pdf,.doc,.docx"
+                                                            onChange={(e) => setAdminFile(e.target.files[0])}
+                                                        />
+                                                        <button
+                                                            className="btn btn-light mr-2"
+                                                            onClick={() => adminFileRef.current?.click()}
+                                                            disabled={isSending}
+                                                        >
+                                                            <i className="fas fa-paperclip" />
+                                                        </button>
                                                         <input
                                                             type="text"
                                                             className="form-control mr-2"
@@ -252,7 +299,7 @@ const AdminMessagerie = () => {
                                                         <button
                                                             className="btn btn-primary"
                                                             onClick={handleSendMessage}
-                                                            disabled={isSending}
+                                                            disabled={isSending || (!newMessage.trim() && !adminFile)}
                                                         >
                                                             {isSending ? <Spinner size="sm" /> : <i className="fas fa-paper-plane" />}
                                                         </button>
