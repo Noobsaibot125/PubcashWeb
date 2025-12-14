@@ -22,35 +22,56 @@ const LoginClient = () => {
 
   const toastOptions = {
     position: "top-center",
-    autoClose: 3000,
+    autoClose: 5000, // Augmenté un peu pour laisser le temps de lire les messages longs (ex: blocage)
     theme: "colored",
   };
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    
+    // Validation basique
     if (!email.trim() || !password.trim()) {
       toast.error("Veuillez remplir tous les champs.", toastOptions);
       return;
     }
+    
     setLoading(true);
 
     try {
       const response = await api.post('/auth/client/login', { email, password });
       const { accessToken, refreshToken } = response.data;
 
+      // Stockage des tokens
       localStorage.setItem('accessToken', accessToken);
       localStorage.setItem('refreshToken', refreshToken);
       
+      // Décodage et stockage du rôle
       try {
         const decodedToken = jwtDecode(accessToken);
         localStorage.setItem('userRole', decodedToken.role);
       } catch (e) {
-        console.error("Token decode error", e);
+        console.error("Erreur décodage token", e);
       }
 
-      navigate("/client/index", { replace: true });
+      // Redirection
+      toast.success("Connexion réussie !", { ...toastOptions, autoClose: 1500 });
+      setTimeout(() => {
+          navigate("/client/index", { replace: true });
+      }, 1000);
+
     } catch (err) {
-      toast.error('Email ou mot de passe incorrect.', toastOptions);
+      console.error("Erreur login:", err);
+
+      // --- CORRECTION MAJEURE ICI ---
+      // On vérifie si le backend a renvoyé un message spécifique (ex: Compte bloqué, Non vérifié)
+      if (err.response && err.response.data && err.response.data.message) {
+        toast.error(err.response.data.message, toastOptions);
+      } else {
+        // Message par défaut si le serveur est éteint ou erreur inconnue
+        toast.error('Email ou mot de passe incorrect, ou erreur serveur.', toastOptions);
+      }
+      // -----------------------------
+
     } finally {
       setLoading(false);
     }
@@ -63,19 +84,16 @@ const LoginClient = () => {
         <Card className="auth-card border-0">
           <CardBody className="card-body-auth">
             
-            {/* --- HEADER CARTE IDENTIQUE MAQUETTE --- */}
+            {/* --- HEADER --- */}
             <div className="text-center">
-              {/* Titre en majuscules gris */}
               <h6 className="login-header-subtitle">
                 CONNEXION PROMOTEUR (CLIENT)
               </h6>
-              {/* Le trait orange souligné */}
               <div className="header-underline"></div>
             </div>
 
             <Form role="form" onSubmit={handleLogin}>
               <FormGroup className="mb-3">
-                {/* On utilise custom-input-group pour le style gris clair */}
                 <InputGroup className="custom-input-group">
                   <InputGroupAddon addonType="prepend">
                     <InputGroupText><i className="ni ni-email-83" /></InputGroupText>
@@ -83,6 +101,7 @@ const LoginClient = () => {
                   <Input
                     placeholder="Email"
                     type="email"
+                    autoComplete="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="form-control-auth"
@@ -98,6 +117,7 @@ const LoginClient = () => {
                   <Input
                     placeholder="Mot de passe"
                     type={showPassword ? "text" : "password"}
+                    autoComplete="current-password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className="form-control-auth"
@@ -133,7 +153,7 @@ const LoginClient = () => {
               </Link>
             </div>
 
-            {/* --- FOOTER AVEC LIGNE DE SÉPARATION --- */}
+            {/* --- FOOTER --- */}
             <div className="text-center separator-line">
                <Link to="/auth/register" className="link-create">
                   Créer un compte promoteur

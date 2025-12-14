@@ -3,6 +3,7 @@ import {
     Card,
     CardHeader,
     CardBody,
+    CardFooter, // <--- Ajouté
     Container,
     Row,
     Col,
@@ -11,7 +12,10 @@ import {
     Modal,
     ModalHeader,
     ModalBody,
-    Badge
+    Badge,
+    Pagination,      // <--- Ajouté
+    PaginationItem,  // <--- Ajouté
+    PaginationLink   // <--- Ajouté
 } from "reactstrap";
 import ClientHeader from "components/Headers/ClientHeader.js";
 import api, { getMediaUrl } from 'services/api';
@@ -23,7 +27,7 @@ const formatDate = (dateString) => {
     return date.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
 };
 
-// --- Composant Interne pour les Stats Quiz ---
+// --- Composant Interne pour les Stats Quiz (Inchangé) ---
 const QuizStatsDisplay = ({ promotionId }) => {
     const [stats, setStats] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -45,9 +49,8 @@ const QuizStatsDisplay = ({ promotionId }) => {
     }, [promotionId]);
 
     if (loading) return <small className="text-muted"><i className="fas fa-circle-notch fa-spin mr-1"></i> Chargement Quiz...</small>;
-    if (!stats || stats.total === 0) return null; // Pas de jeu ou pas de joueurs
+    if (!stats || stats.total === 0) return null;
 
-    // Calcul des pourcentages
     const successRate = stats.total > 0 ? Math.round((stats.bonnes / stats.total) * 100) : 0;
 
     return (
@@ -60,7 +63,6 @@ const QuizStatsDisplay = ({ promotionId }) => {
                 <Badge color="primary" pill>{stats.total} Participants</Badge>
             </div>
             
-            {/* Barre de succès */}
             <div className="mb-1">
                 <div className="d-flex justify-content-between text-xs text-muted mb-1">
                     <span>Bonnes réponses ({stats.bonnes})</span>
@@ -69,7 +71,6 @@ const QuizStatsDisplay = ({ promotionId }) => {
                 <Progress color="success" value={successRate} style={{ height: '8px' }} />
             </div>
 
-            {/* Barre d'échec */}
             {stats.mauvaises > 0 && (
                 <div className="mt-2">
                     <div className="d-flex justify-content-between text-xs text-muted mb-1">
@@ -98,7 +99,10 @@ const HistoriquePromotions = () => {
     const [error, setError] = useState(null);
     const [selectedVideo, setSelectedVideo] = useState(null);
 
-    // Fetch History Data
+    // --- LOGIQUE PAGINATION ---
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 10; // Nombre de promotions par page
+
     useEffect(() => {
         const fetchHistory = async () => {
             try {
@@ -113,6 +117,16 @@ const HistoriquePromotions = () => {
         };
         fetchHistory();
     }, []);
+
+    // --- CALCULS PAGINATION ---
+    const indexOfLastItem = currentPage * itemsPerPage;
+    const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+    // On coupe le tableau pour n'avoir que les éléments de la page en cours
+    const currentItems = history.slice(indexOfFirstItem, indexOfLastItem);
+    // Calcul du nombre total de pages
+    const totalPages = Math.ceil(history.length / itemsPerPage);
+
+    const paginate = (pageNumber) => setCurrentPage(pageNumber);
 
     const toggleModal = () => setSelectedVideo(null);
 
@@ -136,7 +150,11 @@ const HistoriquePromotions = () => {
                     <Col className="mb-5 mb-xl-0" xl="12">
                         <Card className="shadow campaign-list-card bg-white">
                             <CardHeader className="bg-white border-0 pt-4 pb-2 pl-4">
-                                <h3 className="mb-0 text-dark font-weight-800">Historique des Campagnes</h3>
+                                <div className="d-flex justify-content-between align-items-center">
+                                    <h3 className="mb-0 text-dark font-weight-800">Historique des Campagnes</h3>
+                                    {/* Petit indicateur du nombre total */}
+                                    <Badge color="info" pill>{history.length} Total</Badge>
+                                </div>
                             </CardHeader>
 
                             <CardBody className="p-0">
@@ -156,7 +174,8 @@ const HistoriquePromotions = () => {
                                         <p>Aucune campagne terminée pour le moment.</p>
                                     </div>
                                 ) : (
-                                    history.map((promo, index) => (
+                                    // On utilise currentItems au lieu de history pour le map
+                                    currentItems.map((promo, index) => (
                                         <div className="campaign-row border-bottom p-4" key={promo.id || index}>
                                             <Row>
                                                 {/* Left Column: Video Thumbnail */}
@@ -192,7 +211,6 @@ const HistoriquePromotions = () => {
                                                     <p className="text-sm text-muted mb-3">
                                                         Budget Total: <span className="font-weight-bold text-dark">{parseFloat(promo.budget_initial || 0).toLocaleString('fr-FR')} FCFA</span>
                                                     </p>
-
                                                     {/* --- VUES --- */}
                                                     <div className="mb-3">
                                                         <div className="d-flex justify-content-between align-items-center mb-1">
@@ -201,7 +219,6 @@ const HistoriquePromotions = () => {
                                                         </div>
                                                         <Progress value={promo.vues} max={(promo.vues || 0) + 100} color="info" style={{ height: '5px' }} />
                                                     </div>
-
                                                     {/* --- LIKES --- */}
                                                     <div className="mb-3">
                                                         <div className="d-flex justify-content-between align-items-center mb-1">
@@ -210,20 +227,16 @@ const HistoriquePromotions = () => {
                                                         </div>
                                                         <Progress value={promo.likes} max={promo.vues || 100} barClassName="bg-purple" style={{ height: '5px' }} />
                                                     </div>
-
-                                                    {/* --- PARTAGES (RESTAURÉ ICI) --- */}
+                                                    {/* --- PARTAGES --- */}
                                                     <div className="mb-3">
                                                         <div className="d-flex justify-content-between align-items-center mb-1">
                                                             <span className="text-sm text-muted"><i className="fas fa-share mr-1"></i> Partages</span>
-                                                            {/* Compteur affiché ici */}
                                                             <span className="text-sm font-weight-bold text-success">{promo.partages || 0}</span>
                                                         </div>
                                                         <Progress value={promo.partages} max={promo.vues || 100} color="success" style={{ height: '5px' }} />
                                                     </div>
-
                                                     {/* --- STATS QUIZ --- */}
                                                     <QuizStatsDisplay promotionId={promo.id} />
-                                                    
                                                 </Col>
 
                                                 {/* Right Column: Comments */}
@@ -256,12 +269,59 @@ const HistoriquePromotions = () => {
                                     ))
                                 )}
                             </CardBody>
+
+                            {/* --- PIED DE PAGE AVEC PAGINATION --- */}
+                            {!loading && history.length > itemsPerPage && (
+                                <CardFooter className="py-4">
+                                    <nav aria-label="...">
+                                        <Pagination className="pagination justify-content-end mb-0" listClassName="justify-content-end mb-0">
+                                            
+                                            {/* Bouton Précédent */}
+                                            <PaginationItem disabled={currentPage === 1}>
+                                                <PaginationLink
+                                                    href="#pablo"
+                                                    onClick={(e) => { e.preventDefault(); paginate(currentPage - 1); }}
+                                                    tabIndex="-1"
+                                                >
+                                                    <i className="fas fa-angle-left" />
+                                                    <span className="sr-only">Précédent</span>
+                                                </PaginationLink>
+                                            </PaginationItem>
+
+                                            {/* Numéros de page */}
+                                            {[...Array(totalPages)].map((_, i) => (
+                                                <PaginationItem active={i + 1 === currentPage} key={i}>
+                                                    <PaginationLink
+                                                        href="#pablo"
+                                                        onClick={(e) => { e.preventDefault(); paginate(i + 1); }}
+                                                    >
+                                                        {i + 1}
+                                                    </PaginationLink>
+                                                </PaginationItem>
+                                            ))}
+
+                                            {/* Bouton Suivant */}
+                                            <PaginationItem disabled={currentPage === totalPages}>
+                                                <PaginationLink
+                                                    href="#pablo"
+                                                    onClick={(e) => { e.preventDefault(); paginate(currentPage + 1); }}
+                                                >
+                                                    <i className="fas fa-angle-right" />
+                                                    <span className="sr-only">Suivant</span>
+                                                </PaginationLink>
+                                            </PaginationItem>
+
+                                        </Pagination>
+                                    </nav>
+                                </CardFooter>
+                            )}
+
                         </Card>
                     </Col>
                 </Row>
             </Container>
 
-            {/* Video Modal */}
+            {/* Video Modal (Inchangé) */}
             <Modal isOpen={!!selectedVideo} toggle={toggleModal} size="lg" centered>
                 <ModalHeader toggle={toggleModal} className="border-0 pb-0 bg-secondary">
                     <span className="heading-small text-muted text-uppercase">{selectedVideo?.titre}</span>

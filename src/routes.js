@@ -38,6 +38,7 @@ import AdminLandingSettings from "views/admin/AdminLandingSettings.js";
 import UserView from "views/UserView.js";
 import UserProfile from "views/UserProfile.js";
 import ForgotPassword from "views/examples/ForgotPassword.js";
+import ClientDetails from "views/examples/ClientDetails.js";
 import Choice from "views/examples/Choice.js";
 import GameHub from "views/Games/GameHub.js";
 import GameManagement from "views/admin/GameManagement.js";
@@ -45,7 +46,8 @@ import Messagerie from "views/examples/Messagerie.js";
 import Abonnement from "views/examples/Abonnement.js";
 import AdminMessagerie from "views/admin/AdminMessagerie.js";
 import SystemSettings from "views/admin/SystemSettings.js"; // Import
-
+import AdminManageUser from "views/admin/AdminManageUser.js";
+import UserDetails from "views/examples/UserDetails.js";
 var routes = [
   {
     path: "/index",
@@ -159,12 +161,12 @@ var routes = [
     component: <LoginAdmin />,
     layout: "/auth",
   },
-  {
-    path: "/login-user",
-    name: "Login Utilisateur",
-    component: <LoginUser />,
-    layout: "/auth",
-  },
+  // {
+  //   path: "/login-user",
+  //   name: "Login Utilisateur",
+  //   component: <LoginUser />,
+  //   layout: "/auth",
+  // },
   {
     path: "/choice",
     name: "User Choice",
@@ -199,12 +201,36 @@ var routes = [
     layout: "/admin",
     role: "superadmin", // Reste une simple chaîne
   },
-  {
-    path: "/register-user",
-    component: <RegisterUser />,
-    layout: "/auth",
+  // {
+  //   path: "/register-user",
+  //   component: <RegisterUser />,
+  //   layout: "/auth",
+  // },
+{
+  path: "/client-details/:id",
+  name: "Détails Client",
+  icon: "ni ni-single-02 text-yellow",
+  component: <ClientDetails />,
+  layout: "/admin",
+  // Ajoute une propriété pour cacher ce lien de la sidebar si tu veux qu'il soit seulement accessible via le dashboard
+  invisible: true 
+},
+{
+    path: "/manage-users",
+    name: "Utilisateurs Mobiles",
+    icon: "ni ni-mobile-button text-purple", // Une icône différente pour distinguer
+    component: <AdminManageUser />,
+    layout: "/admin",
+    role: "superadmin", // ou ["superadmin", "admin"]
   },
-
+  {
+    path: "/user-details/:id",
+    name: "Détails Utilisateur",
+    icon: "ni ni-circle-08",
+    component: <UserDetails />,
+    layout: "/admin",
+    invisible: true // Pour le cacher du menu
+  },
   {
     path: "/landing-settings",
     name: "Landing Page",

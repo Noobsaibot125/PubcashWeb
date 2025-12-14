@@ -1,39 +1,28 @@
 import React, { useState, useEffect, useCallback } from "react";
+// CORRECTION 1 : On importe useNavigate au lieu de useHistory
+import { useNavigate } from "react-router-dom"; 
 import {
   Card, CardHeader, Container, Row, Table, Spinner, Col, CardBody, CardTitle,
   UncontrolledDropdown, DropdownToggle, DropdownMenu, DropdownItem, Badge,
-  Pagination, PaginationItem, PaginationLink, CardFooter
+  Pagination, PaginationItem, PaginationLink, CardFooter,
+  Input, InputGroup, InputGroupAddon, InputGroupText
 } from "reactstrap";
 import { Bar } from "react-chartjs-2";
 import api from '../../services/api';
 import { useWebSocket } from "../../contexts/WebSocketContext";
 
-// Chart.js v3+ registration (important)
+// Chart.js v3+ registration
 import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend,
+  Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend,
 } from 'chart.js';
 
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend
-);
+ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
 // --- HEADER COMPONENT ---
 const AdminDashboardHeader = ({ stats, wallet, userRole }) => (
   <div className="header bg-gradient-primary pb-8 pt-5 pt-md-8">
     <Container fluid>
       <div className="header-body">
-        {/* Card stats */}
         <Row>
           {userRole === 'superadmin' && (
             <Col lg="6" xl="4">
@@ -41,9 +30,7 @@ const AdminDashboardHeader = ({ stats, wallet, userRole }) => (
                 <CardBody>
                   <Row>
                     <div className="col">
-                      <CardTitle tag="h5" className="text-uppercase text-muted mb-0">
-                        Revenus Super Admin
-                      </CardTitle>
+                      <CardTitle tag="h5" className="text-uppercase text-muted mb-0">Revenus Super Admin</CardTitle>
                       <span className="h2 font-weight-bold mb-0">
                         {wallet ? `${parseFloat(wallet.solde).toLocaleString('fr-FR')} FCFA` : <Spinner size="sm" />}
                       </span>
@@ -58,15 +45,12 @@ const AdminDashboardHeader = ({ stats, wallet, userRole }) => (
               </Card>
             </Col>
           )}
-
           <Col lg="6" xl="4">
             <Card className="card-stats mb-4 mb-xl-0">
               <CardBody>
                 <Row>
                   <div className="col">
-                    <CardTitle tag="h5" className="text-uppercase text-muted mb-0">
-                      Promoteurs Inscrits
-                    </CardTitle>
+                    <CardTitle tag="h5" className="text-uppercase text-muted mb-0">Promoteurs Inscrits</CardTitle>
                     <span className="h2 font-weight-bold mb-0">
                       {stats?.totalClients ?? <Spinner size="sm" />}
                     </span>
@@ -80,15 +64,12 @@ const AdminDashboardHeader = ({ stats, wallet, userRole }) => (
               </CardBody>
             </Card>
           </Col>
-
           <Col lg="6" xl="4">
             <Card className="card-stats mb-4 mb-xl-0">
               <CardBody>
                 <Row>
                   <div className="col">
-                    <CardTitle tag="h5" className="text-uppercase text-muted mb-0">
-                      Utilisateurs Mobiles
-                    </CardTitle>
+                    <CardTitle tag="h5" className="text-uppercase text-muted mb-0">Utilisateurs Mobiles</CardTitle>
                     <span className="h2 font-weight-bold mb-0">
                       {stats?.totalUtilisateurs ?? <Spinner size="sm" />}
                     </span>
@@ -117,35 +98,23 @@ const OnlineUsersList = ({ initialUsers }) => {
 
   useEffect(() => {
     setOnlineUsers(initialUsers);
-    setCurrentPage(1); // Reset to first page when initialUsers change
-
-    if (!socket) {
-      console.warn('Socket non disponible pour OnlineUsersList (attente de connexion)');
-      return;
-    }
+    setCurrentPage(1);
+    if (!socket) return;
 
     const handleUsersUpdate = (updatedUsers) => {
-      console.log("Événement 'update_online_users' reçu, mise à jour de la liste.", updatedUsers);
       setOnlineUsers(updatedUsers);
-      setCurrentPage(1); // Reset to first page on update
+      setCurrentPage(1);
     };
 
     socket.on('update_online_users', handleUsersUpdate);
-
-    return () => {
-      socket.off('update_online_users', handleUsersUpdate);
-    };
+    return () => socket.off('update_online_users', handleUsersUpdate);
   }, [initialUsers, socket]);
 
-  // Pagination logic
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const currentUsers = onlineUsers.slice(indexOfFirstItem, indexOfLastItem);
   const totalPages = Math.ceil(onlineUsers.length / itemsPerPage);
-
-  const handlePageChange = (pageNumber) => {
-    setCurrentPage(pageNumber);
-  };
+  const handlePageChange = (pageNumber) => setCurrentPage(pageNumber);
 
   return (
     <Card className="shadow">
@@ -175,9 +144,7 @@ const OnlineUsersList = ({ initialUsers }) => {
               </tr>
             ))
           ) : (
-            <tr>
-              <td colSpan="3" className="text-center p-4">Aucun utilisateur connecté pour le moment.</td>
-            </tr>
+            <tr><td colSpan="3" className="text-center p-4">Aucun utilisateur connecté.</td></tr>
           )}
         </tbody>
       </Table>
@@ -188,20 +155,16 @@ const OnlineUsersList = ({ initialUsers }) => {
               <PaginationItem disabled={currentPage <= 1}>
                 <PaginationLink href="#pablo" onClick={(e) => { e.preventDefault(); handlePageChange(currentPage - 1); }}>
                   <i className="fas fa-angle-left" />
-                  <span className="sr-only">Previous</span>
                 </PaginationLink>
               </PaginationItem>
               {[...Array(totalPages)].map((_, i) => (
                 <PaginationItem active={i + 1 === currentPage} key={i}>
-                  <PaginationLink href="#pablo" onClick={(e) => { e.preventDefault(); handlePageChange(i + 1); }}>
-                    {i + 1}
-                  </PaginationLink>
+                  <PaginationLink href="#pablo" onClick={(e) => { e.preventDefault(); handlePageChange(i + 1); }}>{i + 1}</PaginationLink>
                 </PaginationItem>
               ))}
               <PaginationItem disabled={currentPage >= totalPages}>
                 <PaginationLink href="#pablo" onClick={(e) => { e.preventDefault(); handlePageChange(currentPage + 1); }}>
                   <i className="fas fa-angle-right" />
-                  <span className="sr-only">Next</span>
                 </PaginationLink>
               </PaginationItem>
             </Pagination>
@@ -214,6 +177,9 @@ const OnlineUsersList = ({ initialUsers }) => {
 
 // --- MAIN DASHBOARD COMPONENT ---
 const DashboardAdmin = () => {
+  // CORRECTION 2 : Initialisation du hook navigate
+  const navigate = useNavigate(); 
+  
   const [data, setData] = useState({
     clients: [], stats: { totalClients: null, totalUtilisateurs: null },
     activityByCommune: [], wallet: null
@@ -222,11 +188,11 @@ const DashboardAdmin = () => {
   const [error, setError] = useState(null);
   const [onlineUsers, setOnlineUsers] = useState([]);
 
-  // Pagination state for clients
+  // State pour la barre de recherche
+  const [searchTerm, setSearchTerm] = useState("");
+
   const [clientsPage, setClientsPage] = useState(1);
   const clientsPerPage = 5;
-
-  // Retrieve user role from localStorage
   const userRole = localStorage.getItem('userRole');
 
   const fetchData = useCallback(async () => {
@@ -236,11 +202,9 @@ const DashboardAdmin = () => {
         api.get('/admin/dashboard-data'),
         api.get('/admin/online-users')
       ]);
-
       setData(dashboardRes.data);
       setOnlineUsers(onlineUsersRes.data);
-      setClientsPage(1); // Reset clients pagination to first page on data fetch
-
+      setClientsPage(1);
     } catch (err) {
       setError(err.message || "Erreur de chargement des données.");
     } finally {
@@ -251,6 +215,14 @@ const DashboardAdmin = () => {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  // Fonction de filtrage
+  const filteredClients = data.clients.filter(client =>
+    client.nom?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    client.prenom?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    client.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    client.nom_entreprise?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   const handleDeleteClient = async (clientId) => {
     if (window.confirm("Êtes-vous sûr de vouloir supprimer ce promoteur ? Cette action est irréversible.")) {
@@ -264,11 +236,15 @@ const DashboardAdmin = () => {
     }
   };
 
-  // Pagination logic for clients
+  // CORRECTION 3 : Utilisation de navigate au lieu de history.push
+  const handleEditClick = (clientId) => {
+    navigate(`/admin/client-details/${clientId}`);
+  };
+
   const indexOfLastClient = clientsPage * clientsPerPage;
   const indexOfFirstClient = indexOfLastClient - clientsPerPage;
-  const currentClients = data.clients.slice(indexOfFirstClient, indexOfLastClient);
-  const totalClientsPages = Math.ceil(data.clients.length / clientsPerPage);
+  const currentClients = filteredClients.slice(indexOfFirstClient, indexOfLastClient);
+  const totalClientsPages = Math.ceil(filteredClients.length / clientsPerPage);
 
   const handleClientsPageChange = (pageNumber) => {
     setClientsPage(pageNumber);
@@ -286,10 +262,8 @@ const DashboardAdmin = () => {
   return (
     <>
       <style>{`
-      h1, h2, h3, h4, h5, h6,
-      .h1, .h2, .h3, .h4, .h5, .h6 {
-        color: black;
-        font-weight: 600;
+      h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 {
+        color: black; font-weight: 600;
       }
     `}</style>
       <AdminDashboardHeader stats={data.stats} wallet={data.wallet} userRole={userRole} />
@@ -309,7 +283,26 @@ const DashboardAdmin = () => {
           <Col className="mb-5 mb-xl-0" xl="12">
             <Card className="shadow">
               <CardHeader className="border-0">
-                <h3 className="mb-0">Liste des Promoteurs</h3>
+                <Row className="align-items-center">
+                  <Col xs="8">
+                    <h3 className="mb-0">Liste des Promoteurs</h3>
+                  </Col>
+                  <Col xs="4" className="text-right">
+                    <InputGroup className="input-group-alternative input-group-sm">
+                      <InputGroupAddon addonType="prepend">
+                        <InputGroupText>
+                          <i className="fas fa-search" />
+                        </InputGroupText>
+                      </InputGroupAddon>
+                      <Input
+                        placeholder="Rechercher (nom, email...)"
+                        type="text"
+                        value={searchTerm}
+                        onChange={(e) => { setSearchTerm(e.target.value); setClientsPage(1); }}
+                      />
+                    </InputGroup>
+                  </Col>
+                </Row>
               </CardHeader>
               {loading ? (
                 <div className="text-center p-4"><Spinner /></div>
@@ -330,8 +323,11 @@ const DashboardAdmin = () => {
                     </thead>
                     <tbody>
                       {currentClients.map((client) => (
-                        <tr key={client.id}>
-                          <th scope="row">{client.prenom} {client.nom}</th>
+                        <tr key={client.id} className={client.est_bloque ? "bg-lighter text-muted" : ""}>
+                          <th scope="row">
+                            {client.prenom} {client.nom}
+                            {client.est_bloque && <Badge color="danger" className="ml-2">Bloqué</Badge>}
+                          </th>
                           <td>{client.email}</td>
                           <td>{client.commune}</td>
                           <td>{parseFloat(client.solde_recharge || 0).toLocaleString("fr-FR")} FCFA</td>
@@ -346,8 +342,8 @@ const DashboardAdmin = () => {
                                 <i className="fas fa-ellipsis-v" />
                               </DropdownToggle>
                               <DropdownMenu className="dropdown-menu-arrow" right>
-                                <DropdownItem onClick={() => alert("Modification à venir")}>Modifier</DropdownItem>
-                                <DropdownItem className="text-danger" onClick={() => handleDeleteClient(client.id)}>Bloqué</DropdownItem>
+                                <DropdownItem onClick={() => handleEditClick(client.id)}>Modifier / Détails</DropdownItem>
+                                <DropdownItem className="text-danger" onClick={() => handleDeleteClient(client.id)}>Supprimer</DropdownItem>
                               </DropdownMenu>
                             </UncontrolledDropdown>
                           </td>
@@ -362,7 +358,6 @@ const DashboardAdmin = () => {
                           <PaginationItem disabled={clientsPage <= 1}>
                             <PaginationLink href="#pablo" onClick={(e) => { e.preventDefault(); handleClientsPageChange(clientsPage - 1); }}>
                               <i className="fas fa-angle-left" />
-                              <span className="sr-only">Previous</span>
                             </PaginationLink>
                           </PaginationItem>
                           {[...Array(totalClientsPages)].map((_, i) => (
@@ -375,7 +370,6 @@ const DashboardAdmin = () => {
                           <PaginationItem disabled={clientsPage >= totalClientsPages}>
                             <PaginationLink href="#pablo" onClick={(e) => { e.preventDefault(); handleClientsPageChange(clientsPage + 1); }}>
                               <i className="fas fa-angle-right" />
-                              <span className="sr-only">Next</span>
                             </PaginationLink>
                           </PaginationItem>
                         </Pagination>
@@ -390,11 +384,7 @@ const DashboardAdmin = () => {
 
         <Row className="mt-5">
           <Col className="mb-5 mb-xl-0" xl="12">
-            {loading ? (
-              <div className="text-center"><Spinner /></div>
-            ) : (
-              <OnlineUsersList initialUsers={onlineUsers} />
-            )}
+            {loading ? <div className="text-center"><Spinner /></div> : <OnlineUsersList initialUsers={onlineUsers} />}
           </Col>
         </Row>
       </Container>

@@ -17,7 +17,8 @@ import {
   ModalHeader,
   ModalBody,
   ListGroup,
-  ListGroupItem
+  ListGroupItem,
+  Spinner
 } from "reactstrap";
 import { Line, Doughnut } from "react-chartjs-2";
 import {
@@ -192,9 +193,9 @@ const PromotionCard = React.memo(({ promotion, onClick }) => {
     try {
       if (promotion.url_video) {
         const url = new URL(promotion.url_video);
-        if (url.hostname.includes("youtube.com") || url.hostname.includes("youtu.be")) {
+        if (url.hostname.includes("#") || url.hostname.includes("#")) {
           const videoId = url.searchParams.get('v') || url.pathname.split('/').pop();
-          return `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`;
+          return `#`;
         }
       }
     } catch (e) { /* ignore */ }
@@ -276,7 +277,22 @@ const Index = () => {
     performance_moyenne: 0
   });
   const [activeChart, setActiveChart] = useState('tous');
-
+// Nouveaux états pour les followers
+  const [showFollowersModal, setShowFollowersModal] = useState(false);
+  const [followersList, setFollowersList] = useState([]);
+  const [loadingFollowers, setLoadingFollowers] = useState(false);
+  const handleFollowersClick = async () => {
+    setShowFollowersModal(true);
+    setLoadingFollowers(true);
+    try {
+        const res = await api.get('/follows/me/followers');
+        setFollowersList(res.data);
+    } catch (error) {
+        console.error("Erreur chargement followers", error);
+    } finally {
+        setLoadingFollowers(false);
+    }
+  };
   // Fonction pour formater les dates en noms de mois français
   const getFrenchMonthName = (monthNumber) => {
     const months = [
@@ -290,30 +306,28 @@ const Index = () => {
  const fetchDetailedStats = useCallback(async () => {
     setStatsLoading(true);
     try {
-      const response = await api.get('/client/detailed-stats');
-      const data = response.data;
+      // On fait les deux appels API
+      const [detailedRes, globalRes] = await Promise.all([
+          api.get('/client/detailed-stats'),
+          api.get('/client/global-stats')
+      ]);
+
+      const data = detailedRes.data;
+      const globalDataRes = globalRes.data;
 
       if (data.monthlyStats) {
-        // 1. Préparation des données pour le graphique linéaire (inchangé)
         const currentYear = new Date().getFullYear();
         const monthlyData = [];
-
-        // Variables pour accumuler les totaux pour le graphique "Répartition"
         let sumVues = 0;
         let sumLikes = 0;
         let sumPartages = 0;
 
         for (let month = 1; month <= 12; month++) {
-          const existingData = data.monthlyStats.find(stat =>
-            stat.annee === currentYear && stat.mois === month
-          );
-
-          // Récupération des valeurs (ou 0 si vide)
+          const existingData = data.monthlyStats.find(stat => stat.annee === currentYear && stat.mois === month);
           const vues = existingData?.total_vues || 0;
           const likes = existingData?.total_likes || 0;
           const partages = existingData?.total_partages || 0;
 
-          // On ajoute au cumul annuel
           sumVues += vues;
           sumLikes += likes;
           sumPartages += partages;
@@ -328,62 +342,24 @@ const Index = () => {
           });
         }
 
-        const labels = monthlyData.map(item => item.nom_mois);
-        const vuesData = monthlyData.map(item => item.total_vues);
-        const likesData = monthlyData.map(item => item.total_likes);
-        const partagesData = monthlyData.map(item => item.total_partages);
-
-        // Mise à jour du Graphique Linéaire
         setChartData({
-          labels: labels,
+          labels: monthlyData.map(item => item.nom_mois),
           datasets: [
-            {
-              label: "Vues",
-              data: vuesData,
-              borderColor: CHART_COLORS.white,
-              backgroundColor: CHART_COLORS.whiteLight,
-              pointBackgroundColor: CHART_COLORS.white,
-              pointBorderColor: CHART_COLORS.white,
-              tension: 0.4,
-              fill: true,
-              borderWidth: 3,
-            },
-            {
-              label: "Likes",
-              data: likesData,
-              borderColor: CHART_COLORS.orange,
-              backgroundColor: CHART_COLORS.orangeLight,
-              pointBackgroundColor: CHART_COLORS.orange,
-              pointBorderColor: CHART_COLORS.white,
-              tension: 0.4,
-              fill: true,
-              borderWidth: 2,
-            },
-            {
-              label: "Partages",
-              data: partagesData,
-              borderColor: '#ff8c42',
-              backgroundColor: 'rgba(255, 140, 66, 0.1)',
-              pointBackgroundColor: '#ff8c42',
-              pointBorderColor: CHART_COLORS.white,
-              tension: 0.4,
-              fill: true,
-              borderWidth: 2,
-              hidden: activeChart !== 'tous' && activeChart !== 'partages'
-            }
+            { label: "Vues", data: monthlyData.map(item => item.total_vues), borderColor: CHART_COLORS.white, backgroundColor: CHART_COLORS.whiteLight, pointBackgroundColor: CHART_COLORS.white, pointBorderColor: CHART_COLORS.white, tension: 0.4, fill: true, borderWidth: 3 },
+            { label: "Likes", data: monthlyData.map(item => item.total_likes), borderColor: CHART_COLORS.orange, backgroundColor: CHART_COLORS.orangeLight, pointBackgroundColor: CHART_COLORS.orange, pointBorderColor: CHART_COLORS.white, tension: 0.4, fill: true, borderWidth: 2 },
+            { label: "Partages", data: monthlyData.map(item => item.total_partages), borderColor: '#ff8c42', backgroundColor: 'rgba(255, 140, 66, 0.1)', pointBackgroundColor: '#ff8c42', pointBorderColor: CHART_COLORS.white, tension: 0.4, fill: true, borderWidth: 2, hidden: activeChart !== 'tous' && activeChart !== 'partages' }
           ]
         });
 
-        // 2. MISE A JOUR DES STATS GLOBALES (POUR LA CHART-BOX RÉPARTITION)
-        // On utilise les sommes calculées ci-dessus (sumVues, sumLikes, sumPartages)
+        // Mise à jour de toutes les stats globales d'un coup
         setGlobalStats({
           total_vues: sumVues,
           total_likes: sumLikes,
           total_partages: sumPartages,
-          // Pour ces deux-là, on garde la valeur de l'API si elle existe, sinon on garde l'ancien état ou 0
           total_promotions: data.globalStats?.total_promotions || 0,
           total_budget: data.globalStats?.total_budget_depense || 0,
-          performance_moyenne: data.globalStats?.performance_moyenne || 0
+          performance_moyenne: data.globalStats?.performance_moyenne || 0,
+         total_followers: globalDataRes.total_followers || 0
         });
       }
     } catch (err) {
@@ -550,7 +526,7 @@ const Index = () => {
 
   return (
     <>
-      <ClientHeader />
+      <ClientHeader onShowFollowers={handleFollowersClick} />
       <Container className="mt--7" fluid>
 
         {/* Section Analytics (Split) */}
@@ -838,6 +814,39 @@ const Index = () => {
               </Col>
             </Row>
           )}
+        </ModalBody>
+      </Modal>
+      {/* --- NOUVEAU MODAL : LISTE DES ABONNÉS --- */}
+      <Modal isOpen={showFollowersModal} toggle={() => setShowFollowersModal(!showFollowersModal)} size="md" centered>
+        <ModalHeader toggle={() => setShowFollowersModal(false)}>
+            <i className="fas fa-users text-purple mr-2"/> Mes Abonnés ({globalStats.total_followers})
+        </ModalHeader>
+        <ModalBody className="p-0" style={{maxHeight: '60vh', overflowY: 'auto'}}>
+            {loadingFollowers ? (
+                <div className="text-center p-4"><Spinner color="primary" /></div>
+            ) : followersList.length > 0 ? (
+                <ListGroup flush>
+                    {followersList.map(follower => (
+                        <ListGroupItem key={follower.id} className="d-flex align-items-center py-3">
+                            <img 
+                                src={follower.photo_profil || require("assets/img/theme/team-4-800x800.jpg")} 
+                                alt={follower.nom_utilisateur}
+                                className="avatar rounded-circle mr-3"
+                                style={{objectFit: 'cover', width: 40, height: 40}}
+                            />
+                            <div>
+                                <h5 className="mb-0 text-sm font-weight-bold">{follower.nom_utilisateur}</h5>
+                                <small className="text-muted">Abonné depuis le {new Date(follower.date_suivi).toLocaleDateString('fr-FR')}</small>
+                            </div>
+                        </ListGroupItem>
+                    ))}
+                </ListGroup>
+            ) : (
+                <div className="text-center p-5 text-muted">
+                    <i className="fas fa-user-slash fa-2x mb-3"/>
+                    <p>Vous n'avez pas encore d'abonnés.</p>
+                </div>
+            )}
         </ModalBody>
       </Modal>
     </>
