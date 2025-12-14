@@ -18,6 +18,7 @@ import { AuthProvider } from "./contexts/AuthContext";
 import { WebSocketProvider } from "./contexts/WebSocketContext";
 
 import PublicPromotion from "views/PublicPromotion";
+import GeoGuard from "components/GeoGuard/GeoGuard";
 
 const root = ReactDOM.createRoot(document.getElementById("root"));
 
@@ -26,30 +27,32 @@ root.render(
   <GoogleOAuthProvider clientId={process.env.REACT_APP_GOOGLE_CLIENT_ID}>
     <AuthProvider>
       <WebSocketProvider>
-        <BrowserRouter>
-          <Routes>
-            {/* Page d'accueil publique */}
-            <Route path="/" element={<Landing />} />
+        <GeoGuard>
+          <BrowserRouter>
+            <Routes>
+              {/* Page d'accueil publique */}
+              <Route path="/" element={<Landing />} />
 
-            {/* Layouts pour chaque rôle */}
-            <Route path="/super-admin/*" element={<AdminLayout />} />
-            <Route path="/admin/*" element={<AdminLayout />} />
-            <Route path="/client/*" element={<ClientLayout />} />
-            <Route path="/auth/*" element={<AuthLayout />} />
+              {/* Layouts pour chaque rôle */}
+              <Route path="/super-admin/*" element={<AdminLayout />} />
+              <Route path="/admin/*" element={<AdminLayout />} />
+              <Route path="/client/*" element={<ClientLayout />} />
+              <Route path="/auth/*" element={<AuthLayout />} />
 
-            {/* Route publique pour les promotions */}
-            <Route path="/promo/:id" element={<PublicPromotion />} />
+              {/* Route publique pour les promotions */}
+              <Route path="/promo/:id" element={<PublicPromotion />} />
 
-            {/* Utilisateurs */}
-            <Route path="/user/*" element={<UserLayout />} />
+              {/* Utilisateurs */}
+              <Route path="/user/*" element={<UserLayout />} />
 
-            {/* Route spécifique en dehors des layouts principaux */}
-            <Route path="/auth/complete-profile" element={<CompleteFacebookProfile />} />
+              {/* Route spécifique en dehors des layouts principaux */}
+              <Route path="/auth/complete-profile" element={<CompleteFacebookProfile />} />
 
-            {/* Redirection par défaut */}
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </BrowserRouter>
+              {/* Redirection par défaut */}
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </BrowserRouter>
+        </GeoGuard>
       </WebSocketProvider>
     </AuthProvider>
   </GoogleOAuthProvider>
