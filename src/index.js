@@ -27,8 +27,8 @@ root.render(
   <GoogleOAuthProvider clientId={process.env.REACT_APP_GOOGLE_CLIENT_ID}>
     <AuthProvider>
       <WebSocketProvider>
-        <GeoGuard>
-          <BrowserRouter>
+        <BrowserRouter>
+          <GeoGuard>
             <Routes>
               {/* Page d'accueil publique */}
               <Route path="/" element={<Landing />} />
@@ -51,8 +51,8 @@ root.render(
               {/* Redirection par défaut */}
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
-          </BrowserRouter>
-        </GeoGuard>
+          </GeoGuard>
+        </BrowserRouter>
       </WebSocketProvider>
     </AuthProvider>
   </GoogleOAuthProvider>

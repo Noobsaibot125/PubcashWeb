@@ -43,7 +43,8 @@ import GameHub from "views/Games/GameHub.js";
 import GameManagement from "views/admin/GameManagement.js";
 import Messagerie from "views/examples/Messagerie.js";
 import Abonnement from "views/examples/Abonnement.js";
-import AdminMessagerie from "views/admin/AdminMessagerie.js"; // Import de la vue
+import AdminMessagerie from "views/admin/AdminMessagerie.js";
+import SystemSettings from "views/admin/SystemSettings.js"; // Import
 
 var routes = [
   {
@@ -267,8 +268,15 @@ var routes = [
   //   name: "Historique des vidéos",
   //   icon: "ni ni-archive-2 text-info",
   //   component: <HistoriqueDesVideos />,
-  //   layout: "/client",
   //   role: "client",
   // },
+  {
+    path: "/system-settings",
+    name: "Paramètres Système",
+    icon: "ni ni-settings-gear-65 text-red",
+    component: <SystemSettings />,
+    layout: "/admin",
+    role: "superadmin",
+  },
 ];
 export default routes;
