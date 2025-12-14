@@ -6,7 +6,7 @@ import {
 } from 'reactstrap';
 import api from '../../services/api';
 import { getMediaUrl } from 'utils/mediaUrl';
-
+import { useNavigate } from "react-router-dom";
 const Profile = () => {
   // --- Component State ---
   const [profile, setProfile] = useState(null);
@@ -17,7 +17,7 @@ const Profile = () => {
   const [updateError, setUpdateError] = useState('');
   const [updateSuccess, setUpdateSuccess] = useState('');
   const [isUpdating, setIsUpdating] = useState(false);
-
+const navigate = useNavigate();
   // Modale de confirmation MDP
   const [isPasswordConfirmModalOpen, setIsPasswordConfirmModalOpen] = useState(false);
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -43,7 +43,11 @@ const Profile = () => {
   const [replyFile, setReplyFile] = useState(null);
   const feedbackFileRef = useRef(null);
   const replyFileRef = useRef(null);
-
+// 2. NOUVEAUX STATES pour la suppression
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [deletePassword, setDeletePassword] = useState("");
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
   // --- Fetch Logic ---
   const fetchProfile = useCallback(async () => {
     try {
@@ -151,7 +155,34 @@ const Profile = () => {
       setIsUpdating(false);
     }
   };
+// 3. NOUVELLE FONCTION : Gestion de la suppression
+  const handleDeleteAccount = async () => {
+    if (!deletePassword) {
+        setDeleteError("Veuillez entrer votre mot de passe.");
+        return;
+    }
+    setDeleteLoading(true);
+    setDeleteError("");
 
+    try {
+        // On envoie l'ID du profil et le mot de passe
+        await api.post('/auth/client/delete-account', {
+            id: profile.id, // Assure-toi que profile contient l'ID
+            password: deletePassword
+        });
+
+        // Succès : on ferme la modale et on déconnecte
+        setIsDeleteModalOpen(false);
+        // Ici tu devrais appeler ta fonction de logout globale ou nettoyer le localStorage
+        localStorage.clear(); 
+        navigate("/auth/login-client"); // Redirection vers login
+        
+    } catch (err) {
+        setDeleteError(err.response?.data?.message || "Erreur lors de la suppression.");
+    } finally {
+        setDeleteLoading(false);
+    }
+  };
   const handleImageChange = (e, type) => {
     const file = e.target.files[0];
     if (file) {
@@ -439,12 +470,95 @@ const Profile = () => {
                     </FormGroup>
                   </Col>
                 </Row>
+                <hr className="my-4" />
+               <div className="d-flex justify-content-end align-items-center">
+                  <div className="text-right">
+                     
+                      <Button 
+                        color="danger" 
+                        size="sm" 
+                        type="button"
+                        onClick={() => setIsDeleteModalOpen(true)}
+                        className="shadow-sm"
+                      >
+                        <i className="ni ni-fat-remove mr-1" />
+                        Supprimer mon compte
+                      </Button>
+                  </div>
+               </div>
               </div>
             </Form>
           </CardBody>
         </Card>
       </Container>
-
+{/* --- NOUVELLE MODALE : CONFIRMATION SUPPRESSION --- */}
+      <Modal 
+        isOpen={isDeleteModalOpen} 
+        toggle={() => setIsDeleteModalOpen(!isDeleteModalOpen)} 
+        className="modal-dialog-centered modal-danger" // 'modal-danger' donne un style rouge si supporté par ton thème, sinon c'est juste une classe
+      >
+        <div className="modal-header bg-white">
+            <h6 className="modal-title text-danger font-weight-bold" id="modal-title-notification">
+                Attention : Suppression de compte
+            </h6>
+            <button
+                aria-label="Close"
+                className="close"
+                data-dismiss="modal"
+                type="button"
+                onClick={() => setIsDeleteModalOpen(false)}
+            >
+                <span aria-hidden={true}>×</span>
+            </button>
+        </div>
+       <ModalBody className="bg-white">
+            <div className="py-3 text-center">
+                <i className="ni ni-bell-55 ni-3x text-danger mb-4"></i>
+                
+                {/* AJOUT DE 'text-dark' ICI */}
+                <h4 className="heading mt-4 text-dark">Êtes-vous sûr ?</h4>
+                
+                {/* AJOUT DE 'text-muted' (gris) ou 'text-dark' (noir) ICI */}
+                <p className="text-muted mb-4">
+                    Cette action programmera la suppression de votre compte.<br/>
+                    Vous disposez de <strong>45 jours</strong> pour réactiver votre compte en vous connectant simplement.<br/>
+                    Passé ce délai, vos données seront <strong>définitivement perdues</strong>.
+                </p>
+                
+                <FormGroup className="mt-4 text-left">
+                    {/* AJOUT DE 'text-dark' SUR LE LABEL */}
+                    <Label className="font-weight-bold text-sm text-dark">Entrez votre mot de passe pour confirmer :</Label>
+                    <Input 
+                        type="password" 
+                        placeholder="Mot de passe"
+                        value={deletePassword}
+                        onChange={(e) => setDeletePassword(e.target.value)}
+                        className={deleteError ? "is-invalid text-dark" : "text-dark"} // Force le texte de l'input en noir aussi
+                        style={{ color: '#000' }} // Sécurité supplémentaire pour l'input
+                    />
+                    {deleteError && <div className="invalid-feedback d-block">{deleteError}</div>}
+                </FormGroup>
+            </div>
+        </ModalBody>
+        <ModalFooter className="bg-white">
+            <Button 
+                className="text-white ml-auto" 
+                color="danger" 
+                type="button"
+                onClick={handleDeleteAccount}
+                disabled={deleteLoading}
+            >
+                {deleteLoading ? <Spinner size="sm" /> : "Oui, supprimer mon compte"}
+            </Button>
+            <Button 
+                className="ml-2 text-primary" 
+                color="link" 
+                onClick={() => setIsDeleteModalOpen(false)}
+            >
+                Annuler
+            </Button>
+        </ModalFooter>
+      </Modal>
       {/* --- Modale d'Édition --- */}
       <Modal isOpen={isModalOpen} toggle={toggleModal} size="lg" contentClassName="bg-secondary border-0">
         <div className="modal-header bg-white pb-3">

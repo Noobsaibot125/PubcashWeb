@@ -154,22 +154,26 @@ const Register = () => {
               <div className="header-underline"></div>
 
               {/* Toggle Switch */}
-              <div className="account-type-toggle">
-                <button
-                  type="button"
-                  className={`toggle-btn ${accountType === 'particulier' ? 'active' : ''}`}
-                  onClick={() => setAccountType('particulier')}
-                >
-                  Particulier
-                </button>
-                <button
-                  type="button"
-                  className={`toggle-btn ${accountType === 'entreprise' ? 'active' : ''}`}
-                  onClick={() => setAccountType('entreprise')}
-                >
-                  Entreprise / Société
-                </button>
-              </div>
+            <div className="account-type-toggle">
+  <button
+    type="button"
+    className={`toggle-btn ${accountType === 'particulier' ? 'active' : ''}`}
+    onClick={() => setAccountType('particulier')}
+  >
+    Particulier
+  </button>
+  <button
+    type="button"
+    className={`toggle-btn ${accountType === 'entreprise' ? 'active' : ''}`}
+    onClick={() => {
+        setAccountType('entreprise');
+        // On remet le genre à vide quand on passe en entreprise pour faire propre
+        setFormData(prev => ({ ...prev, genre: "" })); 
+    }}
+  >
+    Entreprise / Société
+  </button>
+</div>
             </div>
 
             <Form role="form" onSubmit={handleRegister}>
@@ -245,23 +249,27 @@ const Register = () => {
                   </InputGroup>
                 </Col>
 
-                <Col md="6" className="mb-3">
-                   <InputGroup className="custom-input-group">
-                      <InputGroupAddon addonType="prepend">
-                          <InputGroupText><i className="ni ni-badge" /></InputGroupText>
-                      </InputGroupAddon>
-                      <Input 
-                        type="select" name="genre" value={formData.genre} 
-                        onChange={handleChange} className="form-control-auth"
-                        style={{cursor:'pointer', color: formData.genre ? '#1f2937' : '#9ca3af'}}
-                      >
-                          <option value="">Sélectionner votre genre (Optionnel)</option>
-                          <option value="Homme">Homme</option>
-                          <option value="Femme">Femme</option>
-                      </Input>
-                   </InputGroup>
-                </Col>
-
+       {accountType === 'particulier' && (
+                  <Col md="6" className="mb-3">
+                     <InputGroup className="custom-input-group">
+                        <InputGroupAddon addonType="prepend">
+                            <InputGroupText><i className="ni ni-badge" /></InputGroupText>
+                        </InputGroupAddon>
+                        <Input 
+                          type="select" 
+                          name="genre" 
+                          value={formData.genre} 
+                          onChange={handleChange} 
+                          className="form-control-auth"
+                          style={{cursor:'pointer', color: formData.genre ? '#1f2937' : '#9ca3af'}}
+                        >
+                            <option value="">Sélectionner votre genre (Optionnel)</option>
+                            <option value="Homme">Homme</option>
+                            <option value="Femme">Femme</option>
+                        </Input>
+                     </InputGroup>
+                  </Col>
+                )}
                 <Col md="6" className="mb-3">
                   <InputGroup className="custom-input-group">
                     <InputGroupAddon addonType="prepend">
