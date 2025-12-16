@@ -34,7 +34,7 @@ const ClientDetails = () => {
     }
   };
 
-  const handleRecharge = async () => {
+ const handleRecharge = async () => {
     try {
       await api.post(`/admin/client/${id}/recharge`, { amount: parseInt(rechargeAmount) });
       setMessage({ type: 'success', text: "Rechargement effectué avec succès !" });
@@ -42,7 +42,13 @@ const ClientDetails = () => {
       setRechargeAmount("");
       fetchClientDetails(); 
     } catch (err) {
-      alert("Erreur lors du rechargement");
+      // --- MODIFICATION ICI ---
+      if (err.response && err.response.status === 400 && err.response.data.message.includes("insuffisants")) {
+          // Affichage d'un popup système ou d'une alerte très visible
+          alert("⚠️ ÉCHEC DU RECHARGEMENT\n\nLe solde de distribution (Admin) est insuffisant pour effectuer cette opération.\n\nVeuillez d'abord recharger le compte Administrateur.");
+      } else {
+          alert(err.response?.data?.message || "Erreur lors du rechargement");
+      }
     }
   };
 

@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useCallback } from "react";
-// CORRECTION 1 : On importe useNavigate au lieu de useHistory
 import { useNavigate } from "react-router-dom"; 
 import {
   Card, CardHeader, Container, Row, Table, Spinner, Col, CardBody, CardTitle,
@@ -10,75 +9,85 @@ import {
 import { Bar } from "react-chartjs-2";
 import api from '../../services/api';
 import { useWebSocket } from "../../contexts/WebSocketContext";
-
-// Chart.js v3+ registration
 import {
   Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend,
 } from 'chart.js';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
-// --- HEADER COMPONENT ---
-const AdminDashboardHeader = ({ stats, wallet, userRole }) => (
+// --- CORRECTION ICI : Ajout de 'totalRecharged' dans les props ---
+const AdminDashboardHeader = ({ stats, wallet, userRole, totalRecharged }) => (
   <div className="header bg-gradient-primary pb-8 pt-5 pt-md-8">
     <Container fluid>
       <div className="header-body">
         <Row>
           {userRole === 'superadmin' && (
-            <Col lg="6" xl="4">
-              <Card className="card-stats mb-4 mb-xl-0">
-                <CardBody>
-                  <Row>
-                    <div className="col">
-                      <CardTitle tag="h5" className="text-uppercase text-muted mb-0">Revenus Super Admin</CardTitle>
-                      <span className="h2 font-weight-bold mb-0">
-                        {wallet ? `${parseFloat(wallet.solde).toLocaleString('fr-FR')} FCFA` : <Spinner size="sm" />}
-                      </span>
-                    </div>
-                    <Col className="col-auto">
-                      <div className="icon icon-shape bg-success text-white rounded-circle shadow">
-                        <i className="fas fa-wallet" />
-                      </div>
-                    </Col>
-                  </Row>
-                </CardBody>
-              </Card>
-            </Col>
+            <>
+                {/* CARD 1: REVENUS SUPER ADMIN (ID=1) */}
+                <Col lg="6" xl="3">
+                  <Card className="card-stats mb-4 mb-xl-0">
+                    <CardBody>
+                      <Row>
+                        <div className="col">
+                          <CardTitle tag="h5" className="text-uppercase text-muted mb-0">Revenus Super Admin</CardTitle>
+                          <span className="h2 font-weight-bold mb-0">
+                            {wallet ? `${parseFloat(wallet.solde).toLocaleString('fr-FR')} FCFA` : <Spinner size="sm" />}
+                          </span>
+                        </div>
+                        <Col className="col-auto">
+                          <div className="icon icon-shape bg-success text-white rounded-circle shadow">
+                            <i className="fas fa-wallet" />
+                          </div>
+                        </Col>
+                      </Row>
+                    </CardBody>
+                  </Card>
+                </Col>
+
+                {/* CARD 2: FONDS DE DISTRIBUTION (ID=2) */}
+                <Col lg="6" xl="3">
+                  <Card className="card-stats mb-4 mb-xl-0">
+                    <CardBody>
+                      <Row>
+                        <div className="col">
+                          <CardTitle tag="h5" className="text-uppercase text-muted mb-0">Solde Distribution</CardTitle>
+                          <span className="h2 font-weight-bold mb-0 text-primary">
+                             {/* Affiche le solde du portefeuille de distribution */}
+                             {totalRecharged !== undefined ? `${parseFloat(totalRecharged).toLocaleString('fr-FR')} FCFA` : <Spinner size="sm" />}
+                          </span>
+                        </div>
+                        <Col className="col-auto">
+                          <div className="icon icon-shape bg-blue text-white rounded-circle shadow">
+                            <i className="fas fa-hand-holding-usd" />
+                          </div>
+                        </Col>
+                      </Row>
+                      <p className="mt-3 mb-0 text-muted text-sm">
+                        <span className="text-nowrap">Fonds disponibles</span>
+                      </p>
+                    </CardBody>
+                  </Card>
+                </Col>
+            </>
           )}
-          <Col lg="6" xl="4">
+          
+          {/* Autres Cards (Promoteurs, Utilisateurs) */}
+          <Col lg="6" xl="3">
             <Card className="card-stats mb-4 mb-xl-0">
               <CardBody>
                 <Row>
-                  <div className="col">
-                    <CardTitle tag="h5" className="text-uppercase text-muted mb-0">Promoteurs Inscrits</CardTitle>
-                    <span className="h2 font-weight-bold mb-0">
-                      {stats?.totalClients ?? <Spinner size="sm" />}
-                    </span>
-                  </div>
-                  <Col className="col-auto">
-                    <div className="icon icon-shape bg-warning text-white rounded-circle shadow">
-                      <i className="fas fa-users" />
-                    </div>
-                  </Col>
+                  <div className="col"><CardTitle tag="h5" className="text-uppercase text-muted mb-0">Promoteurs</CardTitle><span className="h2 font-weight-bold mb-0">{stats?.totalClients ?? 0}</span></div>
+                  <Col className="col-auto"><div className="icon icon-shape bg-warning text-white rounded-circle shadow"><i className="fas fa-users" /></div></Col>
                 </Row>
               </CardBody>
             </Card>
           </Col>
-          <Col lg="6" xl="4">
+          <Col lg="6" xl="3">
             <Card className="card-stats mb-4 mb-xl-0">
               <CardBody>
                 <Row>
-                  <div className="col">
-                    <CardTitle tag="h5" className="text-uppercase text-muted mb-0">Utilisateurs Mobiles</CardTitle>
-                    <span className="h2 font-weight-bold mb-0">
-                      {stats?.totalUtilisateurs ?? <Spinner size="sm" />}
-                    </span>
-                  </div>
-                  <Col className="col-auto">
-                    <div className="icon icon-shape bg-info text-white rounded-circle shadow">
-                      <i className="fas fa-mobile-alt" />
-                    </div>
-                  </Col>
+                  <div className="col"><CardTitle tag="h5" className="text-uppercase text-muted mb-0">Utilisateurs</CardTitle><span className="h2 font-weight-bold mb-0">{stats?.totalUtilisateurs ?? 0}</span></div>
+                  <Col className="col-auto"><div className="icon icon-shape bg-info text-white rounded-circle shadow"><i className="fas fa-mobile-alt" /></div></Col>
                 </Row>
               </CardBody>
             </Card>
@@ -88,7 +97,6 @@ const AdminDashboardHeader = ({ stats, wallet, userRole }) => (
     </Container>
   </div>
 );
-
 // --- ONLINE USERS LIST COMPONENT ---
 const OnlineUsersList = ({ initialUsers }) => {
   const [onlineUsers, setOnlineUsers] = useState(initialUsers || []);
@@ -177,20 +185,20 @@ const OnlineUsersList = ({ initialUsers }) => {
 
 // --- MAIN DASHBOARD COMPONENT ---
 const DashboardAdmin = () => {
-  // CORRECTION 2 : Initialisation du hook navigate
   const navigate = useNavigate(); 
   
   const [data, setData] = useState({
-    clients: [], stats: { totalClients: null, totalUtilisateurs: null },
-    activityByCommune: [], wallet: null
+    clients: [], 
+    stats: { totalClients: null, totalUtilisateurs: null },
+    activityByCommune: [], 
+    wallet: null,
+    totalRecharged: 0
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [onlineUsers, setOnlineUsers] = useState([]);
 
-  // State pour la barre de recherche
   const [searchTerm, setSearchTerm] = useState("");
-
   const [clientsPage, setClientsPage] = useState(1);
   const clientsPerPage = 5;
   const userRole = localStorage.getItem('userRole');
@@ -216,7 +224,6 @@ const DashboardAdmin = () => {
     fetchData();
   }, [fetchData]);
 
-  // Fonction de filtrage
   const filteredClients = data.clients.filter(client =>
     client.nom?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     client.prenom?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -225,18 +232,16 @@ const DashboardAdmin = () => {
   );
 
   const handleDeleteClient = async (clientId) => {
-    if (window.confirm("Êtes-vous sûr de vouloir supprimer ce promoteur ? Cette action est irréversible.")) {
+    if (window.confirm("Êtes-vous sûr de vouloir supprimer ce promoteur ?")) {
       try {
         await api.delete(`/admin/client/${clientId}`);
         await fetchData();
       } catch (err) {
-        const errorMessage = err.response?.data?.message || "Erreur lors de la suppression.";
-        setError(errorMessage);
+        setError(err.response?.data?.message || "Erreur lors de la suppression.");
       }
     }
   };
 
-  // CORRECTION 3 : Utilisation de navigate au lieu de history.push
   const handleEditClick = (clientId) => {
     navigate(`/admin/client-details/${clientId}`);
   };
@@ -261,12 +266,16 @@ const DashboardAdmin = () => {
 
   return (
     <>
-      <style>{`
-      h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 {
-        color: black; font-weight: 600;
-      }
-    `}</style>
-      <AdminDashboardHeader stats={data.stats} wallet={data.wallet} userRole={userRole} />
+      <style>{` h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 { color: black; font-weight: 600; } `}</style>
+      
+      {/* On passe totalRecharged au composant Header */}
+    <AdminDashboardHeader 
+          stats={data.stats} 
+          wallet={data.wallet} 
+          totalRecharged={data.totalRecharged} // C'est ici que la donnée passe
+          userRole={userRole} 
+      />
+      
       <Container className="mt--7" fluid>
         <Row className="mb-4">
           <Col>
@@ -295,7 +304,7 @@ const DashboardAdmin = () => {
                         </InputGroupText>
                       </InputGroupAddon>
                       <Input
-                        placeholder="Rechercher (nom, email...)"
+                        placeholder="Rechercher..."
                         type="text"
                         value={searchTerm}
                         onChange={(e) => { setSearchTerm(e.target.value); setClientsPage(1); }}
