@@ -25,6 +25,11 @@ const AdminLandingSettings = () => {
   const [logoFile, setLogoFile] = useState(null);
   const [imageFile, setImageFile] = useState(null);
   const [videoFile, setVideoFile] = useState(null);
+
+  // Tutorial Files
+  const [tutorial1File, setTutorial1File] = useState(null);
+  const [tutorial2File, setTutorial2File] = useState(null);
+  const [tutorial3File, setTutorial3File] = useState(null);
   const [title, setTitle] = useState("");
   const [subtitle, setSubtitle] = useState("");
 
@@ -99,6 +104,10 @@ const AdminLandingSettings = () => {
       if (advertisersImageFile) formData.append("advertisers_image", advertisersImageFile);
       if (usersImageFile) formData.append("users_image", usersImageFile);
 
+      if (tutorial1File) formData.append("tutorial_1", tutorial1File);
+      if (tutorial2File) formData.append("tutorial_2", tutorial2File);
+      if (tutorial3File) formData.append("tutorial_3", tutorial3File);
+
       formData.append("title", title);
       formData.append("subtitle", subtitle);
 
@@ -126,6 +135,9 @@ const AdminLandingSettings = () => {
       setVideoFile(null);
       setAdvertisersImageFile(null);
       setUsersImageFile(null);
+      setTutorial1File(null);
+      setTutorial2File(null);
+      setTutorial3File(null);
 
       setMessage({ type: "success", text: "Mise à jour réussie !" });
       await fetchInfo();
@@ -278,6 +290,37 @@ const AdminLandingSettings = () => {
                         <Label>Auteur</Label>
                         <Input value={testimonialAuthor} onChange={e => setTestimonialAuthor(e.target.value)} />
                       </FormGroup>
+                    </div>
+
+                    <hr className="my-4" />
+                    <h6 className="heading-small text-muted mb-4">Tutoriel Mobile (3 Étapes)</h6>
+                    <div className="pl-lg-4">
+                      <Row>
+                        <Col md="4">
+                          <FormGroup>
+                            <Label>Image Étape 1</Label>
+                            <Input type="file" accept="image/*" onChange={e => setTutorial1File(e.target.files[0])} />
+                            {info?.tutorial_image_1 && <MediaPreview path={info.tutorial_image_1} alt="Tutoriel 1" width={150} />}
+                            {tutorial1File && <MediaPreview path={URL.createObjectURL(tutorial1File)} alt="Nouveau Tutoriel 1" width={150} />}
+                          </FormGroup>
+                        </Col>
+                        <Col md="4">
+                          <FormGroup>
+                            <Label>Image Étape 2</Label>
+                            <Input type="file" accept="image/*" onChange={e => setTutorial2File(e.target.files[0])} />
+                            {info?.tutorial_image_2 && <MediaPreview path={info.tutorial_image_2} alt="Tutoriel 2" width={150} />}
+                            {tutorial2File && <MediaPreview path={URL.createObjectURL(tutorial2File)} alt="Nouveau Tutoriel 2" width={150} />}
+                          </FormGroup>
+                        </Col>
+                        <Col md="4">
+                          <FormGroup>
+                            <Label>Image Étape 3</Label>
+                            <Input type="file" accept="image/*" onChange={e => setTutorial3File(e.target.files[0])} />
+                            {info?.tutorial_image_3 && <MediaPreview path={info.tutorial_image_3} alt="Tutoriel 3" width={150} />}
+                            {tutorial3File && <MediaPreview path={URL.createObjectURL(tutorial3File)} alt="Nouveau Tutoriel 3" width={150} />}
+                          </FormGroup>
+                        </Col>
+                      </Row>
                     </div>
 
                     <div className="text-right">
