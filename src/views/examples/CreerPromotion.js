@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import {
     Card, CardBody, Container, Row, Col, Form, FormGroup, Input,
-    Button, Label, Modal, ModalHeader, ModalBody, ModalFooter, Spinner
+    Button, Label, Modal, ModalHeader, ModalBody, ModalFooter, Progress // <--- J'ai ajouté Progress ici
 } from 'reactstrap';
 
 import ClientHeader from "components/Headers/ClientHeader.js";
@@ -23,14 +23,17 @@ const CreerPromotion = () => {
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
     const [loading, setLoading] = useState(false);
+    const [uploadProgress, setUploadProgress] = useState(0); // <--- NOUVEL ETAT POUR LA PROGRESSION
+    
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [showSuccessModal, setShowSuccessModal] = useState(false);
     const fileInputRef = useRef(null);
     const [profile, setProfile] = useState({ solde_recharge: 0 });
     const [videoFile, setVideoFile] = useState(null);
-const [videoPreview, setVideoPreview] = useState(null);
+    const [videoPreview, setVideoPreview] = useState(null);
+
     // --- NOUVEAUX ETATS (Pour le Quiz et le Wizard) ---
-    const [step, setStep] = useState(1); // 1 = Promo, 2 = Quiz
+    const [step, setStep] = useState(1);
     const [includeQuiz, setIncludeQuiz] = useState(false);
     const [quizData, setQuizData] = useState({
         question: '',
@@ -52,6 +55,7 @@ const [videoPreview, setVideoPreview] = useState(null);
         fetchProfile();
     }, []);
 
+    // --- MODIFICATION ICI : Ajout du suivi de progression ---
     const uploadVideoToServer = async (file) => {
         const form = new FormData();
         form.append('video', file);
@@ -60,6 +64,11 @@ const [videoPreview, setVideoPreview] = useState(null);
             headers: {
                 'Content-Type': 'multipart/form-data',
             },
+            // Axios permet de suivre l'upload nativement
+            onUploadProgress: (progressEvent) => {
+                const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+                setUploadProgress(percentCompleted);
+            }
         });
         return res.data; 
     };
@@ -73,16 +82,15 @@ const [videoPreview, setVideoPreview] = useState(null);
     const handleChange = (e) => setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
     const handleQuizChange = (e) => setQuizData(prev => ({ ...prev, [e.target.name]: e.target.value }));
 
-   const handleFileChange = (event) => {
+    const handleFileChange = (event) => {
         const file = event.target.files[0];
         if (!file) return;
         setError('');
         setVideoFile(file);
         setFormData(prev => ({ ...prev, url_video: '' }));
 
-        // Création de l'URL pour l'aperçu et les métadonnées
         const objectUrl = URL.createObjectURL(file);
-        setVideoPreview(objectUrl); // <--- On sauvegarde l'URL pour l'affichage
+        setVideoPreview(objectUrl);
 
         const videoElement = document.createElement('video');
         videoElement.style.display = 'none';
@@ -93,14 +101,11 @@ const [videoPreview, setVideoPreview] = useState(null);
             const duration = Math.round(videoElement.duration);
             setDuree(duration);
             determinePack(duration);
-            
-            // Nettoyage de l'élément temporaire (mais on garde l'objectUrl pour le lecteur !)
             document.body.removeChild(videoElement);
         };
         videoElement.onerror = () => {
             setError("Erreur de lecture vidéo");
             document.body.removeChild(videoElement);
-            // En cas d'erreur seulement, on nettoie tout
             URL.revokeObjectURL(objectUrl);
             setVideoPreview(null);
         };
@@ -115,16 +120,16 @@ const [videoPreview, setVideoPreview] = useState(null);
             setError('La durée de la vidéo doit être entre 0 et 60 secondes.');
         }
     };
+    
     const triggerFileSelect = () => {
         if (fileInputRef.current) fileInputRef.current.value = null;
         fileInputRef.current.click();
     };
-   const clearVideoFile = () => { 
-        if (videoPreview) {
-            URL.revokeObjectURL(videoPreview); // Libère la mémoire
-        }
+
+    const clearVideoFile = () => { 
+        if (videoPreview) URL.revokeObjectURL(videoPreview);
         setVideoFile(null); 
-        setVideoPreview(null); // Réinitialise l'aperçu
+        setVideoPreview(null);
         setDuree(''); 
         setPack(''); 
     };
@@ -152,16 +157,21 @@ const [videoPreview, setVideoPreview] = useState(null);
     };
 
     const submitPromotion = async () => {
-        setIsModalOpen(false);
+        // NOTE: On ne ferme PAS le modal ici (setIsModalOpen(false)) pour laisser la barre de chargement visible.
         setLoading(true);
+        setUploadProgress(0); // Reset progression
+
         try {
             let videoFilename = null;
             let thumbFilename = null;
+            
             if (videoFile) {
+                // L'upload se lance, la barre de progression va bouger grâce au callback
                 const uploadResult = await uploadVideoToServer(videoFile);
                 videoFilename = uploadResult.videoFilename;
                 thumbFilename = uploadResult.thumbFilename || null;
             }
+
             const cleanValue = (value) => (value === undefined ? null : value);
             const submissionData = {
                 titre: cleanValue(formData.titre),
@@ -173,6 +183,7 @@ const [videoPreview, setVideoPreview] = useState(null);
                 tranche_age: cleanValue(formData.tranche_age),
                 ciblage_commune: cleanValue(formData.ciblage_commune)
             };
+
             const response = await api.post('/client/promotions', submissionData);
             const data = response.data;
             const promoId = data.promotionId;
@@ -194,30 +205,31 @@ const [videoPreview, setVideoPreview] = useState(null);
                     statut: 'actif'
                 });
             }
-            setShowSuccessModal(true);
+
+            // Une fois tout fini :
+            setIsModalOpen(false); // On ferme le modal de confirmation
+            setShowSuccessModal(true); // On ouvre le modal de succès
+            
+            // Reset des états
             setProfile(prev => ({ ...prev, solde_recharge: data.newBalance }));
             setFormData({ titre: '', description: '', budget: '', tranche_age: 'tous', ciblage_commune: 'toutes' });
             setQuizData({ question: '', bonneReponse: '', mauvaiseReponse1: '', mauvaiseReponse2: '' });
             clearVideoFile();
             setStep(1);
+
         } catch (err) {
             const errorMessage = err.response?.data?.message || 'Une erreur est survenue.';
             setError(errorMessage);
+            setIsModalOpen(false); // En cas d'erreur, on ferme le modal pour voir le message
         } finally {
             setLoading(false);
+            setUploadProgress(0);
         }
     };
 
     return (
-        
         <>
-       
            <ClientHeader />
-            {/* 
-                MODIFICATION ICI : 
-                Ajout de style={{ marginTop: '-3rem' }} pour remonter le bloc.
-                Tu peux ajuster '-3rem' (environ 50px) à '-5rem' selon tes besoins.
-            */}
             <Container fluid style={{ marginTop: '-5rem' }}>
                 <Row className="justify-content-center">
                     <Col xl="11">
@@ -233,37 +245,19 @@ const [videoPreview, setVideoPreview] = useState(null);
                                 {/* ==================== ÉTAPE 1 : PROMOTION ==================== */}
                                 <div style={{ display: step === 1 ? 'block' : 'none' }}>
                                     <Form onSubmit={handleStep1Submit}>
-
-                                        {/* --- Section 1: Informations --- */}
+                                        {/* ... (Tout ton code de formulaire Etape 1 reste identique) ... */}
                                         <h6 className="section-title-orange">INFORMATIONS SUR LA PUBLICITÉ</h6>
                                         <Row>
                                             <Col md="6">
                                                 <FormGroup>
                                                     <Label className="form-control-label-pubcash" for="titre">Titre</Label>
-                                                    <Input
-                                                        className="form-control-pubcash"
-                                                        type="text"
-                                                        name="titre"
-                                                        id="titre"
-                                                        placeholder="Ex: Promo T-shirt"
-                                                        value={formData.titre}
-                                                        onChange={handleChange}
-                                                        required
-                                                    />
+                                                    <Input className="form-control-pubcash" type="text" name="titre" id="titre" placeholder="Ex: Promo T-shirt" value={formData.titre} onChange={handleChange} required />
                                                 </FormGroup>
                                             </Col>
                                             <Col md="6">
                                                 <FormGroup>
                                                     <Label className="form-control-label-pubcash" for="tranche_age">Tranche d'âge ciblée</Label>
-                                                    <Input
-                                                        className="form-control-pubcash"
-                                                        type="select"
-                                                        name="tranche_age"
-                                                        id="tranche_age"
-                                                        value={formData.tranche_age}
-                                                        onChange={handleChange}
-                                                        required
-                                                    >
+                                                    <Input className="form-control-pubcash" type="select" name="tranche_age" id="tranche_age" value={formData.tranche_age} onChange={handleChange} required >
                                                         <option value="tous">Tout le monde</option>
                                                         <option value="12-17">Adolescents (12-17 ans)</option>
                                                         <option value="18+">Adultes (18 ans et plus)</option>
@@ -275,88 +269,50 @@ const [videoPreview, setVideoPreview] = useState(null);
                                             <Col md="6">
                                                 <FormGroup>
                                                     <Label className="form-control-label-pubcash" for="description">Description</Label>
-                                                    <Input
-                                                        className="form-control-pubcash"
-                                                        type="text"
-                                                        name="description"
-                                                        id="description"
-                                                        placeholder="Courte description ..."
-                                                        value={formData.description}
-                                                        onChange={handleChange}
-                                                    />
+                                                    <Input className="form-control-pubcash" type="text" name="description" id="description" placeholder="Courte description ..." value={formData.description} onChange={handleChange} />
                                                 </FormGroup>
                                             </Col>
                                             <Col md="6">
                                                 <FormGroup>
                                                     <Label className="form-control-label-pubcash" for="ciblage_commune">Ciblage par commune</Label>
-                                                    <Input
-                                                        className="form-control-pubcash"
-                                                        type="select"
-                                                        name="ciblage_commune"
-                                                        id="ciblage_commune"
-                                                        value={formData.ciblage_commune}
-                                                        onChange={handleChange}
-                                                        required
-                                                    >
+                                                    <Input className="form-control-pubcash" type="select" name="ciblage_commune" id="ciblage_commune" value={formData.ciblage_commune} onChange={handleChange} required >
                                                         <option value="toutes">Toutes les communes</option>
-                                                        <option value="ma_commune">
-                                                            {`Ma commune seulement ${profile.commune ? `(${profile.commune})` : ''}`}
-                                                        </option>
+                                                        <option value="ma_commune">{`Ma commune seulement ${profile.commune ? `(${profile.commune})` : ''}`}</option>
                                                     </Input>
                                                 </FormGroup>
                                             </Col>
                                         </Row>
 
-                                        {/* --- Section 2: Upload Video --- */}
+                                        {/* UPLOAD ZONE */}
                                         <div className="my-5">
                                             <div className="text-center mb-3">
                                                 <Label className="form-control-label-pubcash" style={{ fontSize: '1rem' }}>Importer la vidéo</Label>
                                             </div>
-
-                                            <input
-                                                type="file"
-                                                ref={fileInputRef}
-                                                onChange={handleFileChange}
-                                                style={{ display: 'none' }}
-                                                accept="video/*"
-                                            />
+                                            <input type="file" ref={fileInputRef} onChange={handleFileChange} style={{ display: 'none' }} accept="video/*" />
 
                                             {!videoFile ? (
                                                 <div className="upload-zone" onClick={triggerFileSelect}>
-                                                    <div className="upload-icon-circle">
-                                                        <i className="ni ni-fat-add"></i>
-                                                    </div>
+                                                    <div className="upload-icon-circle"><i className="ni ni-fat-add"></i></div>
                                                 </div>
                                             ) : (
                                                 <div className="upload-zone p-3" style={{ borderColor: 'var(--pubcash-green)', flexDirection: 'column', height: 'auto' }}>
-        
-                                                {/* Lecteur Vidéo */}
-                                                <div style={{ width: '100%', maxWidth: '400px', borderRadius: '12px', overflow: 'hidden', marginBottom: '15px' }}>
-                                                    <video 
-                                                        controls 
-                                                        src={videoPreview} 
-                                                        style={{ width: '100%', display: 'block' }}
-                                                    >
-                                                        Votre navigateur ne supporte pas la lecture de vidéos.
-                                                    </video>
+                                                    <div style={{ width: '100%', maxWidth: '400px', borderRadius: '12px', overflow: 'hidden', marginBottom: '15px' }}>
+                                                        <video controls src={videoPreview} style={{ width: '100%', display: 'block' }}>Votre navigateur ne supporte pas la lecture.</video>
+                                                    </div>
+                                                    <div className="text-center">
+                                                        <div className="d-flex align-items-center justify-content-center mb-2">
+                                                            <i className="ni ni-check-bold text-success mr-2"></i>
+                                                            <span className="font-weight-bold">{videoFile.name}</span>
+                                                        </div>
+                                                        <Button size="sm" color="danger" outline onClick={(e) => { e.stopPropagation(); clearVideoFile(); }}>
+                                                            <i className="ni ni-fat-remove mr-1"></i> Supprimer / Changer
+                                                        </Button>
+                                                    </div>
                                                 </div>
-
-                                            {/* Informations et Bouton Supprimer */}
-                                            <div className="text-center">
-                                                <div className="d-flex align-items-center justify-content-center mb-2">
-                                                    <i className="ni ni-check-bold text-success mr-2"></i>
-                                                    <span className="font-weight-bold">{videoFile.name}</span>
-                                                </div>
-                                                
-                                                <Button size="sm" color="danger" outline onClick={(e) => { e.stopPropagation(); clearVideoFile(); }}>
-                                                    <i className="ni ni-fat-remove mr-1"></i> Supprimer / Changer
-                                                </Button>
-                                            </div>
-                                        </div>
                                             )}
                                         </div>
 
-                                        {/* --- Section 3: Paramètres & Coûts --- */}
+                                        {/* PARAMETRES */}
                                         <h6 className="section-title-green">PARAMÈTRES & COÛTS</h6>
                                         <Row>
                                             <Col md="6">
@@ -376,15 +332,7 @@ const [videoPreview, setVideoPreview] = useState(null);
                                             <Col md="6">
                                                 <FormGroup>
                                                     <Label className="form-control-label-pubcash">Montant de la promotion (FCFA)</Label>
-                                                    <Input
-                                                        className="form-control-pubcash"
-                                                        type="number"
-                                                        name="budget"
-                                                        placeholder="Ex: 10000"
-                                                        value={formData.budget}
-                                                        onChange={handleChange}
-                                                        required
-                                                    />
+                                                    <Input className="form-control-pubcash" type="number" name="budget" placeholder="Ex: 10000" value={formData.budget} onChange={handleChange} required />
                                                 </FormGroup>
                                             </Col>
                                             <Col md="6">
@@ -397,31 +345,17 @@ const [videoPreview, setVideoPreview] = useState(null);
                                                 </FormGroup>
                                             </Col>
                                         </Row>
-
-                                         {/* Added Potential Views Field */}
-                                         <Row>
+                                        <Row>
                                             <Col md="12">
                                                 <FormGroup>
                                                     <Label className="form-control-label-pubcash text-primary">Nombre de vues potentielles estimées</Label>
-                                                    <Input
-                                                        className="form-control-pubcash"
-                                                        style={{ fontWeight: 'bold', color: 'var(--pubcash-blue)' }}
-                                                        type="text"
-                                                        value={vuesPotentielles > 0 ? `~ ${vuesPotentielles} Personnes` : '-'}
-                                                        disabled
-                                                    />
+                                                    <Input className="form-control-pubcash" style={{ fontWeight: 'bold', color: 'var(--pubcash-blue)' }} type="text" value={vuesPotentielles > 0 ? `~ ${vuesPotentielles} Personnes` : '-'} disabled />
                                                 </FormGroup>
                                             </Col>
                                         </Row>
 
-
                                         <div className="text-right mt-5">
-                                            <Button
-                                                className="btn-lg px-5"
-                                                style={{ backgroundColor: 'var(--pubcash-orange)', borderColor: 'var(--pubcash-orange)', color: 'white', borderRadius: '10px' }}
-                                                type="submit"
-                                                disabled={loading || !formData.budget}
-                                            >
+                                            <Button className="btn-lg px-5" style={{ backgroundColor: 'var(--pubcash-orange)', borderColor: 'var(--pubcash-orange)', color: 'white', borderRadius: '10px' }} type="submit" disabled={loading || !formData.budget}>
                                                 Suivant <i className="ni ni-bold-right ml-2"></i>
                                             </Button>
                                         </div>
@@ -440,137 +374,120 @@ const [videoPreview, setVideoPreview] = useState(null);
 
                                     <FormGroup>
                                         <Label className="form-control-label-pubcash">La Question</Label>
-                                        <Input 
-                                            className="form-control-pubcash"
-                                            type="text" 
-                                            placeholder="Ex: Quelle est la couleur du t-shirt dans la vidéo ?" 
-                                            name="question"
-                                            value={quizData.question}
-                                            onChange={handleQuizChange}
-                                        />
+                                        <Input className="form-control-pubcash" type="text" placeholder="Ex: Quelle est la couleur du t-shirt dans la vidéo ?" name="question" value={quizData.question} onChange={handleQuizChange} />
                                     </FormGroup>
 
                                     <Row>
                                         <Col md="4">
                                             <FormGroup>
                                                 <Label className="form-control-label-pubcash text-success">Bonne Réponse</Label>
-                                                <Input 
-                                                    className="form-control-pubcash"
-                                                    type="text" 
-                                                    placeholder="La réponse correcte" 
-                                                    name="bonneReponse"
-                                                    value={quizData.bonneReponse}
-                                                    onChange={handleQuizChange}
-                                                    style={{ borderColor: '#48bb78' }}
-                                                />
+                                                <Input className="form-control-pubcash" type="text" placeholder="La réponse correcte" name="bonneReponse" value={quizData.bonneReponse} onChange={handleQuizChange} style={{ borderColor: '#48bb78' }} />
                                             </FormGroup>
                                         </Col>
                                         <Col md="4">
                                             <FormGroup>
                                                 <Label className="form-control-label-pubcash text-danger">Mauvaise Réponse 1</Label>
-                                                <Input 
-                                                    className="form-control-pubcash"
-                                                    type="text" 
-                                                    name="mauvaiseReponse1"
-                                                    value={quizData.mauvaiseReponse1}
-                                                    onChange={handleQuizChange}
-                                                />
+                                                <Input className="form-control-pubcash" type="text" name="mauvaiseReponse1" value={quizData.mauvaiseReponse1} onChange={handleQuizChange} />
                                             </FormGroup>
                                         </Col>
                                         <Col md="4">
                                             <FormGroup>
                                                 <Label className="form-control-label-pubcash text-danger">Mauvaise Réponse 2</Label>
-                                                <Input 
-                                                    className="form-control-pubcash"
-                                                    type="text" 
-                                                    name="mauvaiseReponse2"
-                                                    value={quizData.mauvaiseReponse2}
-                                                    onChange={handleQuizChange}
-                                                />
+                                                <Input className="form-control-pubcash" type="text" name="mauvaiseReponse2" value={quizData.mauvaiseReponse2} onChange={handleQuizChange} />
                                             </FormGroup>
                                         </Col>
                                     </Row>
 
                                     <div className="d-flex justify-content-between mt-5 pt-4 border-top">
-                                        <Button
-                                            color="secondary"
-                                            outline
-                                            className="px-4"
-                                            onClick={() => handleFinalPreSubmit(false)}
-                                            style={{ borderRadius: '10px' }}
-                                        >
+                                        <Button color="secondary" outline className="px-4" onClick={() => handleFinalPreSubmit(false)} style={{ borderRadius: '10px' }}>
                                             Ignorer le Quiz et Lancer
                                         </Button>
                                         <div className="d-flex">
-                                             <Button
-                                                color="secondary"
-                                                className="mr-3"
-                                                onClick={() => setStep(1)}
-                                                style={{ borderRadius: '10px' }}
-                                            >
-                                                Retour
-                                            </Button>
-                                            <Button
-                                                className="px-4"
-                                                onClick={() => handleFinalPreSubmit(true)}
-                                                style={{ backgroundColor: 'var(--pubcash-green)', color: 'white', borderRadius: '10px', border: 'none' }}
-                                            >
-                                                Valider et Lancer
-                                            </Button>
+                                             <Button color="secondary" className="mr-3" onClick={() => setStep(1)} style={{ borderRadius: '10px' }}>Retour</Button>
+                                            <Button className="px-4" onClick={() => handleFinalPreSubmit(true)} style={{ backgroundColor: 'var(--pubcash-green)', color: 'white', borderRadius: '10px', border: 'none' }}>Valider et Lancer</Button>
                                         </div>
                                     </div>
                                 </div>
-
                             </CardBody>
                         </Card>
                     </Col>
                 </Row>
             </Container>
 
-            {/* --- CONFIRMATION MODAL --- */}
-            <Modal isOpen={isModalOpen} toggle={() => setIsModalOpen(false)} size="lg">
-                <ModalHeader toggle={() => setIsModalOpen(false)}>Confirmer la promotion</ModalHeader>
+            {/* --- CONFIRMATION MODAL AVEC PROGRESS BAR --- */}
+            <Modal 
+                isOpen={isModalOpen} 
+                toggle={() => { if(!loading) setIsModalOpen(false); }} // Empêche de fermer si ça charge
+                size="lg"
+                backdrop={loading ? "static" : true} // Empêche de cliquer à coté si ça charge
+                keyboard={!loading} // Empêche echap si ça charge
+            >
+                <ModalHeader toggle={() => { if(!loading) setIsModalOpen(false); }}>Confirmer la promotion</ModalHeader>
                 <ModalBody>
-                    <div className="py-3">
-                         <Row>
-                             <Col md="6">
-                                 <p className="text-sm text-muted mb-1">Titre de la promotion</p>
-                                 <h4 className="mb-3">{formData.titre}</h4>
+                    {/* ZONE D'AFFICHAGE CONDITIONNELLE */}
+                    
+                    {loading ? (
+                        /* AFFICHAGE PENDANT LE CHARGEMENT */
+                        <div className="py-5 text-center">
+                            <h3 className="mb-4">Création de la promotion en cours...</h3>
+                            
+                            {/* Barre de progression Reactstrap */}
+                            <Progress animated color="success" value={uploadProgress} style={{ height: '25px' }}>
+                                {uploadProgress}%
+                            </Progress>
+                            
+                            <p className="mt-3 text-muted">
+                                Téléchargement de la vidéo : {uploadProgress}% <br/>
+                                Veuillez ne pas fermer cette fenêtre.
+                            </p>
+                        </div>
+                    ) : (
+                        /* AFFICHAGE NORMAL (RECAPITULATIF) */
+                        <div className="py-3">
+                             <Row>
+                                 <Col md="6">
+                                     <p className="text-sm text-muted mb-1">Titre de la promotion</p>
+                                     <h4 className="mb-3">{formData.titre}</h4>
 
-                                 <p className="text-sm text-muted mb-1">Budget Total</p>
-                                 <h4 className="mb-3 text-primary">{parseFloat(formData.budget).toLocaleString('fr-FR')} FCFA</h4>
+                                     <p className="text-sm text-muted mb-1">Budget Total</p>
+                                     <h4 className="mb-3 text-primary">{parseFloat(formData.budget).toLocaleString('fr-FR')} FCFA</h4>
 
-                                 <p className="text-sm text-muted mb-1">Vues Estimées</p>
-                                 <h4 className="mb-3">~ {vuesPotentielles} personnes</h4>
-                             </Col>
-                             <Col md="6">
-                                 <p className="text-sm text-muted mb-1">Ciblage</p>
-                                 <h5 className="mb-3">
-                                     {formData.tranche_age === 'tous' ? 'Tout le monde' : 'Ciblé par âge'} <br/>
-                                     {formData.ciblage_commune === 'toutes' ? 'Toutes les communes' : profile.commune}
-                                 </h5>
+                                     <p className="text-sm text-muted mb-1">Vues Estimées</p>
+                                     <h4 className="mb-3">~ {vuesPotentielles} personnes</h4>
+                                 </Col>
+                                 <Col md="6">
+                                     <p className="text-sm text-muted mb-1">Ciblage</p>
+                                     <h5 className="mb-3">
+                                         {formData.tranche_age === 'tous' ? 'Tout le monde' : 'Ciblé par âge'} <br/>
+                                         {formData.ciblage_commune === 'toutes' ? 'Toutes les communes' : profile.commune}
+                                     </h5>
 
-                                 {includeQuiz && (
-                                    <div className="p-3 bg-secondary rounded">
-                                        <i className="ni ni-check-bold text-success mr-2"></i>
-                                        <span className="font-weight-bold">Quiz Inclus</span>
-                                    </div>
-                                 )}
-                             </Col>
-                         </Row>
-                         <hr/>
-                         <p className="text-center font-weight-bold mt-2">
-                             Votre solde actuel : {parseFloat(profile.solde_recharge).toLocaleString('fr-FR')} FCFA <br/>
-                             Nouveau solde après opération : <span className="text-warning">{parseFloat(nouveauSolde).toLocaleString('fr-FR')} FCFA</span>
-                         </p>
-                    </div>
+                                     {includeQuiz && (
+                                        <div className="p-3 bg-secondary rounded">
+                                            <i className="ni ni-check-bold text-success mr-2"></i>
+                                            <span className="font-weight-bold">Quiz Inclus</span>
+                                        </div>
+                                     )}
+                                 </Col>
+                             </Row>
+                             <hr/>
+                             <p className="text-center font-weight-bold mt-2">
+                                 Votre solde actuel : {parseFloat(profile.solde_recharge).toLocaleString('fr-FR')} FCFA <br/>
+                                 Nouveau solde après opération : <span className="text-warning">{parseFloat(nouveauSolde).toLocaleString('fr-FR')} FCFA</span>
+                             </p>
+                        </div>
+                    )}
                 </ModalBody>
-                <ModalFooter>
-                    <Button color="secondary" onClick={() => setIsModalOpen(false)}>Annuler</Button>
-                    <Button color="success" onClick={submitPromotion} disabled={loading}>
-                        {loading ? <Spinner size="sm" /> : "Confirmer et Payer"}
-                    </Button>
-                </ModalFooter>
+                
+                {/* CACHER LES BOUTONS PENDANT LE CHARGEMENT */}
+                {!loading && (
+                    <ModalFooter>
+                        <Button color="secondary" onClick={() => setIsModalOpen(false)}>Annuler</Button>
+                        <Button color="success" onClick={submitPromotion}>
+                            Confirmer et Payer
+                        </Button>
+                    </ModalFooter>
+                )}
             </Modal>
 
             {/* --- SUCCESS MODAL --- */}
