@@ -17,7 +17,7 @@ const Profile = () => {
   const [updateError, setUpdateError] = useState('');
   const [updateSuccess, setUpdateSuccess] = useState('');
   const [isUpdating, setIsUpdating] = useState(false);
-const navigate = useNavigate();
+  const navigate = useNavigate();
   // Modale de confirmation MDP
   const [isPasswordConfirmModalOpen, setIsPasswordConfirmModalOpen] = useState(false);
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -43,11 +43,16 @@ const navigate = useNavigate();
   const [replyFile, setReplyFile] = useState(null);
   const feedbackFileRef = useRef(null);
   const replyFileRef = useRef(null);
-// 2. NOUVEAUX STATES pour la suppression
+  // 2. NOUVEAUX STATES pour la suppression
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [deletePassword, setDeletePassword] = useState("");
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [deleteError, setDeleteError] = useState("");
+
+  // State pour le popup de résultat de modification
+  const [profileResultModal, setProfileResultModal] = useState(false);
+  const [profileResultStatus, setProfileResultStatus] = useState(null); // 'success' | 'error'
+  const [profileResultMessage, setProfileResultMessage] = useState('');
   // --- Fetch Logic ---
   const fetchProfile = useCallback(async () => {
     try {
@@ -139,48 +144,61 @@ const navigate = useNavigate();
       setUpdateSuccess("Vos informations de profil ont bien été mises à jour ✅");
       await fetchProfile();
 
+      // Fermer les modaux et afficher le popup de succès
+      setIsPasswordConfirmModalOpen(false);
+      setIsModalOpen(false);
+      setConfirmPassword('');
+      setPasswordData({ currentPassword: '', newPassword: '' });
+
+      // Afficher le popup de succès
+      setProfileResultStatus('success');
+      setProfileResultMessage('Vos informations de profil ont bien été mises à jour !');
+      setProfileResultModal(true);
+
+      // Recharger la page après 2 secondes
       setTimeout(() => {
-        setIsPasswordConfirmModalOpen(false);
-        setIsModalOpen(false);
-        setConfirmPassword('');
-        setPasswordData({ currentPassword: '', newPassword: '' });
-        setUpdateSuccess('');
-      }, 1500);
+        window.location.reload();
+      }, 2000);
 
     } catch (err) {
       const errorMessage = err.response?.data?.message || "Une erreur est survenue lors de la mise à jour.";
       setUpdateError(errorMessage);
       setIsPasswordConfirmModalOpen(false);
+
+      // Afficher le popup d'erreur
+      setProfileResultStatus('error');
+      setProfileResultMessage(errorMessage);
+      setProfileResultModal(true);
     } finally {
       setIsUpdating(false);
     }
   };
-// 3. NOUVELLE FONCTION : Gestion de la suppression
+  // 3. NOUVELLE FONCTION : Gestion de la suppression
   const handleDeleteAccount = async () => {
     if (!deletePassword) {
-        setDeleteError("Veuillez entrer votre mot de passe.");
-        return;
+      setDeleteError("Veuillez entrer votre mot de passe.");
+      return;
     }
     setDeleteLoading(true);
     setDeleteError("");
 
     try {
-        // On envoie l'ID du profil et le mot de passe
-        await api.post('/auth/client/delete-account', {
-            id: profile.id, // Assure-toi que profile contient l'ID
-            password: deletePassword
-        });
+      // On envoie l'ID du profil et le mot de passe
+      await api.post('/auth/client/delete-account', {
+        id: profile.id, // Assure-toi que profile contient l'ID
+        password: deletePassword
+      });
 
-        // Succès : on ferme la modale et on déconnecte
-        setIsDeleteModalOpen(false);
-        // Ici tu devrais appeler ta fonction de logout globale ou nettoyer le localStorage
-        localStorage.clear(); 
-        navigate("/auth/login-client"); // Redirection vers login
-        
+      // Succès : on ferme la modale et on déconnecte
+      setIsDeleteModalOpen(false);
+      // Ici tu devrais appeler ta fonction de logout globale ou nettoyer le localStorage
+      localStorage.clear();
+      navigate("/auth/login-client"); // Redirection vers login
+
     } catch (err) {
-        setDeleteError(err.response?.data?.message || "Erreur lors de la suppression.");
+      setDeleteError(err.response?.data?.message || "Erreur lors de la suppression.");
     } finally {
-        setDeleteLoading(false);
+      setDeleteLoading(false);
     }
   };
   const handleImageChange = (e, type) => {
@@ -471,92 +489,92 @@ const navigate = useNavigate();
                   </Col>
                 </Row>
                 <hr className="my-4" />
-               <div className="d-flex justify-content-end align-items-center">
+                <div className="d-flex justify-content-end align-items-center">
                   <div className="text-right">
-                     
-                      <Button 
-                        color="danger" 
-                        size="sm" 
-                        type="button"
-                        onClick={() => setIsDeleteModalOpen(true)}
-                        className="shadow-sm"
-                      >
-                        <i className="ni ni-fat-remove mr-1" />
-                        Supprimer mon compte
-                      </Button>
+
+                    <Button
+                      color="danger"
+                      size="sm"
+                      type="button"
+                      onClick={() => setIsDeleteModalOpen(true)}
+                      className="shadow-sm"
+                    >
+                      <i className="ni ni-fat-remove mr-1" />
+                      Supprimer mon compte
+                    </Button>
                   </div>
-               </div>
+                </div>
               </div>
             </Form>
           </CardBody>
         </Card>
       </Container>
-{/* --- NOUVELLE MODALE : CONFIRMATION SUPPRESSION --- */}
-      <Modal 
-        isOpen={isDeleteModalOpen} 
-        toggle={() => setIsDeleteModalOpen(!isDeleteModalOpen)} 
+      {/* --- NOUVELLE MODALE : CONFIRMATION SUPPRESSION --- */}
+      <Modal
+        isOpen={isDeleteModalOpen}
+        toggle={() => setIsDeleteModalOpen(!isDeleteModalOpen)}
         className="modal-dialog-centered modal-danger" // 'modal-danger' donne un style rouge si supporté par ton thème, sinon c'est juste une classe
       >
         <div className="modal-header bg-white">
-            <h6 className="modal-title text-danger font-weight-bold" id="modal-title-notification">
-                Attention : Suppression de compte
-            </h6>
-            <button
-                aria-label="Close"
-                className="close"
-                data-dismiss="modal"
-                type="button"
-                onClick={() => setIsDeleteModalOpen(false)}
-            >
-                <span aria-hidden={true}>×</span>
-            </button>
+          <h6 className="modal-title text-danger font-weight-bold" id="modal-title-notification">
+            Attention : Suppression de compte
+          </h6>
+          <button
+            aria-label="Close"
+            className="close"
+            data-dismiss="modal"
+            type="button"
+            onClick={() => setIsDeleteModalOpen(false)}
+          >
+            <span aria-hidden={true}>×</span>
+          </button>
         </div>
-       <ModalBody className="bg-white">
-            <div className="py-3 text-center">
-                <i className="ni ni-bell-55 ni-3x text-danger mb-4"></i>
-                
-                {/* AJOUT DE 'text-dark' ICI */}
-                <h4 className="heading mt-4 text-dark">Êtes-vous sûr ?</h4>
-                
-                {/* AJOUT DE 'text-muted' (gris) ou 'text-dark' (noir) ICI */}
-                <p className="text-muted mb-4">
-                    Cette action programmera la suppression de votre compte.<br/>
-                    Vous disposez de <strong>45 jours</strong> pour réactiver votre compte en vous connectant simplement.<br/>
-                    Passé ce délai, vos données seront <strong>définitivement perdues</strong>.
-                </p>
-                
-                <FormGroup className="mt-4 text-left">
-                    {/* AJOUT DE 'text-dark' SUR LE LABEL */}
-                    <Label className="font-weight-bold text-sm text-dark">Entrez votre mot de passe pour confirmer :</Label>
-                    <Input 
-                        type="password" 
-                        placeholder="Mot de passe"
-                        value={deletePassword}
-                        onChange={(e) => setDeletePassword(e.target.value)}
-                        className={deleteError ? "is-invalid text-dark" : "text-dark"} // Force le texte de l'input en noir aussi
-                        style={{ color: '#000' }} // Sécurité supplémentaire pour l'input
-                    />
-                    {deleteError && <div className="invalid-feedback d-block">{deleteError}</div>}
-                </FormGroup>
-            </div>
+        <ModalBody className="bg-white">
+          <div className="py-3 text-center">
+            <i className="ni ni-bell-55 ni-3x text-danger mb-4"></i>
+
+            {/* AJOUT DE 'text-dark' ICI */}
+            <h4 className="heading mt-4 text-dark">Êtes-vous sûr ?</h4>
+
+            {/* AJOUT DE 'text-muted' (gris) ou 'text-dark' (noir) ICI */}
+            <p className="text-muted mb-4">
+              Cette action programmera la suppression de votre compte.<br />
+              Vous disposez de <strong>45 jours</strong> pour réactiver votre compte en vous connectant simplement.<br />
+              Passé ce délai, vos données seront <strong>définitivement perdues</strong>.
+            </p>
+
+            <FormGroup className="mt-4 text-left">
+              {/* AJOUT DE 'text-dark' SUR LE LABEL */}
+              <Label className="font-weight-bold text-sm text-dark">Entrez votre mot de passe pour confirmer :</Label>
+              <Input
+                type="password"
+                placeholder="Mot de passe"
+                value={deletePassword}
+                onChange={(e) => setDeletePassword(e.target.value)}
+                className={deleteError ? "is-invalid text-dark" : "text-dark"} // Force le texte de l'input en noir aussi
+                style={{ color: '#000' }} // Sécurité supplémentaire pour l'input
+              />
+              {deleteError && <div className="invalid-feedback d-block">{deleteError}</div>}
+            </FormGroup>
+          </div>
         </ModalBody>
         <ModalFooter className="bg-white">
-            <Button 
-                className="text-white ml-auto" 
-                color="danger" 
-                type="button"
-                onClick={handleDeleteAccount}
-                disabled={deleteLoading}
-            >
-                {deleteLoading ? <Spinner size="sm" /> : "Oui, supprimer mon compte"}
-            </Button>
-            <Button 
-                className="ml-2 text-primary" 
-                color="link" 
-                onClick={() => setIsDeleteModalOpen(false)}
-            >
-                Annuler
-            </Button>
+          <Button
+            className="text-white ml-auto"
+            color="danger"
+            type="button"
+            onClick={handleDeleteAccount}
+            disabled={deleteLoading}
+          >
+            {deleteLoading ? <Spinner size="sm" /> : "Oui, supprimer mon compte"}
+          </Button>
+          <Button
+            className="ml-2 text-primary"
+            color="link"
+            onClick={() => setIsDeleteModalOpen(false)}
+          >
+            Annuler
+          </Button>
         </ModalFooter>
       </Modal>
       {/* --- Modale d'Édition --- */}
@@ -940,6 +958,41 @@ const navigate = useNavigate();
             )}
           </div>
         </ModalBody>
+      </Modal>
+
+      {/* Modal Popup de résultat de modification du profil */}
+      <Modal isOpen={profileResultModal} centered backdrop="static" keyboard={false}>
+        <ModalHeader
+          className={profileResultStatus === 'success' ? 'bg-success text-white' : 'bg-danger text-white'}
+          style={{ borderBottom: 'none' }}
+        >
+          <i className={`fas ${profileResultStatus === 'success' ? 'fa-check-circle' : 'fa-times-circle'} mr-2`}></i>
+          {profileResultStatus === 'success' ? 'Modification réussie !' : 'Erreur de modification'}
+        </ModalHeader>
+        <ModalBody className="text-center py-4">
+          <div style={{ fontSize: '60px', marginBottom: '20px' }}>
+            {profileResultStatus === 'success' ? '✅' : '❌'}
+          </div>
+          <h4 className={profileResultStatus === 'success' ? 'text-success' : 'text-danger'}>
+            {profileResultMessage}
+          </h4>
+          {profileResultStatus === 'success' && (
+            <p className="text-muted mt-3">
+              La page va se recharger automatiquement...
+            </p>
+          )}
+        </ModalBody>
+        <ModalFooter className="justify-content-center border-0">
+          <Button
+            color={profileResultStatus === 'success' ? 'success' : 'danger'}
+            onClick={() => {
+              setProfileResultModal(false);
+              if (profileResultStatus === 'success') window.location.reload();
+            }}
+          >
+            {profileResultStatus === 'success' ? 'Fermer' : 'Réessayer'}
+          </Button>
+        </ModalFooter>
       </Modal>
     </>
   );
