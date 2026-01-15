@@ -9,38 +9,39 @@ const GeoGuard = ({ children }) => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const checkGeo = async () => {
+        const checkAccess = async () => {
             // Bypass pour les admins (accès URL direct)
             const path = window.location.pathname;
-            if (path.startsWith('/super-admin') || path.startsWith('/auth/login-admin')) {
+            if (path.startsWith('/super-admin') || path.startsWith('/admin') || path.startsWith('/auth/login-admin')) {
                 setIsAllowed(true);
                 setLoading(false);
                 return;
             }
 
             try {
-                // On tente d'accéder à /health
-                // Si le backend renvoie 200 => OK
-                // Si le backend renvoie 403 => Bloqué par geoMiddleware
-                // Si le backend renvoie 503 => Maintenance
+                // 1. Vérification GeoIP via /health
                 await api.get('/health');
-                setIsAllowed(true);
+
+                // 2. Vérification maintenance Web spécifique
+                const maintenanceRes = await api.get('/settings/maintenance');
+                const { maintenance, maintenance_web } = maintenanceRes.data;
+
+                // Si maintenance globale OU maintenance Web activée -> afficher page maintenance
+                if (maintenance || maintenance_web) {
+                    setIsMaintenance(true);
+                } else {
+                    setIsAllowed(true);
+                }
             } catch (error) {
                 if (error.response && error.response.status === 403) {
                     console.warn("Accès bloqué par restriction géographique.");
                     setIsAllowed(false);
                 } else if (error.response && error.response.status === 503) {
-                    console.warn("Site en maintenance.");
+                    console.warn("Site en maintenance (503).");
                     setIsMaintenance(true);
                 } else {
-                    // En cas d'autre erreur (ex: serveur éteint), on laisse passer ou on bloque ?
-                    // Pour l'instant, on laisse passer (fail open) pour ne pas bloquer sur des erreurs réseaux,
-                    // SAUF si c'est explicitement 403.
-                    // Mais si le serveur est inaccessible, l'app ne marchera pas de toute façon.
-                    // On peut mettre true pour permettre d'afficher l'interface (qui plantera plus loin)
-                    // ou false pour dire "Service indisponible".
-                    // Ici le but est la restriction GEO. Donc si pas 403, on assume Allowed (ou on rertry).
-                    console.error("Erreur check geo:", error);
+                    // Fail open si erreur réseau
+                    console.error("Erreur check access:", error);
                     setIsAllowed(true);
                 }
             } finally {
@@ -48,11 +49,10 @@ const GeoGuard = ({ children }) => {
             }
         };
 
-        checkGeo();
+        checkAccess();
     }, []);
 
     if (loading) {
-        // Afficher un loader simple pendant la vérification
         return (
             <div style={{
                 height: '100vh',
