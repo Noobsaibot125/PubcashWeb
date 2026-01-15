@@ -1,0 +1,543 @@
+{
+    "metadata": {
+        "description": "Liste complète des 134 communes et 112 villes de Côte d'Ivoire pour import en masse",
+        "source": "Données officielles extraites de villeModel.js et communeModel.js",
+        "lastUpdated": "2026-01-15",
+        "totalVilles": 112,
+        "totalCommunes": 134
+    },
+    "communes": [
+        {
+            "nom": "Plateau",
+            "nom_ville": "Abidjan"
+        },
+        {
+            "nom": "Yopougon",
+            "nom_ville": "Abidjan"
+        },
+        {
+            "nom": "Cocody",
+            "nom_ville": "Abidjan"
+        },
+        {
+            "nom": "Abobo",
+            "nom_ville": "Abidjan"
+        },
+        {
+            "nom": "Koumassi",
+            "nom_ville": "Abidjan"
+        },
+        {
+            "nom": "Marcory",
+            "nom_ville": "Abidjan"
+        },
+        {
+            "nom": "Port-Bouët",
+            "nom_ville": "Abidjan"
+        },
+        {
+            "nom": "Treichville",
+            "nom_ville": "Abidjan"
+        },
+        {
+            "nom": "AKB",
+            "nom_ville": "Bouna"
+        },
+        {
+            "nom": "220 Logements",
+            "nom_ville": "Yamoussoukro"
+        },
+        {
+            "nom": "Assabou",
+            "nom_ville": "Yamoussoukro"
+        },
+        {
+            "nom": "Habitat",
+            "nom_ville": "Yamoussoukro"
+        },
+        {
+            "nom": "Kokrenou",
+            "nom_ville": "Yamoussoukro"
+        },
+        {
+            "nom": "Morofé",
+            "nom_ville": "Yamoussoukro"
+        },
+        {
+            "nom": "Commerce",
+            "nom_ville": "Bouaké"
+        },
+        {
+            "nom": "Koko",
+            "nom_ville": "Bouaké"
+        },
+        {
+            "nom": "Air France",
+            "nom_ville": "Bouaké"
+        },
+        {
+            "nom": "Ahougnanssou",
+            "nom_ville": "Bouaké"
+        },
+        {
+            "nom": "Kennedy",
+            "nom_ville": "Bouaké"
+        },
+        {
+            "nom": "Dar-Es-Salam",
+            "nom_ville": "Bouaké"
+        },
+        {
+            "nom": "Cité",
+            "nom_ville": "San-Pédro"
+        },
+        {
+            "nom": "Lac",
+            "nom_ville": "San-Pédro"
+        },
+        {
+            "nom": "Bardot",
+            "nom_ville": "San-Pédro"
+        },
+        {
+            "nom": "Sewellé",
+            "nom_ville": "San-Pédro"
+        },
+        {
+            "nom": "Bédiala",
+            "nom_ville": "Daloa"
+        },
+        {
+            "nom": "Daloa",
+            "nom_ville": "Daloa"
+        },
+        {
+            "nom": "Gboguhé",
+            "nom_ville": "Daloa"
+        },
+        {
+            "nom": "Dimbokro",
+            "nom_ville": "Dimbokro"
+        },
+        {
+            "nom": "Daoukro",
+            "nom_ville": "Daoukro"
+        },
+        {
+            "nom": "Toumodi",
+            "nom_ville": "Toumodi"
+        },
+        {
+            "nom": "Bongouanou",
+            "nom_ville": "Bongouanou"
+        },
+        {
+            "nom": "Abengourou",
+            "nom_ville": "Abengourou"
+        },
+        {
+            "nom": "Aboisso",
+            "nom_ville": "Aboisso"
+        },
+        {
+            "nom": "Minignan",
+            "nom_ville": "Minignan"
+        },
+        {
+            "nom": "Odienné",
+            "nom_ville": "Odienné"
+        },
+        {
+            "nom": "Gagnoa",
+            "nom_ville": "Gagnoa"
+        },
+        {
+            "nom": "Divo",
+            "nom_ville": "Divo"
+        },
+        {
+            "nom": "Agboville",
+            "nom_ville": "Agboville"
+        },
+        {
+            "nom": "Adzopé",
+            "nom_ville": "Adzopé"
+        },
+        {
+            "nom": "Dabou",
+            "nom_ville": "Dabou"
+        },
+        {
+            "nom": "Man",
+            "nom_ville": "Man"
+        },
+        {
+            "nom": "Guiglo",
+            "nom_ville": "Guiglo"
+        },
+        {
+            "nom": "Duokoué",
+            "nom_ville": "Duokoué"
+        },
+        {
+            "nom": "Bouaflé",
+            "nom_ville": "Bouaflé"
+        },
+        {
+            "nom": "Korhogo",
+            "nom_ville": "Korhogo"
+        },
+        {
+            "nom": "Boundiali",
+            "nom_ville": "Boundiali"
+        },
+        {
+            "nom": "Soubré",
+            "nom_ville": "Soubré"
+        },
+        {
+            "nom": "Sassandra",
+            "nom_ville": "Sassandra"
+        },
+        {
+            "nom": "Katiola",
+            "nom_ville": "Katiola"
+        },
+        {
+            "nom": "Mankono",
+            "nom_ville": "Mankono"
+        },
+        {
+            "nom": "Touba",
+            "nom_ville": "Touba"
+        },
+        {
+            "nom": "Ferkessédougou",
+            "nom_ville": "Ferkessédougou"
+        },
+        {
+            "nom": "Bondoukou",
+            "nom_ville": "Bondoukou"
+        },
+        {
+            "nom": "Grand-Bassam",
+            "nom_ville": "Grand-Bassam"
+        },
+        {
+            "nom": "Bingerville",
+            "nom_ville": "Bingerville"
+        },
+        {
+            "nom": "Anyama",
+            "nom_ville": "Anyama"
+        },
+        {
+            "nom": "Tiassalé",
+            "nom_ville": "Tiassalé"
+        },
+        {
+            "nom": "Sikensi",
+            "nom_ville": "Sikensi"
+        },
+        {
+            "nom": "Issia",
+            "nom_ville": "Issia"
+        },
+        {
+            "nom": "Sinfra",
+            "nom_ville": "Sinfra"
+        },
+        {
+            "nom": "Zuénoula",
+            "nom_ville": "Zuénoula"
+        },
+        {
+            "nom": "Vavoua",
+            "nom_ville": "Vavoua"
+        },
+        {
+            "nom": "Séguéla",
+            "nom_ville": "Séguéla"
+        },
+        {
+            "nom": "Oumé",
+            "nom_ville": "Oumé"
+        },
+        {
+            "nom": "Lakota",
+            "nom_ville": "Lakota"
+        },
+        {
+            "nom": "Fresco",
+            "nom_ville": "Fresco"
+        },
+        {
+            "nom": "Grand-Lahou",
+            "nom_ville": "Grand-Lahou"
+        },
+        {
+            "nom": "Jacqueville",
+            "nom_ville": "Jacqueville"
+        },
+        {
+            "nom": "Tabou",
+            "nom_ville": "Tabou"
+        },
+        {
+            "nom": "Grand-Béréby",
+            "nom_ville": "Grand-Béréby"
+        },
+        {
+            "nom": "Méagui",
+            "nom_ville": "Méagui"
+        },
+        {
+            "nom": "Buyo",
+            "nom_ville": "Buyo"
+        },
+        {
+            "nom": "Taï",
+            "nom_ville": "Taï"
+        },
+        {
+            "nom": "Bloléquin",
+            "nom_ville": "Bloléquin"
+        },
+        {
+            "nom": "Toulépleu",
+            "nom_ville": "Toulépleu"
+        },
+        {
+            "nom": "Bangolo",
+            "nom_ville": "Bangolo"
+        },
+        {
+            "nom": "Biankouma",
+            "nom_ville": "Biankouma"
+        },
+        {
+            "nom": "Danané",
+            "nom_ville": "Danané"
+        },
+        {
+            "nom": "Zouan-Hounien",
+            "nom_ville": "Zouan-Hounien"
+        },
+        {
+            "nom": "Sipilou",
+            "nom_ville": "Sipilou"
+        },
+        {
+            "nom": "Kouibly",
+            "nom_ville": "Kouibly"
+        },
+        {
+            "nom": "Facobly",
+            "nom_ville": "Facobly"
+        },
+        {
+            "nom": "Tengréla",
+            "nom_ville": "Tengréla"
+        },
+        {
+            "nom": "Kouto",
+            "nom_ville": "Kouto"
+        },
+        {
+            "nom": "Sinématiali",
+            "nom_ville": "Sinématiali"
+        },
+        {
+            "nom": "Dikodougou",
+            "nom_ville": "Dikodougou"
+        },
+        {
+            "nom": "MBengue",
+            "nom_ville": "MBengue"
+        },
+        {
+            "nom": "Ouangolodougou",
+            "nom_ville": "Ouangolodougou"
+        },
+        {
+            "nom": "Kong",
+            "nom_ville": "Kong"
+        },
+        {
+            "nom": "Dabakala",
+            "nom_ville": "Dabakala"
+        },
+        {
+            "nom": "Niakara",
+            "nom_ville": "Niakara"
+        },
+        {
+            "nom": "Niakaramandougou",
+            "nom_ville": "Niakaramandougou"
+        },
+        {
+            "nom": "Sakassou",
+            "nom_ville": "Sakassou"
+        },
+        {
+            "nom": "Béoumi",
+            "nom_ville": "Béoumi"
+        },
+        {
+            "nom": "Botro",
+            "nom_ville": "Botro"
+        },
+        {
+            "nom": "Kounahiri",
+            "nom_ville": "Kounahiri"
+        },
+        {
+            "nom": "Dianra",
+            "nom_ville": "Dianra"
+        },
+        {
+            "nom": "Worofla",
+            "nom_ville": "Worofla"
+        },
+        {
+            "nom": "Kani",
+            "nom_ville": "Kani"
+        },
+        {
+            "nom": "Koro",
+            "nom_ville": "Koro"
+        },
+        {
+            "nom": "Ouaninou",
+            "nom_ville": "Ouaninou"
+        },
+        {
+            "nom": "Samatiguila",
+            "nom_ville": "Samatiguila"
+        },
+        {
+            "nom": "Madinani",
+            "nom_ville": "Madinani"
+        },
+        {
+            "nom": "Séguélon",
+            "nom_ville": "Séguélon"
+        },
+        {
+            "nom": "Gbéléban",
+            "nom_ville": "Gbéléban"
+        },
+        {
+            "nom": "Kaniasso",
+            "nom_ville": "Kaniasso"
+        },
+        {
+            "nom": "Goulia",
+            "nom_ville": "Goulia"
+        },
+        {
+            "nom": "Doropo",
+            "nom_ville": "Doropo"
+        },
+        {
+            "nom": "Nassian",
+            "nom_ville": "Nassian"
+        },
+        {
+            "nom": "Téhini",
+            "nom_ville": "Téhini"
+        },
+        {
+            "nom": "Tanda",
+            "nom_ville": "Tanda"
+        },
+        {
+            "nom": "Transua",
+            "nom_ville": "Transua"
+        },
+        {
+            "nom": "Koun-Fao",
+            "nom_ville": "Koun-Fao"
+        },
+        {
+            "nom": "Sandégué",
+            "nom_ville": "Sandégué"
+        },
+        {
+            "nom": "Agnibilékrou",
+            "nom_ville": "Agnibilékrou"
+        },
+        {
+            "nom": "Béttié",
+            "nom_ville": "Béttié"
+        },
+        {
+            "nom": "MBahiakro",
+            "nom_ville": "MBahiakro"
+        },
+        {
+            "nom": "Prikro",
+            "nom_ville": "Prikro"
+        },
+        {
+            "nom": "Bocanda",
+            "nom_ville": "Bocanda"
+        },
+        {
+            "nom": "MBatto",
+            "nom_ville": "MBatto"
+        },
+        {
+            "nom": "Arrah",
+            "nom_ville": "Arrah"
+        },
+        {
+            "nom": "Didiévi",
+            "nom_ville": "Didiévi"
+        },
+        {
+            "nom": "Tiébissou",
+            "nom_ville": "Tiébissou"
+        },
+        {
+            "nom": "Attiégouakro",
+            "nom_ville": "Attiégouakro"
+        },
+        {
+            "nom": "Alépé",
+            "nom_ville": "Alépé"
+        },
+        {
+            "nom": "Adiaké",
+            "nom_ville": "Adiaké"
+        },
+        {
+            "nom": "Tiapoum",
+            "nom_ville": "Tiapoum"
+        },
+        {
+            "nom": "Guitry",
+            "nom_ville": "Guitry"
+        },
+        {
+            "nom": "Azaguié",
+            "nom_ville": "Azaguié"
+        },
+        {
+            "nom": "Rubino",
+            "nom_ville": "Rubino"
+        },
+        {
+            "nom": "Songon",
+            "nom_ville": "Songon"
+        },
+        {
+            "nom": "Attécoubé",
+            "nom_ville": "Attécoubé"
+        },
+        {
+            "nom": "Adjamé",
+            "nom_ville": "Adjamé"
+        }
+    ]
+}

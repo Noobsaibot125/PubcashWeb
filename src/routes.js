@@ -106,7 +106,7 @@ var routes = [
   },
   {
     path: "/communes",
-    name: "Ajouter une commune",
+    name: "Communes et Packs",
     icon: "ni ni-pin-3 text-orange",
     component: <AjouterCommune />,
     layout: "/admin",
