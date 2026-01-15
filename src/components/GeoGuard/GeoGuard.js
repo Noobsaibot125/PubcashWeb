@@ -22,12 +22,11 @@ const GeoGuard = ({ children }) => {
                 // 1. Vérification GeoIP via /health
                 await api.get('/health');
 
-                // 2. Vérification maintenance Web spécifique
+                // 2. Vérification maintenance globale
                 const maintenanceRes = await api.get('/settings/maintenance');
-                const { maintenance, maintenance_web } = maintenanceRes.data;
+                const { maintenance } = maintenanceRes.data;
 
-                // Si maintenance globale OU maintenance Web activée -> afficher page maintenance
-                if (maintenance || maintenance_web) {
+                if (maintenance) {
                     setIsMaintenance(true);
                 } else {
                     setIsAllowed(true);
